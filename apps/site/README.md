@@ -27,9 +27,8 @@ npx wrangler pages deploy site --project-name <your-project-name>
 
 ## Before publishing
 
-Replace `OWNER` with the real GitHub owner in both places:
-
-- `site/index.html` — every `https://github.com/OWNER/comfy-colab-kit` href
-- `site/main.js` — `const REPO_URL = "https://github.com/OWNER/comfy-colab-kit";`
+Configured with GitHub owner: `FireTable/comfy-colab-kit`.
+- `apps/site/index.html` — `https://github.com/FireTable/comfy-colab-kit`
+- `apps/site/main.js` — `const REPO_URL = "https://github.com/FireTable/comfy-colab-kit";`
 
 Doc links follow `${REPO_URL}/blob/main/docs/AGENT.md` (and the same pattern for other docs).

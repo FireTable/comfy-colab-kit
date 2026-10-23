@@ -1,0 +1,18 @@
+# Cloudflare Pages Custom Headers
+# https://developers.cloudflare.com/pages/platform/headers/
+
+# HTML: Never cache stale HTML; always revalidate with ETag to pick up new deployments immediately
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+# CSS and JS: Revalidate with server (or use query hash ?v= for instant cache-busting)
+/styles.css
+  Cache-Control: public, max-age=0, must-revalidate
+/main.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Static media assets (logos, images, fonts): Cache for 1 day
+/assets/*
+  Cache-Control: public, max-age=86400

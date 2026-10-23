@@ -1,4 +1,4 @@
-const REPO_URL = "https://github.com/OWNER/comfy-colab-kit";
+const REPO_URL = "https://github.com/FireTable/comfy-colab-kit";
 
 // Animated aurora background — vanilla WebGL port inspired by React Bits "Aurora"
 // (https://reactbits.dev, MIT License, (c) David Haz). Falls back to CSS gradient without WebGL
@@ -51,8 +51,6 @@ document.querySelectorAll(".card").forEach((card) => {
 
 // Theme management
 const root = document.documentElement;
-const theme = localStorage.getItem("kit.theme") || "dark";
-root.dataset.theme = theme;
 const themeBtn = document.getElementById("theme-btn");
 if (themeBtn) {
   themeBtn.onclick = () => {
@@ -62,6 +60,13 @@ if (themeBtn) {
     if (window.kitBg) window.kitBg.set({});
   };
 }
+window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+  if (!localStorage.getItem("kit.theme")) {
+    const next = e.matches ? "dark" : "light";
+    root.dataset.theme = next;
+    if (window.kitBg) window.kitBg.set({});
+  }
+});
 
 // Internationalization (i18n) Dictionary
 const I18N = {
@@ -380,7 +385,7 @@ function applyLanguage(lang) {
   // Update language trigger label
   const langLabel = document.getElementById("lang-label");
   if (langLabel) {
-    langLabel.textContent = lang === "zh" ? "简" : "EN";
+    langLabel.textContent = lang === "zh" ? "简体中文" : "English";
   }
 
   // Update active status on popover items

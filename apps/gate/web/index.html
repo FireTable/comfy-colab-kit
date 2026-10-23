@@ -1,7 +1,17 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
 <meta charset="utf-8">
+<script>
+(function() {
+  try {
+    var saved = localStorage.getItem('kit.theme');
+    var sysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var theme = saved ? saved : (sysDark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  } catch (e) {}
+})();
+</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Comfy Colab Kit</title>
 <link rel="icon" href="/_gate/static/logo.svg">
@@ -125,8 +135,8 @@ label{display:block;margin:18px 0 6px;font:600 11px var(--mono);letter-spacing:.
 .star::before,.star::after{content:"";position:absolute;width:300%;height:50%;border-radius:50%;opacity:.8;background:radial-gradient(circle,var(--n),transparent 12%);z-index:0}
 .star::before{bottom:-12px;right:-250%;animation:sb 5s linear infinite alternate}.star::after{top:-12px;left:-250%;animation:st 5s linear infinite alternate}
 @keyframes sb{0%{transform:translate(0)}100%{transform:translate(-100%);opacity:0}}@keyframes st{0%{transform:translate(0)}100%{transform:translate(100%);opacity:0}}
-.star > span{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:14px;font-size:16px;font-weight:700;color:#211927;
- background:linear-gradient(90deg,var(--y),var(--n));box-shadow:0 8px 30px -8px var(--y);transition:transform .15s,filter .15s}
+.star > span{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:14px;font-size:16px;font-weight:700;color:#0E0A12;
+ background:linear-gradient(180deg,#FBBF24 0%,#D97706 100%);box-shadow:0 8px 30px -8px rgba(217,119,6,.5);transition:transform .15s,filter .15s}
 .star:hover > span{filter:brightness(1.06)}.star:active > span{transform:scale(.985)}
 .star[disabled]{cursor:default}.star[disabled] > span{background:rgba(127,127,127,.18);color:var(--muted);box-shadow:none}.star[disabled]::before,.star[disabled]::after{display:none}
 #wicon{display:inline-flex;align-items:center;justify-content:center;line-height:0}
@@ -337,7 +347,13 @@ if(window.__INIT__){
  }
 }
 
-const root=document.documentElement,theme=localStorage.getItem("kit.theme")||"dark";root.dataset.theme=theme;
+const root=document.documentElement;
+window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener("change",(e)=>{
+ if(!localStorage.getItem("kit.theme")){
+  root.dataset.theme=e.matches?"dark":"light";
+  window.kitBg&&kitBg.set({});
+ }
+});
 $("theme").onclick=()=>{const n=root.dataset.theme==="dark"?"light":"dark";root.dataset.theme=n;localStorage.setItem("kit.theme",n);window.kitBg&&kitBg.set({})};
 
 // Language Dropdown Menu Implementation

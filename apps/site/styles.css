@@ -140,10 +140,11 @@ section > .inner { max-width: 1120px; margin: 0 auto; }
   font-size: 16px;
   letter-spacing: -.01em;
   white-space: nowrap;
+  flex-shrink: 0;
   transition: opacity .15s;
 }
 .brand:hover { opacity: .88; color: var(--fg); }
-.brand img { width: 32px; height: 32px; border-radius: 9px; }
+.brand img { width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0; }
 
 /* Centered Floating Pill Navigation */
 .nav-pill {
@@ -153,7 +154,7 @@ section > .inner { max-width: 1120px; margin: 0 auto; }
   background: rgba(127, 127, 127, 0.08);
   border: 1px solid var(--line);
   border-radius: 99px;
-  padding: 4px 6px;
+  padding: 3px 5px;
   backdrop-filter: blur(12px);
 }
 :root[data-theme=light] .nav-pill {
@@ -163,9 +164,9 @@ section > .inner { max-width: 1120px; margin: 0 auto; }
 .nav-pill a {
   color: var(--muted);
   text-decoration: none;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 500;
-  padding: 6px 14px;
+  padding: 5px 11px;
   border-radius: 99px;
   transition: all .15s ease;
   white-space: nowrap;
@@ -183,6 +184,7 @@ section > .inner { max-width: 1120px; margin: 0 auto; }
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 /* Icon Buttons (Theme, GitHub, Language) */
@@ -240,7 +242,7 @@ section > .inner { max-width: 1120px; margin: 0 auto; }
 
 /* Language Dropdown Menu */
 .lang-dropdown { position: relative; }
-.lang-btn { font: 600 12.5px var(--mono); padding: 0 10px; white-space: nowrap; }
+.lang-btn { font: 500 13px system-ui, -apple-system, sans-serif; padding: 0 10px; white-space: nowrap; gap: 6px; }
 .globe-icon { color: var(--muted); flex-shrink: 0; }
 .chevron-sm { width: 12px; height: 12px; color: var(--muted); transition: transform .2s ease; flex-shrink: 0; }
 .lang-open .chevron-sm { transform: rotate(180deg); }
@@ -303,27 +305,30 @@ section > .inner { max-width: 1120px; margin: 0 auto; }
   transition: box-shadow .2s ease, border-color .2s ease, transform .15s ease, filter .15s ease;
 }
 .btn-primary {
-  background: linear-gradient(90deg, #E8710A, #F9AB00);
+  background: linear-gradient(180deg, #FBBF24 0%, #D97706 100%);
   color: #0E0A12;
   font-weight: 700;
-  box-shadow: 0 4px 14px -2px rgba(232, 113, 10, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 14px -2px rgba(217, 119, 6, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 .btn-primary:hover {
+  background: linear-gradient(180deg, #FCD34D 0%, #EA580C 100%);
   color: #0E0A12;
-  filter: brightness(1.06);
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px -4px rgba(249, 171, 0, 0.5), 0 0 20px -2px rgba(232, 113, 10, 0.35);
+  box-shadow: 0 8px 24px -4px rgba(249, 171, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 :root[data-theme=light] .btn-primary {
-  background: linear-gradient(135deg, #EA580C 0%, #D97706 100%);
+  background: linear-gradient(180deg, #F59E0B 0%, #D97706 100%);
   color: #FFFFFF;
   font-weight: 600;
-  box-shadow: 0 4px 14px -2px rgba(234, 88, 12, 0.4), 0 1px 2px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(180, 83, 9, 0.2);
+  box-shadow: 0 4px 14px -2px rgba(217, 119, 6, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 :root[data-theme=light] .btn-primary:hover {
+  background: linear-gradient(180deg, #FBBF24 0%, #EA580C 100%);
   color: #FFFFFF;
-  filter: brightness(1.05);
-  box-shadow: 0 8px 24px -3px rgba(234, 88, 12, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px -3px rgba(217, 119, 6, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .btn-secondary {
@@ -848,7 +853,7 @@ details.card .answer {
 }
 
 /* Responsive Breakpoints */
-@media (max-width: 960px) {
+@media (max-width: 1140px) {
   .nav-pill { display: none; }
 }
 
