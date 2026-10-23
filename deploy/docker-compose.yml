@@ -10,10 +10,12 @@ services:
     env_file: ../.env
     environment:
       HOME: /data/home
+      PYTHONPATH: /app/apps
     volumes:
       - ../data:/data                  # state (session.json, cu_ledger.json) + colab CLI login; owner 10001, mode 700
       # content is bind-mounted read-only, NOT baked: `git pull` applies it, no rebuild/restart
       # (profiles are re-read on every wake). Only gate/ code changes need `up -d --build`.
+      - ../apps/gate:/app/apps/gate:ro
       - ../profiles:/app/profiles:ro         # profiles (built-in examples + user custom)
       - ../packages/colab:/app/packages/colab:ro  # colab/setup.py, shipped to the VM on each wake
       - ../apps/gate/web:/app/apps/gate/web:ro    # static web assets (index.html, bg.js, etc.)

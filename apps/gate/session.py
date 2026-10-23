@@ -257,11 +257,22 @@ class Session:
         m = self.machine
         snap = self._snapshot()
         d = stopper.evaluate(self.settings.auto_stop, snap)
+        now = self.clock()
+        durs = {}
+        for k, v in self.stage_durations.items():
+            dur = v.get("duration")
+            start = v.get("start", now)
+            durs[k] = {
+                "start": start,
+                "duration": dur,
+                "elapsed": dur if dur is not None else round(max(0.1, now - start), 1),
+            }
         return {
             **m.snapshot(),
+            "server_time": now,
             "busy": m.state not in (State.SLEEPING, State.READY, State.FAILED),
             "progress": self.progress,
-            "stage_durations": self.stage_durations,
+            "stage_durations": durs,
             "enable_smoke_test": self.settings.enable_smoke_test,
             "remaining_s": d.remaining_s,
             "warn": d.warn,
@@ -540,8 +551,17 @@ class Session:
             self.machine.to(State.INSTALLING, "setup started")
             self.persist()
             timeout = self.settings.auto_stop.boot_timeout_min * 60
-            async for line in self.colab.exec_stream(name, self._bootstrap_code(), timeout):
-                self.handle_line(line)
+            for attempt in range(1, 4):
+                try:
+                    async for line in self.colab.exec_stream(name, self._bootstrap_code(), timeout):
+                        self.handle_line(line)
+                    break
+                except ColabError as ce:
+                    if self.machine.state not in (State.READY, State.FAILED) and attempt < 3 and not self.progress.get("stage"):
+                        self.bus.publish("log", f"Colab kernel connection reset; retrying ({attempt}/3) in 3s …")
+                        await asyncio.sleep(3)
+                        continue
+                    raise
             if self.machine.state not in (State.READY, State.FAILED):
                 self.machine.to(State.FAILED, "setup ended without KIT_READY")
         except asyncio.CancelledError:

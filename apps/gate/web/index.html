@@ -484,7 +484,8 @@ function formatReason(r){
 
 function render(){
  if(!S)return;
- const st=S.state,waking=BOOT.includes(st)||st==="switching",now=Date.now()/1000;
+ const serverNow = S.server_time ? S.server_time + ((Date.now() - (render.lastSyncTime || Date.now())) / 1000) : (Date.now() / 1000);
+ const st=S.state,waking=BOOT.includes(st)||st==="switching",now=serverNow;
  if(st!==lastSt){stageT[st]=now;lastSt=st;window.kitBg&&kitBg.set({amp:waking?1.6:1})}
  const cls=st==="ready"?"ready":st==="failed"?"failed":waking||st==="stopping"?"waking":"";
  $("badge").className="badge "+cls;
@@ -508,10 +509,11 @@ function render(){
   const sd=durs[k];
   if(i<ci){
    if(sd&&sd.duration!=null)tStr=`${sd.duration}s`;
+   else if(sd&&sd.elapsed!=null)tStr=`${sd.elapsed}s`;
    else if(sd&&sd.start)tStr=fmt(now-sd.start);
   }else if(i===ci){
    const startT=(sd&&sd.start)||stageT[k]||now;
-   tStr=fmt(now-startT);
+   tStr=fmt(Math.max(1, now-startT));
   }
   if(k==="downloading"&&d&&d.total){
    const dlPct=(d.files_done!=null&&d.files_total!=null&&d.files_done<d.files_total)?Math.min(99,Math.floor(100*d.done/d.total)):Math.min(100,Math.round(100*d.done/d.total));
@@ -590,18 +592,19 @@ $("stop").onclick=async()=>{
 
 function connect(){
  const es=new EventSource("/_gate/events?cid="+encodeURIComponent(cid)+"&since="+lines);
- es.addEventListener("state",e=>{const j=JSON.parse(e.data);S=Object.assign({you:S&&S.you,owner_only:S&&S.owner_only},j);render()});
+ es.addEventListener("state",e=>{const j=JSON.parse(e.data);S=Object.assign({you:S&&S.you,owner_only:S&&S.owner_only},j);render.lastSyncTime=Date.now();render()});
  es.addEventListener("progress",e=>{if(S){S.progress=JSON.parse(e.data);render()}});
  es.addEventListener("log",e=>log(JSON.parse(e.data)));
  es.onerror=()=>{$("sub").textContent=t("reconnecting")}}
 
 // Initial paint (SSR zero-flicker or fallback)
+render.lastSyncTime=Date.now();
 renderCustomSelect();
 render();
 loadProfiles();
 connect();
 setInterval(render,1000);
-setInterval(()=>api("/_gate/status?cid="+encodeURIComponent(cid)).then(j=>{S=Object.assign({},S||{},j);render()}).catch(()=>{}),10000);
+setInterval(()=>api("/_gate/status?cid="+encodeURIComponent(cid)).then(j=>{S=Object.assign({},S||{},j);render.lastSyncTime=Date.now();render()}).catch(()=>{}),10000);
 </script>
 </body>
 </html>
