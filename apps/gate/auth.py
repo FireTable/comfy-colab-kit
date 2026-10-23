@@ -77,12 +77,21 @@ def is_owner(email: str, settings: Settings) -> bool:
     return not settings.owner_emails or email.lower() in settings.owner_emails
 
 
-def identify(headers: Mapping[str, str], settings: Settings, keys: JWKSCache | None, agent_token: str = "") -> Identity:
+def identify(headers: Mapping[str, str], settings: Settings, keys: JWKSCache | None,
+             agent_token: str = "", query_token: str = "", cookie_token: str = "") -> Identity:
+    token_candidate = None
     auth = headers.get("Authorization", "")
-    if agent_token and auth.startswith("Bearer "):
-        if hmac.compare_digest(auth[7:].strip(), agent_token):
+    if auth.startswith("Bearer "):
+        token_candidate = auth[7:].strip()
+    elif query_token:
+        token_candidate = query_token.strip()
+    elif cookie_token:
+        token_candidate = cookie_token.strip()
+
+    if agent_token and token_candidate:
+        if hmac.compare_digest(token_candidate, agent_token):
             return Identity("agent", "agent", True)
-        raise AuthError(401, "bad_agent_token", "invalid bearer token")
+        raise AuthError(401, "bad_agent_token", "invalid bearer or access token")
     if settings.auth_disabled:
         return Identity("dev@localhost", "dev", True)
     token = headers.get("Cf-Access-Jwt-Assertion") or ""

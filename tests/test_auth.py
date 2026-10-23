@@ -119,6 +119,22 @@ def test_agent_bearer(keypair):
         identify({"Authorization": "Bearer nope"}, s, cache, "abc")
 
 
+def test_agent_query_and_cookie_tokens(keypair):
+    key, jwks = keypair
+    s = settings()
+    cache = JWKSCache(TEAM, lambda url: jwks)
+    # query token matches
+    i1 = identify({}, s, cache, "sec123", query_token="sec123")
+    assert i1.kind == "agent" and i1.is_owner
+    # cookie token matches
+    i2 = identify({}, s, cache, "sec123", cookie_token="sec123")
+    assert i2.kind == "agent" and i2.is_owner
+    # invalid query token
+    with pytest.raises(AuthError):
+        identify({}, s, cache, "sec123", query_token="wrong")
+
+
+
 def test_plain_email_header_is_not_trusted(keypair):
     key, jwks = keypair
     cache = JWKSCache(TEAM, lambda url: jwks)

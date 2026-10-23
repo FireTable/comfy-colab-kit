@@ -27,12 +27,17 @@ STRIP_REQ = {"cf-access-jwt-assertion", "cf-access-authenticated-user-email", "c
 OVERLAY_TAG = '<script src="/_gate/static/overlay.js" defer></script>'
 
 
+DEFAULT_BACKEND_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+
+
 def service_headers(path: str) -> dict[str, str]:
     raw = read_secret_file(path)
+    base = {"User-Agent": DEFAULT_BACKEND_UA}
     if not raw:
-        return {}
+        return base
     d = json.loads(raw)
-    return {"CF-Access-Client-Id": d["client_id"], "CF-Access-Client-Secret": d["client_secret"]}
+    base.update({"CF-Access-Client-Id": d["client_id"], "CF-Access-Client-Secret": d["client_secret"]})
+    return base
 
 
 def inject_overlay(html: str) -> str:
@@ -70,6 +75,11 @@ class Proxy:
         if any(k.lower() == "accept-encoding" for k in req.headers):
             h["Accept-Encoding"] = "gzip, deflate, br"
         h.update(service_headers(self.token_file))
+        ua = req.headers.get("User-Agent", "")
+        if not ua or "python" in ua.lower() or "curl" in ua.lower():
+            h["User-Agent"] = DEFAULT_BACKEND_UA
+        else:
+            h["User-Agent"] = ua
         return h
 
     async def probe(self) -> bool:

@@ -154,7 +154,7 @@ class Session:
         if st in ("allocating", "installing", "downloading", "booting", "smoke_testing"):
             self.stage_durations[st] = {"start": now, "duration": None}
         elif ev.state == State.READY:
-            self.clients_zero_since = None
+            self.clients_zero_since = now if self.open_clients == 0 else None
             self.touch()
         self.persist()
         self.bus.publish("state", self.status())
@@ -527,7 +527,7 @@ class Session:
             self.bus.publish("state", self.status())
         elif clean.startswith("KIT_READY"):
             if self.machine.state != State.READY and self.machine.can(State.READY):
-                self.clients_zero_since = None
+                self.clients_zero_since = self.clock() if self.open_clients == 0 else None
                 self.touch()
                 self.machine.to(State.READY, "ComfyUI ready")
         elif clean.startswith("KIT_FAILED"):

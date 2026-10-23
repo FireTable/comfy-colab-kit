@@ -229,3 +229,26 @@ def test_smoke_test_setting_plan(tmp_path):
     p_on = build_plan(prof, s_on)
     # tiny profile does not have smoke, so smoke remains None
     assert p_on["smoke"] is None
+
+
+def test_zero_clients_tracking_on_ready(tmp_path):
+    s = make(tmp_path)
+    s.machine.to(State.ALLOCATING)
+    s.machine.to(State.INSTALLING)
+    s.machine.to(State.DOWNLOADING)
+    s.machine.to(State.BOOTING)
+    assert s.open_clients == 0
+    assert s.clients_zero_since is None
+    s.handle_line("KIT_READY {}")
+    assert s.machine.state == State.READY
+    assert s.clients_zero_since is not None  # tracked immediately since 0 clients were connected
+    # Client opens
+    s.client_opened("c1")
+    assert s.open_clients == 1
+    assert s.clients_zero_since is None
+    # Client closes
+    s.client_closed("c1")
+    assert s.open_clients == 0
+    assert s.clients_zero_since is not None
+
+

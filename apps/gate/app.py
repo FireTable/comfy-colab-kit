@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import hmac
 import json
 import logging
 import re
@@ -81,13 +82,18 @@ async def auth_mw(request: web.Request, handler):
     if request.path in PUBLIC_PATHS or request.path.startswith("/_gate/static/"):
         return await handler(request)
     app = request.app
+    query_token = request.query.get("token", "")
+    cookie_token = request.cookies.get("agent_token", "")
     try:
         ident = await asyncio.get_running_loop().run_in_executor(
-            None, identify, request.headers, app[SETTINGS], app[JWKS], app[AGENT_TOKEN])
+            None, identify, request.headers, app[SETTINGS], app[JWKS], app[AGENT_TOKEN], query_token, cookie_token)
     except AuthError as e:
         return err(e.status, e.code, e.msg)
     request[IDENT] = ident
-    return await handler(request)
+    resp = await handler(request)
+    if query_token and app[AGENT_TOKEN] and hmac.compare_digest(query_token, app[AGENT_TOKEN]):
+        resp.set_cookie("agent_token", query_token, path="/", httponly=True, samesite="Lax")
+    return resp
 
 
 def _ident(request: web.Request) -> Identity:
