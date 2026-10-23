@@ -48,10 +48,16 @@ class Stage:
 def sh(cmd, check=True, quiet=False, env=None):
     if not quiet:
         print(f"$ {cmd}", flush=True)
-    r = subprocess.run(["bash", "-lc", cmd], env=env)
-    if check and r.returncode:
-        raise RuntimeError(f"failed ({r.returncode}): {cmd}")
-    return r.returncode
+    # subprocess output written straight to fd 1 bypasses the Jupyter kernel and never reaches `colab exec`;
+    # pipe it through Python's print so the gate (and the wake page log) sees it
+    p = subprocess.Popen(["bash", "-lc", cmd], env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                         text=True, errors="replace")
+    for line in p.stdout:
+        print(line.rstrip("\n"), flush=True)
+    rc = p.wait()
+    if check and rc:
+        raise RuntimeError(f"failed ({rc}): {cmd}")
+    return rc
 
 
 def up(path="/system_stats"):
@@ -327,11 +333,21 @@ def watchdog():
             return
 
 
+def smoke_prompt(d):
+    """Accept a bare API graph or a /prompt request body ({"prompt": {...}, ...}, as some repos ship it)."""
+    if isinstance(d, dict) and isinstance(d.get("prompt"), dict):
+        return d["prompt"]
+    return d
+
+
 def smoke():
-    api = json.loads(fetch(PLAN["smoke"]["api_url"]))
+    api = smoke_prompt(json.loads(fetch(PLAN["smoke"]["api_url"])))
     req = urllib.request.Request(f"http://127.0.0.1:{PORT}/prompt", data=json.dumps({"prompt": api}).encode(),
                                  headers={"Content-Type": "application/json"})
-    r = json.load(urllib.request.urlopen(req, timeout=30))
+    try:
+        r = json.load(urllib.request.urlopen(req, timeout=30))
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"prompt rejected ({e.code}): {e.read().decode(errors='replace')[:600]}") from None
     if "prompt_id" not in r:
         raise RuntimeError(f"prompt rejected: {json.dumps(r)[:500]}")
     pid = r["prompt_id"]

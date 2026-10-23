@@ -54,3 +54,13 @@ def test_comfy_cmd_uses_profile_args(monkeypatch):
     cmd = setup.comfy_cmd()
     assert cmd[:2] == ["python", "main.py"] and cmd[-1] == "--fast"
     assert cmd.count("--listen") == 1
+
+
+def test_smoke_prompt_unwraps_request_body():
+    import importlib.util, pathlib
+    spec = importlib.util.spec_from_file_location("kit_setup", pathlib.Path(__file__).parent.parent / "colab/setup.py")
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    g = {"1": {"class_type": "X", "inputs": {}}}
+    assert m.smoke_prompt({"prompt": g, "presets": []}) == g
+    assert m.smoke_prompt(g) == g
