@@ -1,0 +1,27 @@
+# Comfy Colab Kit
+
+> Wake-on-demand ComfyUI on Google Colab. A small aiohttp gateway (comfy-gate) on a VPS behind Cloudflare Access
+> shows a Hugging-Face-Space-style wake page, starts one shared Colab L4 session via the colab CLI, streams progress
+> to every viewer over SSE, reverse-proxies ComfyUI (incl. /ws) through a Cloudflare tunnel, and auto-stops on idle,
+> max session, quiet hours or compute-unit budget. Profiles describe models by public URL and community/official workflows (vendored only when Apache-2.0/MIT, otherwise by URL).
+
+## Docs
+- [README](README.md): overview, quick start, structure
+- [AGENTS.md](AGENTS.md): module map, state machine, invariants for coding agents
+- [docs/README.md](docs/README.md): documentation map and agent fast path
+- [docs/AGENT_SKILL.md](docs/AGENT_SKILL.md): how an agent wakes, uses, and stops a deployed gate
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): components, data flow, shared session, proxy
+- [docs/PROFILES.md](docs/PROFILES.md): profile format, ComfyUI passthrough, App mode
+- [docs/AUTO_STOP.md](docs/AUTO_STOP.md): every stop rule and its .env variable
+- [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md), [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md): deployment
+- [docs/SECURITY.md](docs/SECURITY.md): secrets, scanning, threat model
+- [docs/WAKE_PAGE.md](docs/WAKE_PAGE.md): wake page and overlay UI
+- [docs/API.md](docs/API.md): HTTP API summary
+
+## API
+- [gate/openapi.yaml](gate/openapi.yaml): OpenAPI 3.1 for /_gate/*
+- [schemas/profile.schema.json](schemas/profile.schema.json): profile JSON Schema
+
+## Optional
+- [.env.example](.env.example): all configuration variables
+- [examples/profiles/moss-image/README.md](examples/profiles/moss-image/README.md): primary example profile

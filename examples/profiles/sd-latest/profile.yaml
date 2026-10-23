@@ -1,0 +1,145 @@
+# Stable Diffusion 3.5 profile. Official template vendored (MIT); Tensor.Art workflows are fetched by URL
+# (Stability Community License). SD3.5 Medium base is gated: accept the license on HF and set HF_TOKEN_FILE.
+# yaml-language-server: $schema=../../../schemas/profile.schema.json
+id: sd-latest
+title: Stable Diffusion 3.5 (Large fp8 default · TurboX / Medium turbo)
+accelerator: L4
+comfyui:
+  repo: https://github.com/comfyanonymous/ComfyUI
+  commit: bc5f880
+  args:
+  - --preview-method
+  - auto
+  settings: {}
+frontend:
+  package: comfyui-frontend-package==1.57.1
+models:
+- id: sd35l-fp8
+  dest: checkpoints/sd3.5_large_fp8_scaled.safetensors
+  url: hf://Comfy-Org/stable-diffusion-3.5-fp8/sd3.5_large_fp8_scaled.safetensors
+  license: Stability AI Community License
+  sha256: 5ad94d6f951556b1ab6b75930fd4effbafaf3130fe9df440e7f2d05a220dd1be
+  size_gb: 14.93
+  core: true
+- id: sd35m
+  dest: checkpoints/sd3.5_medium.safetensors
+  url: hf://stabilityai/stable-diffusion-3.5-medium/sd3.5_medium.safetensors
+  license: 'Stability AI Community License (gated: accept on HF, set HF_TOKEN_FILE)'
+  size_gb: 5.11
+  gated: true
+- id: clip-g
+  dest: text_encoders/clip_g.safetensors
+  url: hf://Comfy-Org/stable-diffusion-3.5-fp8/text_encoders/clip_g.safetensors
+  license: Stability AI Community License
+  sha256: ec310df2af79c318e24d20511b601a591ca8cd4f1fce1d8dff822a356bcdb1f4
+  size_gb: 1.39
+- id: clip-l
+  dest: text_encoders/clip_l.safetensors
+  url: hf://Comfy-Org/stable-diffusion-3.5-fp8/text_encoders/clip_l.safetensors
+  license: Stability AI Community License
+  sha256: 660c6f5b1abae9dc498ac2d21e1347d2abdb0cf6c0c0c8576cd796491d9a6cdd
+  size_gb: 0.25
+- id: t5-fp8
+  dest: text_encoders/t5xxl_fp8_e4m3fn.safetensors
+  url: hf://Comfy-Org/stable-diffusion-3.5-fp8/text_encoders/t5xxl_fp8_e4m3fn.safetensors
+  license: Stability AI Community License
+  sha256: 7d330da4816157540d6bb7838bf63a0f02f573fc48ca4d8de34bb0cbfd514f09
+  size_gb: 4.89
+- id: turbox-8step
+  dest: loras/Tensorart_TurboX_sd3.5L_8steps.safetensors
+  url: hf://tensorart/stable-diffusion-3.5-large-TurboX/Tensorart_TurboX_sd3.5L_8steps.safetensors
+  license: Stability AI Community License (other)
+  sha256: fae59d1b749c0d14a8fd4c68cc94eaac92876cee7b91fa75cf8fde3160e09548
+  size_gb: 0.11
+- id: sd35m-4step
+  dest: loras/1125-18k-4.safetensors
+  url: hf://tensorart/stable-diffusion-3.5-medium-turbo/lora_sd3.5m_4steps.safetensors
+  license: Stability AI Community License (other)
+  sha256: bdcbdfa3ec8ed838b77b1020eea3bc7917a2d42573688a034feb921fde8b1858
+  size_gb: 0.12
+- id: sd35m-8step
+  dest: loras/lora_sd3.5m_turbo_8steps.safetensors
+  url: hf://tensorart/stable-diffusion-3.5-medium-turbo/lora_sd3.5m_turbo_8steps.safetensors
+  license: Stability AI Community License (other)
+  sha256: fe37e611192cc232c805e10dda70b86586f3857338625faf4b24125034796d9e
+  size_gb: 0.05
+workflows:
+- id: sd35-large
+  title: Quality · SD 3.5 Large fp8 (official, 20 steps)
+  source: https://comfyanonymous.github.io/ComfyUI_examples/sd3/
+  license: MIT; model Stability Community License (gated)
+  file: workflows/official_sd3.5_simple.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/sd3.5_simple_example.json
+  upstream_sha256: 22636f8ea8d35f41ecf92917112e14376bc30ae2c01de0b9553493cf2c176619
+  models:
+  - sd35l-fp8
+  app:
+    inputs:
+    - - 16
+      - text
+    - - 40
+      - text
+    outputs:
+    - 9
+- id: sd35l-turbox
+  title: Fast · SD 3.5 Large TurboX 8-step (Tensor.Art)
+  source: https://huggingface.co/tensorart/stable-diffusion-3.5-large-TurboX
+  license: Stability Community License (other)
+  url: https://huggingface.co/tensorart/stable-diffusion-3.5-large-TurboX/resolve/main/contrast_sd3.5L_TurboX_turbo_diff_cfg.json
+  upstream_sha256: 9c509b1abdb92d591bffa8eb12187e3d1f3b6710464eb9b8f129797d192f58b0
+  models:
+  - sd35l-fp8
+  - clip-g
+  - clip-l
+  - t5-fp8
+  - turbox-8step
+  overrides:
+  - node: 1
+    widget_index: 0
+    value: sd3.5_large_fp8_scaled.safetensors
+  app:
+    inputs:
+    - - 2
+      - text
+    outputs:
+    - 11
+  note: 'comparison graph: also loads sd3.5_large_turbo (not downloaded); run the TurboX branch'
+- id: sd35m-4step
+  title: Fastest · SD 3.5 Medium 4-step LoRA (Tensor.Art, gated base)
+  source: https://huggingface.co/tensorart/stable-diffusion-3.5-medium-turbo
+  license: Stability Community License
+  url: https://huggingface.co/tensorart/stable-diffusion-3.5-medium-turbo/resolve/main/sd3.5m-4steps-nonstop.json
+  upstream_sha256: ccad3841e3a097e55d975e8d99b860d9e4bb862cda379c77bd66fcb0f4a37276
+  optional: true
+  models:
+  - sd35m
+  - clip-g
+  - clip-l
+  - t5-fp8
+  - sd35m-4step
+  app:
+    inputs:
+    - - 3
+      - text
+    outputs:
+    - 7
+- id: sd35m-8step
+  title: Fast · SD 3.5 Medium 8-step LoRA (Tensor.Art, gated base)
+  source: https://huggingface.co/tensorart/stable-diffusion-3.5-medium-turbo
+  license: Stability Community License
+  url: https://huggingface.co/tensorart/stable-diffusion-3.5-medium-turbo/resolve/main/contrast_lora_.json
+  upstream_sha256: d539dbbca43ef04a652e4651f327e1a31b243286d3c8831d447786e2c8b7017d
+  optional: true
+  models:
+  - sd35m
+  - clip-g
+  - clip-l
+  - t5-fp8
+  - sd35m-8step
+  app:
+    inputs:
+    - - 3
+      - text
+    outputs:
+    - 11
+app_default: sd35-large

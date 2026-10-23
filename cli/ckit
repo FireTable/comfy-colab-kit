@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""ckit — tiny client for comfy-gate (stdlib only; agent friendly).
+
+  ckit status|profiles [--json]
+  ckit wake [--profile ID] [--workflow ID ...] [--wait]
+  ckit switch PROFILE      (owner)
+  ckit stop | extend       (owner)
+
+Env: CKIT_URL (e.g. https://comfy.example.com), CKIT_TOKEN_FILE (agent bearer token file),
+     optional CF_ACCESS_CLIENT_ID / CF_ACCESS_CLIENT_SECRET_FILE (Access service token for the public host).
+"""
+import argparse
+import json
+import os
+import sys
+import time
+import urllib.error
+import urllib.request
+
+
+def _read(path):
+    return open(os.path.expanduser(path)).read().strip() if path else ""
+
+
+def call(method, path, body=None):
+    base = os.environ.get("CKIT_URL", "http://127.0.0.1:8080").rstrip("/")
+    req = urllib.request.Request(base + path, method=method,
+                                 data=json.dumps(body).encode() if body is not None else None,
+                                 headers={"Content-Type": "application/json"})
+    tok = _read(os.environ.get("CKIT_TOKEN_FILE", ""))
+    if tok:
+        req.add_header("Authorization", "Bearer " + tok)
+    cid = os.environ.get("CF_ACCESS_CLIENT_ID")
+    if cid:
+        req.add_header("CF-Access-Client-Id", cid)
+        req.add_header("CF-Access-Client-Secret", _read(os.environ.get("CF_ACCESS_CLIENT_SECRET_FILE", "")))
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return r.status, json.loads(r.read() or b"{}")
+    except urllib.error.HTTPError as e:
+        return e.code, json.loads(e.read() or b"{}")
+
+
+def main():
+    ap = argparse.ArgumentParser(prog="ckit")
+    ap.add_argument("cmd", choices=["status", "profiles", "wake", "switch", "stop", "extend"])
+    ap.add_argument("profile_arg", nargs="?")
+    ap.add_argument("--profile")
+    ap.add_argument("--workflow", action="append", help="enable an optional workflow (repeatable)")
+    ap.add_argument("--wait", action="store_true", help="block until ready/failed (wake)")
+    ap.add_argument("--json", action="store_true")
+    a = ap.parse_args()
+    if a.cmd == "status":
+        code, out = call("GET", "/_gate/status")
+    elif a.cmd == "profiles":
+        code, out = call("GET", "/_gate/profiles")
+    elif a.cmd == "wake":
+        code, out = call("POST", "/_gate/wake", {k: v for k, v in
+                         (("profile", a.profile), ("workflows", a.workflow)) if v})
+        while a.wait and code < 300:
+            time.sleep(10)
+            code, out = call("GET", "/_gate/status")
+            if out.get("state") in ("ready", "failed", "sleeping"):
+                break
+            if not a.json:
+                print(f"… {out.get('state')} {json.dumps(out.get('progress', {}).get('download', {}))}", file=sys.stderr)
+    elif a.cmd == "switch":
+        code, out = call("POST", "/_gate/switch", {"profile": a.profile_arg or a.profile})
+    else:
+        code, out = call("POST", f"/_gate/{a.cmd}")
+    print(json.dumps(out, indent=None if a.json else 2, ensure_ascii=False))
+    sys.exit(0 if code < 400 and out.get("state") != "failed" else 1)
+
+
+if __name__ == "__main__":
+    main()

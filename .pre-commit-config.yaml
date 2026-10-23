@@ -1,0 +1,17 @@
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks: [{id: gitleaks}]
+  - repo: local
+    hooks:
+      - id: kit-secret-scan
+        name: kit secret scan
+        entry: scripts/check-secrets.sh
+        language: script
+        pass_filenames: true
+      - id: validate-profiles
+        name: validate example profiles
+        entry: python scripts/validate-profile.py
+        language: system
+        files: ^examples/profiles/
+        pass_filenames: false

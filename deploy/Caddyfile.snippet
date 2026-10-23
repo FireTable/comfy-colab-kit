@@ -1,0 +1,12 @@
+# Add to your existing Caddyfile. Cloudflare proxies PUBLIC_HOST (orange cloud, SSL "Full (strict)")
+# and terminates Access; Caddy only does TLS with a Cloudflare Origin certificate.
+comfy.example.com {                   # = PUBLIC_HOST
+	tls /etc/caddy/certs/origin.pem /etc/caddy/certs/origin.key
+	encode zstd gzip
+	reverse_proxy comfy-gate:8080 {
+		flush_interval -1                    # stream SSE progress/logs immediately
+		transport http {
+			read_timeout 0                       # long-lived /ws and /_gate/events
+		}
+	}
+}

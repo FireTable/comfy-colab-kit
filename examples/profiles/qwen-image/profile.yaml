@@ -1,0 +1,137 @@
+# Qwen-Image profile. Workflow JSONs are official Comfy-Org templates (MIT, vendored); weights are under the
+# qwen-research license and are only referenced by URL. Edit-2511/2512 templates are excluded (20 GB weights / superseded).
+# yaml-language-server: $schema=../../../schemas/profile.schema.json
+id: qwen-image
+title: Qwen-Image 2.1 (Turbo default · T2I / Edit)
+accelerator: L4
+comfyui:
+  repo: https://github.com/comfyanonymous/ComfyUI
+  commit: bc5f880
+  args:
+  - --preview-method
+  - auto
+  settings: {}
+frontend:
+  package: comfyui-frontend-package==1.57.1
+models:
+- id: q21-turbo-int8
+  dest: diffusion_models/qwen_image_2.1_turbo_int8_convrot.safetensors
+  url: hf://Comfy-Org/Qwen-Image-2.1/diffusion_models/qwen_image_2.1_turbo_int8_convrot.safetensors
+  license: qwen-research license (see model card; check commercial use)
+  sha256: 8144a0182964aa8403ad6dbc011db837304167d235161b9aabaa8532e967314c
+  size_gb: 7.26
+  core: true
+- id: q21-int8
+  dest: diffusion_models/qwen_image_2.1_int8_convrot.safetensors
+  url: hf://Comfy-Org/Qwen-Image-2.1/diffusion_models/qwen_image_2.1_int8_convrot.safetensors
+  license: qwen-research license (see model card; check commercial use)
+  sha256: cb74113cb03faecd79611b01fd7fd642f0aa60d6f0b95086abee214d75eaa57d
+  size_gb: 7.26
+- id: q3vl-te
+  dest: text_encoders/qwen3vl_8b_int8_convrot.safetensors
+  url: hf://Comfy-Org/Qwen-Image-2.1/text_encoders/qwen3vl_8b_int8_convrot.safetensors
+  license: qwen-research license (see model card; check commercial use)
+  sha256: 8bfd0f6e12abf2d2d697ecc888e5e90b0d6741d6708f05799f53afa560452e8f
+  size_gb: 9.35
+  core: true
+- id: pe-t2i
+  dest: text_encoders/qwen3.5_9b_qwen_image_2.1_pe_t2i.int8_convrot.safetensors
+  url: hf://Comfy-Org/Qwen-Image-2.1/text_encoders/qwen3.5_9b_qwen_image_2.1_pe_t2i.int8_convrot.safetensors
+  license: qwen-research license (see model card; check commercial use)
+  sha256: 9182abae56fe05459840a86d22abd21f972061c92fce032630af680c8c5178d3
+  size_gb: 9.47
+  core: true
+- id: pe-i2i
+  dest: text_encoders/qwen3.5_9b_qwen_image_2.1_pe_i2i.int8_convrot.safetensors
+  url: hf://Comfy-Org/Qwen-Image-2.1/text_encoders/qwen3.5_9b_qwen_image_2.1_pe_i2i.int8_convrot.safetensors
+  license: qwen-research license (see model card; check commercial use)
+  sha256: 32707d01b427e488af252b95c551989aad59f9fec611a694f5db6bde7f0f1f6c
+  size_gb: 9.47
+- id: q21-vae
+  dest: vae/qwen_image_2.1_vae_bf16.safetensors
+  url: hf://Comfy-Org/Qwen-Image-2.1/vae/qwen_image_2.1_vae_bf16.safetensors
+  license: qwen-research license (see model card; check commercial use)
+  sha256: bb21f7473051e1ac368515dd3f2e15cd44d7a11748ee8823e1ddca3e4876b7c9
+  size_gb: 0.68
+  core: true
+workflows:
+- id: qwen21-turbo-t2i
+  title: Fast · Qwen-Image 2.1 Turbo T2I (official)
+  source: https://huggingface.co/Comfy-Org/Qwen-Image-2.1
+  license: MIT template; weights qwen-research license (check commercial)
+  file: workflows/official_image_qwen_image_2_1_turbo_t2i.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_qwen_image_2_1_turbo_t2i.json
+  upstream_sha256: 3eb9cef2866c0186fbe30172701f112b35e574cf3c6575c6e4a6b5dd1e76a403
+  models:
+  - q21-turbo-int8
+  - q3vl-te
+  - pe-t2i
+  - q21-vae
+  app:
+    inputs:
+    - - 459
+      - prompt
+    - - 459
+      - width
+    - - 459
+      - height
+- id: qwen21-t2i
+  title: Quality · Qwen-Image 2.1 T2I (official)
+  source: https://huggingface.co/Comfy-Org/Qwen-Image-2.1
+  license: MIT template; weights qwen-research license (check commercial)
+  file: workflows/official_image_qwen_image_2_1_t2i.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_qwen_image_2_1_t2i.json
+  upstream_sha256: 5f2b50eeaf27e56a45456681ad5319df1ae51243d9653ac3f92c7dc05d1e1503
+  models:
+  - q21-int8
+  - q3vl-te
+  - pe-t2i
+  - q21-vae
+  app:
+    inputs:
+    - - 459
+      - prompt
+    - - 459
+      - width
+    - - 459
+      - height
+- id: qwen21-turbo-edit
+  title: Fast · Qwen-Image 2.1 Turbo Edit (official)
+  source: https://huggingface.co/Comfy-Org/Qwen-Image-2.1
+  license: MIT template; weights qwen-research license (check commercial)
+  file: workflows/official_image_qwen_image_2_1_turbo_image_edit.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_qwen_image_2_1_turbo_image_edit.json
+  upstream_sha256: 5a9622d550866800414afcb9c70523ec5c6965eb171476e401e243a7fe8d5a4e
+  models:
+  - q21-turbo-int8
+  - q3vl-te
+  - pe-i2i
+  - q21-vae
+  app:
+    inputs:
+    - - 470
+      - image
+    - - 459
+      - prompt
+- id: qwen21-edit
+  title: Quality · Qwen-Image 2.1 Edit (official)
+  source: https://huggingface.co/Comfy-Org/Qwen-Image-2.1
+  license: MIT template; weights qwen-research license (check commercial)
+  file: workflows/official_image_qwen_image_2_1_image_edit.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_qwen_image_2_1_image_edit.json
+  upstream_sha256: c1e6551759de131f083a040da072ac6f032c3c8401ceca202412cd912897d0fc
+  optional: true
+  models:
+  - q21-int8
+  - q3vl-te
+  - pe-i2i
+  - q21-vae
+  app:
+    inputs:
+    - - 470
+      - image
+    - - 475
+      - image
+    - - 459
+      - prompt
+app_default: qwen21-turbo-t2i

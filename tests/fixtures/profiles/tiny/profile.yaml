@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=../../../../schemas/profile.schema.json
+# Test fixture only (not an example). Uses a ComfyUI_examples workflow by URL.
+id: tiny
+title: SD 1.5 minimal (img2img example, ~2 GB)
+accelerator: L4
+comfyui:
+  repo: https://github.com/comfyanonymous/ComfyUI
+  commit: bc5f880
+  args: [--preview-method, latent2rgb]
+  settings: {}
+frontend:
+  package: comfyui-frontend-package==1.57.1
+
+models:
+  - id: sd15-fp16
+    dest: checkpoints/v1-5-pruned-emaonly-fp16.safetensors
+    url: hf://Comfy-Org/stable-diffusion-v1-5-archive/v1-5-pruned-emaonly-fp16.safetensors
+    sha256: e9476a13728cd75d8279f6ec8bad753a66a1957ca375a1464dc63b37db6e3916
+    size_gb: 2.13
+    license: creativeml-openrail-m
+    core: true
+
+workflows:
+  - id: examples-img2img
+    title: "img2img (ComfyUI_examples)"
+    source: https://comfyanonymous.github.io/ComfyUI_examples/img2img/
+    url: https://raw.githubusercontent.com/comfyanonymous/ComfyUI_examples/master/img2img/img2img_workflow.png
+    format: png              # workflow is embedded in the PNG metadata
+    license: "0BSD-style (ComfyUI_examples LICENSE)"
+    models: [sd15-fp16]
+    overrides:
+      - {node: 14, widget_index: 0, value: v1-5-pruned-emaonly-fp16.safetensors}
+    app:
+      inputs: [[10, image], [6, text], [3, denoise], [3, seed]]
+      outputs: [9]
+
+app_default: examples-img2img

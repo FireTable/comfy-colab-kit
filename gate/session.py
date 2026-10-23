@@ -1,0 +1,344 @@
+"""One global, shared session.
+
+* Exactly one Colab VM per gate. `wake()` is idempotent: whoever calls it while a
+  session is booting or ready simply joins it (no second `colab new`).
+* All state changes and setup log lines are broadcast to every connected page (SSE).
+* State is persisted to STATE_DIR/session.json so a gate restart re-attaches
+  instead of launching a duplicate VM.
+"""
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+import tarfile
+import tempfile
+import time
+from collections import deque
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Callable
+
+from . import stopper
+from .budget import Ledger
+from .colab import ColabError, ColabRunner
+from .config import Settings, read_secret_file
+from .plan import build_plan
+from .profiles import Profile
+from .state import BOOT_STATES, Machine, State
+
+log = logging.getLogger("gate.session")
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+@dataclass
+class WakeResult:
+    joined: bool
+    state: str
+    profile: str | None
+    refused: str = ""
+
+
+class Broadcaster:
+    def __init__(self, backlog: int = 400):
+        self.subscribers: set[asyncio.Queue] = set()
+        self.logs: deque[str] = deque(maxlen=backlog)
+
+    def subscribe(self) -> asyncio.Queue:
+        q: asyncio.Queue = asyncio.Queue(maxsize=1000)
+        self.subscribers.add(q)
+        return q
+
+    def unsubscribe(self, q: asyncio.Queue) -> None:
+        self.subscribers.discard(q)
+
+    def publish(self, kind: str, data: Any) -> None:
+        if kind == "log":
+            self.logs.append(str(data))
+        for q in list(self.subscribers):
+            try:
+                q.put_nowait((kind, data))
+            except asyncio.QueueFull:
+                pass  # slow client; it will resync from /_gate/status
+
+
+class Session:
+    def __init__(self, settings: Settings, profiles: dict[str, Profile], colab: ColabRunner,
+                 clock: Callable[[], float] = time.time):
+        self.settings, self.profiles, self.colab, self.clock = settings, profiles, colab, clock
+        self.machine = Machine(clock=clock)
+        self.lock = asyncio.Lock()
+        self.bus = Broadcaster()
+        self.state_file = Path(settings.state_dir) / "session.json"
+        self.ledger = Ledger.load(Path(settings.state_dir) / "cu_ledger.json")
+        self.last_activity = clock()
+        self.open_clients = 0
+        self.clients_zero_since: float | None = None
+        self.queue_busy = False
+        self.progress: dict[str, Any] = {}
+        self.workflows: list[str] | None = None
+        self._task: asyncio.Task | None = None
+        self._last_accrual = clock()
+        self.machine.listeners.append(lambda ev: self.bus.publish("state", self.status()))
+
+    # ── persistence ───────────────────────────────────────────────────────
+    def persist(self) -> None:
+        self.state_file.parent.mkdir(parents=True, exist_ok=True)
+        tmp = self.state_file.with_suffix(".tmp")
+        tmp.write_text(json.dumps({**self.machine.snapshot(), "workflows": self.workflows,
+                                   "last_activity": self.last_activity}))
+        tmp.replace(self.state_file)
+
+    def restore(self) -> None:
+        if not self.state_file.is_file():
+            return
+        d = json.loads(self.state_file.read_text())
+        try:
+            st = State(d.get("state", "sleeping"))
+        except ValueError:
+            st = State.SLEEPING
+        m = self.machine
+        m.state, m.profile, m.reason = st, d.get("profile"), d.get("reason", "")
+        m.since, m.session_started = d.get("since", self.clock()), d.get("session_started")
+        m.extends_used = int(d.get("extends_used", 0))
+        self.workflows = d.get("workflows")
+        self.last_activity = d.get("last_activity", self.clock())
+        if st == State.STOPPING:
+            m.state = State.FAILED  # stop was interrupted; tick() will retry it
+            m.reason = "stop interrupted by gate restart"
+
+    async def reconcile(self) -> None:
+        """After restart: if we think a VM exists, check Colab still has it."""
+        if not self.machine.is_billing:
+            return
+        try:
+            names = await self.colab.sessions()
+        except ColabError as e:
+            log.warning("reconcile failed: %s", e)
+            return
+        if self.settings.colab_session_name not in names:
+            async with self.lock:
+                self._force(State.SLEEPING, "VM gone (released outside the gate)")
+        elif self.machine.is_booting:
+            # setup output stream is lost on restart; the VM keeps booting, readiness is probed via the tunnel
+            self.bus.publish("log", "gate restarted during boot; re-attaching and probing backend")
+
+    def _force(self, st: State, reason: str) -> None:
+        m = self.machine
+        m.state, m.reason, m.since = st, reason, self.clock()
+        if st == State.SLEEPING:
+            m.session_started = None
+        self.persist()
+        self.bus.publish("state", self.status())
+
+    # ── public API ────────────────────────────────────────────────────────
+    def status(self) -> dict:
+        m = self.machine
+        snap = self._snapshot()
+        d = stopper.evaluate(self.settings.auto_stop, snap)
+        return {
+            **m.snapshot(),
+            "busy": m.state not in (State.SLEEPING, State.READY, State.FAILED),
+            "progress": self.progress,
+            "remaining_s": d.remaining_s,
+            "warn": d.warn,
+            "can_extend": stopper.can_extend(self.settings.auto_stop, m.extends_used),
+            "cu": {"today": self.ledger.today(), "month": self.ledger.month(), "balance": self.ledger.balance,
+                   "per_hour": self.settings.auto_stop.cu_per_hour},
+            "clients": self.open_clients,
+            "default_view": self.settings.default_view,
+        }
+
+    async def wake(self, profile_id: str | None, by: str = "", workflows: list[str] | None = None) -> WakeResult:
+        async with self.lock:
+            m = self.machine
+            if m.state not in (State.SLEEPING, State.FAILED):
+                # someone already started it: join the in-flight / running session
+                return WakeResult(True, m.state.value, m.profile)
+            pid = profile_id or self.settings.default_profile
+            if pid not in self.profiles:
+                raise KeyError(pid)
+            ok, why = stopper.admit_wake(self.settings.auto_stop, self.clock(), self.ledger.today(),
+                                         self.ledger.month(), self.ledger.balance)
+            if not ok:
+                return WakeResult(False, m.state.value, m.profile, refused=why)
+            if m.state == State.FAILED:
+                await self._stop_locked("restart after failure")
+            m.profile, self.workflows, self.progress = pid, workflows, {}
+            m.to(State.ALLOCATING, f"wake by {by or 'unknown'}")
+            self.last_activity = self.clock()
+            self.persist()
+            self._task = asyncio.create_task(self._boot(pid))
+            return WakeResult(False, m.state.value, pid)
+
+    async def stop(self, reason: str) -> None:
+        async with self.lock:
+            await self._stop_locked(reason)
+
+    async def extend(self) -> bool:
+        async with self.lock:
+            if not stopper.can_extend(self.settings.auto_stop, self.machine.extends_used):
+                return False
+            self.machine.extends_used += 1
+            self.persist()
+            self.bus.publish("state", self.status())
+            return True
+
+    async def switch(self, profile_id: str, by: str = "") -> WakeResult:
+        """v1: cold switch (stop, then wake with the new profile)."""
+        if profile_id not in self.profiles:
+            raise KeyError(profile_id)
+        async with self.lock:
+            if self.machine.state == State.READY:
+                self.machine.to(State.SWITCHING, f"switch to {profile_id} by {by}")
+                await self._stop_locked(f"switch to {profile_id}")
+        return await self.wake(profile_id, by=by)
+
+    def touch(self) -> None:
+        self.last_activity = self.clock()
+
+    def client_opened(self) -> None:
+        self.open_clients += 1
+        self.clients_zero_since = None
+
+    def client_closed(self) -> None:
+        self.open_clients = max(0, self.open_clients - 1)
+        if self.open_clients == 0:
+            self.clients_zero_since = self.clock()
+
+    # ── internals ─────────────────────────────────────────────────────────
+    async def _stop_locked(self, reason: str) -> None:
+        m = self.machine
+        if m.state == State.SLEEPING:
+            return
+        if self._task and not self._task.done() and self._task is not asyncio.current_task():
+            self._task.cancel()
+        self._accrue()  # bill up to now while still in a billing state
+        if m.state != State.STOPPING:
+            if not m.can(State.STOPPING):
+                m.to(State.FAILED, reason)
+            m.to(State.STOPPING, reason)
+        self.persist()
+        try:
+            await self.colab.stop(self.settings.colab_session_name)
+        except ColabError as e:
+            self.bus.publish("log", f"stop error: {e}")
+            m.to(State.FAILED, f"stop failed: {e}")
+            self.persist()
+            return
+        m.to(State.SLEEPING, reason)
+        self.progress = {}
+        self.persist()
+        self.ledger.save()
+
+    def _accrue(self) -> None:
+        now = self.clock()
+        if self.machine.is_billing:
+            self.ledger.add((now - self._last_accrual) / 3600 * self.settings.auto_stop.cu_per_hour, now)
+        self._last_accrual = now
+
+    def _snapshot(self) -> stopper.Snapshot:
+        m = self.machine
+        return stopper.Snapshot(
+            now=self.clock(), state=m.state, state_since=m.since, session_started=m.session_started,
+            last_activity=self.last_activity, queue_busy=self.queue_busy, open_clients=self.open_clients,
+            clients_zero_since=self.clients_zero_since, extends_used=m.extends_used,
+            cu_today=self.ledger.today(), cu_month=self.ledger.month(), cu_balance=self.ledger.balance)
+
+    async def tick(self) -> stopper.Decision:
+        self._accrue()
+        self.ledger.save()
+        d = stopper.evaluate(self.settings.auto_stop, self._snapshot())
+        if d.stop:
+            self.bus.publish("log", f"auto-stop: {d.reason}")
+            await self.stop(f"auto:{d.reason}")
+        elif d.warn:
+            self.bus.publish("warn", {"warn": d.warn, "remaining_s": d.remaining_s})
+        return d
+
+    def _kit_tarball(self, plan: dict) -> str:
+        fd = tempfile.NamedTemporaryFile(suffix=".tgz", delete=False)
+        with tarfile.open(fileobj=fd, mode="w:gz") as tar:
+            tar.add(REPO_ROOT / "colab", arcname="colab",
+                    filter=lambda ti: None if "__pycache__" in ti.name else ti)
+            data = json.dumps(plan).encode()
+            info = tarfile.TarInfo("plan.json")
+            info.size = len(data)
+            import io
+            tar.addfile(info, io.BytesIO(data))
+        fd.close()
+        return fd.name
+
+    def _bootstrap_code(self) -> str:
+        secrets = {}
+        tok = read_secret_file(self.settings.cf_tunnel_token_file)
+        if tok:
+            secrets["CF_TUNNEL_TOKEN"] = tok
+        hf = read_secret_file(self.settings.hf_token_file)
+        if hf:
+            secrets["HF_TOKEN"] = hf
+        # secrets travel on stdin only and live in the kernel's memory
+        return (
+            "import os, json, runpy, subprocess\n"
+            "subprocess.run(['bash','-lc','rm -rf /content/kit && mkdir -p /content/kit && "
+            "tar -xzf /content/kit.tgz -C /content/kit'], check=True)\n"
+            f"os.environ.update(json.loads({json.dumps(json.dumps(secrets))}))\n"
+            "os.environ['KIT_PLAN']='/content/kit/plan.json'\n"
+            "runpy.run_path('/content/kit/colab/setup.py', run_name='__main__')\n"
+        )
+
+    def handle_line(self, line: str) -> None:
+        """Parse setup.py protocol lines; everything is also forwarded as a log line."""
+        self.bus.publish("log", line)
+        parts = line.split(" ", 3)
+        if line.startswith("KIT_STAGE ") and len(parts) >= 3:
+            self.machine.on_stage(parts[1], parts[2])
+            self.progress["stage"] = parts[1]
+        elif line.startswith("KIT_PROGRESS ") and len(parts) >= 3:
+            try:
+                self.progress[parts[1]] = json.loads(line.split(" ", 2)[2])
+            except ValueError:
+                pass
+            self.bus.publish("progress", self.progress)
+        elif line.startswith("KIT_READY"):
+            if self.machine.state != State.READY and self.machine.can(State.READY):
+                self.machine.to(State.READY, "ComfyUI ready")
+        elif line.startswith("KIT_FAILED"):
+            if self.machine.state not in (State.FAILED, State.STOPPING, State.SLEEPING):
+                self.machine.to(State.FAILED, line[len("KIT_FAILED"):].strip() or "setup failed")
+        self.persist()
+
+    async def _boot(self, pid: str) -> None:
+        name = self.settings.colab_session_name
+        try:
+            plan = build_plan(self.profiles[pid], self.settings, self.workflows)
+            if name not in await self.colab.sessions():
+                self.bus.publish("log", f"allocating Colab {self.settings.colab_accelerator} VM …")
+                await self.colab.new(name, self.settings.colab_accelerator)
+            tgz = self._kit_tarball(plan)
+            try:
+                await self.colab.upload(name, tgz, "/content/kit.tgz")
+            finally:
+                Path(tgz).unlink(missing_ok=True)
+            self.machine.to(State.INSTALLING, "setup started")
+            self.persist()
+            timeout = self.settings.auto_stop.boot_timeout_min * 60
+            async for line in self.colab.exec_stream(name, self._bootstrap_code(), timeout):
+                self.handle_line(line)
+            if self.machine.state not in (State.READY, State.FAILED):
+                self.machine.to(State.FAILED, "setup ended without KIT_READY")
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:  # noqa: BLE001
+            log.exception("boot failed")
+            self.bus.publish("log", f"boot error: {e}")
+            if self.machine.state not in (State.FAILED, State.STOPPING, State.SLEEPING):
+                self.machine.to(State.FAILED, str(e)[:300])
+        finally:
+            self.persist()
+
+    def boot_task_running(self) -> bool:
+        return bool(self._task and not self._task.done())
+
+    def is_boot_state(self) -> bool:
+        return self.machine.state in BOOT_STATES

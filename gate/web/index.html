@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Comfy Colab Kit</title>
+<link rel="icon" href="/_gate/static/logo.svg">
+<meta name="theme-color" content="#16111C">
+<style>
+:root{--bg:#FAFAF7;--card:#fff;--fg:#211927;--muted:#6b6472;--line:#e7e3ea;--y:#F9AB00;--o:#E8710A;--n:#F2FF59;--bad:#D9480F;--mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+@media (prefers-color-scheme:dark){:root{--bg:#16111C;--card:#211927;--fg:#F4F1F6;--muted:#a49cab;--line:#33293b}}
+:root[data-theme=light]{--bg:#FAFAF7;--card:#fff;--fg:#211927;--muted:#6b6472;--line:#e7e3ea}
+:root[data-theme=dark]{--bg:#16111C;--card:#211927;--fg:#F4F1F6;--muted:#a49cab;--line:#33293b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,-apple-system,"Noto Sans CJK SC",Roboto,sans-serif}
+header{display:flex;align-items:center;gap:10px;padding:14px 18px}header img{width:32px;height:32px;border-radius:8px}
+header b{font-size:16px}header .sp{flex:1}header button{background:none;border:1px solid var(--line);color:var(--fg);border-radius:10px;min-height:36px;padding:0 10px}
+main{max-width:480px;margin:0 auto;padding:8px 16px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;transition:opacity .2s}
+h1{font-size:22px;font-weight:600;margin:10px 0 4px}.muted{color:var(--muted)}
+.badge{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:13px;padding:4px 10px;border-radius:99px;background:var(--line)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}.waking .dot{background:var(--y);animation:b 1.6s infinite}.ready .dot{background:#2f9e44}.failed .dot{background:var(--bad)}
+@keyframes b{50%{opacity:.25}}@media (prefers-reduced-motion:reduce){.dot{animation:none!important}.bar i{transition:none!important}}
+.stages{list-style:none;padding:0;margin:16px 0}.stages li{display:flex;gap:10px;align-items:center;padding:6px 0;color:var(--muted)}
+.stages li.cur{color:var(--fg);font-weight:600}.stages li.done{color:var(--fg)}.stages li::before{content:"○";width:16px}.stages li.done::before{content:"✓"}.stages li.cur::before{content:"●";color:var(--o)}
+.bar{height:6px;background:var(--line);border-radius:9px;overflow:hidden;margin:4px 0 0 26px}.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--y),var(--n));transition:width .3s ease}
+label{display:block;margin:16px 0 6px;font-weight:600}
+select{width:100%;min-height:48px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg);padding:0 12px;font-size:15px}
+.primary{width:100%;min-height:52px;margin-top:18px;border:0;border-radius:14px;font-size:16px;font-weight:700;color:#211927;background:linear-gradient(90deg,var(--y),var(--n));cursor:pointer}
+.primary[disabled]{opacity:.6;cursor:default}.ghost{width:100%;min-height:48px;margin-top:10px;border-radius:14px;border:1px solid var(--line);background:none;color:var(--fg)}
+details{margin-top:14px}summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
+pre{font:11px/1.45 var(--mono);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px;max-height:300px;overflow:auto;white-space:pre-wrap;word-break:break-all;margin:0}
+.err{color:var(--bad);margin-top:10px;min-height:1em}.meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;margin-top:10px}
+</style>
+</head>
+<body>
+<header><img src="/_gate/static/logo.svg" alt=""><b>Comfy Colab Kit</b><span class="muted" id="hprof"></span><span class="sp"></span>
+<button id="theme" aria-label="Toggle theme">◐</button></header>
+<main>
+<section class="card" id="card" aria-live="polite">
+  <span class="badge" id="badge"><span class="dot"></span><span id="btext">…</span></span>
+  <h1 id="title">Connecting…</h1>
+  <div class="muted" id="sub"></div>
+  <ol class="stages" id="stages" hidden></ol>
+  <div id="pick">
+    <label for="profile">Profile</label>
+    <select id="profile"></select>
+    <div class="muted" id="pinfo" style="margin-top:6px;font-size:12px"></div>
+  </div>
+  <button class="primary" id="wake">Wake</button>
+  <button class="ghost" id="stop" hidden>Stop (release GPU)</button>
+  <div class="err" id="err" role="alert"></div>
+  <div class="meta muted" id="meta"></div>
+  <details><summary>Logs</summary><pre id="log"></pre></details>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const STAGES=[["allocating","Allocate GPU"],["installing","Install"],["downloading","Download models"],["booting","Start ComfyUI"],["smoke_testing","Smoke test"]];
+const BOOT=STAGES.map(s=>s[0]);let S=null,profiles=[],t0=null;
+const theme=localStorage.getItem("kit.theme");if(theme)document.documentElement.dataset.theme=theme;
+$("theme").onclick=()=>{const d=document.documentElement,n=d.dataset.theme==="dark"?"light":"dark";d.dataset.theme=n;localStorage.setItem("kit.theme",n)};
+async function api(p,o){const r=await fetch(p,Object.assign({headers:{"Content-Type":"application/json"}},o));const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||r.status);return j}
+function fmt(s){s=Math.max(0,Math.round(s));return s>=3600?`${Math.floor(s/3600)}h ${Math.floor(s%3600/60)}m`:`${Math.floor(s/60)}m ${s%60}s`}
+function render(){if(!S)return;const st=S.state,waking=BOOT.includes(st)||st==="switching";
+ const card=$("card");card.className="card "+(st==="ready"?"ready":st==="failed"?"failed":waking||st==="stopping"?"waking":"");
+ $("badge").className="badge "+card.className.replace("card","");
+ $("btext").textContent={sleeping:"Sleeping",ready:"Ready",failed:"Failed",stopping:"Stopping",switching:"Switching"}[st]||"Waking";
+ $("hprof").textContent=S.profile?"· "+S.profile:"";
+ $("title").textContent=st==="sleeping"?"ComfyUI is asleep":st==="ready"?"Ready — opening ComfyUI…":st==="failed"?"Start failed":st==="stopping"?"Releasing GPU…":"Waking up…";
+ $("sub").textContent=st==="sleeping"?(S.reason?`Last stop: ${S.reason}. GPU released, no compute units are used.`:"GPU released, no compute units are used."):st==="failed"?S.reason:waking?`Started ${fmt(Date.now()/1000-(S.session_started||S.since))} ago${S.reason?" · "+S.reason:""}`:"";
+ const ol=$("stages");ol.hidden=!waking;ol.innerHTML="";const ci=BOOT.indexOf(st);
+ STAGES.forEach(([k,l],i)=>{const li=document.createElement("li");li.textContent=l;if(i<ci)li.className="done";if(i===ci)li.className="cur";ol.appendChild(li);
+  if(k==="downloading"&&S.progress&&S.progress.download&&(i===ci||i===ci-1||ci>i)){const d=S.progress.download,b=document.createElement("div");b.className="bar";b.innerHTML=`<i style="width:${d.total_gb?Math.min(100,100*d.done_gb/d.total_gb):0}%"></i>`;
+   const m=document.createElement("div");m.className="muted";m.style.cssText="font-size:12px;margin-left:26px";m.textContent=`${d.done_gb} / ${d.total_gb} GB · ${d.files_done}/${d.files_total} files${d.gbps?` · ${(d.gbps*1000).toFixed(0)} MB/s`:""}`;ol.appendChild(b);ol.appendChild(m)}});
+ $("pick").hidden=!(st==="sleeping"||st==="failed");
+ const w=$("wake");w.hidden=st==="ready";w.disabled=!(st==="sleeping"||st==="failed");w.textContent=st==="failed"?"Retry":(st==="sleeping"?"Wake":"Starting…");
+ $("stop").hidden=!(S.you&&S.you.owner&&st!=="sleeping"&&st!=="stopping");
+ $("meta").innerHTML=`<span>CU today ${S.cu.today.toFixed(2)}</span><span>month ${S.cu.month.toFixed(1)}</span>${S.cu.balance!=null?`<span>balance ${S.cu.balance.toFixed(1)}</span>`:""}<span>${S.clients} viewer(s)</span>`;
+ if(st==="ready"){card.style.opacity=0;setTimeout(()=>location.reload(),200)}}
+function log(l){const p=$("log");p.textContent+=l+"\n";if(p.textContent.length>60000)p.textContent=p.textContent.slice(-40000);p.scrollTop=p.scrollHeight}
+async function loadProfiles(){try{const j=await api("/_gate/profiles");profiles=j.profiles;const sel=$("profile");sel.innerHTML="";
+ for(const p of profiles){const o=document.createElement("option");o.value=p.id;o.textContent=p.title;if(p.id===j.default)o.selected=true;sel.appendChild(o)}info()}catch(e){$("err").textContent=e.message}}
+function info(){const p=profiles.find(x=>x.id===$("profile").value);if(p)$("pinfo").textContent=`${p.workflows.filter(w=>!w.optional).length} workflows · ~${p.size_gb_default} GB download · ${p.accelerator}`}
+$("profile").onchange=info;
+$("wake").onclick=async()=>{$("err").textContent="";$("wake").disabled=true;$("wake").textContent="Starting…";
+ try{await api("/_gate/wake",{method:"POST",body:JSON.stringify({profile:$("profile").value})})}catch(e){$("err").textContent=e.message;$("wake").disabled=false;$("wake").textContent="Wake"}};
+$("stop").onclick=async()=>{if(!confirm("Stop and release the GPU?"))return;try{await api("/_gate/stop",{method:"POST"})}catch(e){$("err").textContent=e.message}};
+function connect(){const es=new EventSource("/_gate/events");
+ es.addEventListener("state",e=>{S=JSON.parse(e.data);render()});
+ es.addEventListener("progress",e=>{if(S){S.progress=JSON.parse(e.data);render()}});
+ es.addEventListener("log",e=>log(JSON.parse(e.data)));
+ es.onerror=()=>{$("sub").textContent="Reconnecting…"}}
+api("/_gate/status").then(j=>{S=j;render()}).catch(e=>$("err").textContent=e.message);
+loadProfiles();connect();setInterval(render,1000);
+</script>
+</body>
+</html>

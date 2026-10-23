@@ -1,0 +1,19 @@
+title = "comfy-colab-kit"
+[extend]
+useDefault = true
+
+[[rules]]
+id = "huggingface-token"
+regex = '''hf_[A-Za-z0-9]{30,}'''
+[[rules]]
+id = "google-oauth-access"
+regex = '''ya29\.[A-Za-z0-9_-]{20,}'''
+[[rules]]
+id = "google-oauth-refresh"
+regex = '''1//[A-Za-z0-9_-]{30,}'''
+[[rules]]
+id = "cloudflare-tunnel-token"
+regex = '''CF_TUNNEL_TOKEN=[A-Za-z0-9+/=]{40,}'''
+[[rules]]
+id = "cf-access-client-secret"
+regex = '''"client_secret"\s*:\s*"[^"]{20,}"'''

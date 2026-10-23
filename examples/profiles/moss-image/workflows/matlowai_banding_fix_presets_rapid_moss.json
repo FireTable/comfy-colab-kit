@@ -1,0 +1,3301 @@
+{
+ "last_node_id": 53,
+ "last_link_id": 82,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "CustomCombo",
+   "pos": [
+    -1300,
+    -600
+   ],
+   "size": [
+    520,
+    394
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "STRING",
+     "type": "STRING",
+     "links": []
+    },
+    {
+     "name": "INDEX",
+     "type": "INT",
+     "links": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CustomCombo"
+   },
+   "widgets_values": [
+    "Quality · banding fix · 25 steps",
+    0,
+    "Quality · banding fix · 25 steps",
+    "Quality+ · stronger fix (layers 32-41) · 25 steps",
+    "Balanced · fix + lodestones DMD 0.28 · 14 steps",
+    "Fast · fix + lodestones DMD 0.35 · 10 steps",
+    "Fast alt · fix + darask0 0.35 · 10 steps",
+    "Off · plain SFT (banding) · 25 steps",
+    "Turbo · rapid-moss lodestones 8-step + fix · 8 steps",
+    "Turbo max · rapid-moss darask0 4-step + fix · 4 steps",
+    "Turbo hi-res (experimental) · Turbo max at ~1 MP + latent upscale + 3-step Fast refine",
+    ""
+   ],
+   "title": "Preset",
+   "color": "#223",
+   "bgcolor": "#335"
+  },
+  {
+   "id": 2,
+   "type": "MarkdownNote",
+   "pos": [
+    -1300,
+    -166
+   ],
+   "size": [
+    520,
+    330
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "MarkdownNote"
+   },
+   "widgets_values": [
+    "**MOSS-Image SFT banding fix: presets**\n\nPick a preset above; it sets the LoRA strengths and step count for you.\n\n- **Quality**: banding-fix LoRA, 25 steps. Closest to SFT, stripes gone.\n- **Quality+**: also reverts layers 32-36. Cleanest, slightly different look.\n- **Balanced / Fast / Fast alt**: fix + a speed LoRA at partial strength, 14 / 10 steps.\n- **Off**: plain SFT, to compare.\n- **Turbo / Turbo max**: rapid-moss nodes, 8 / 4 steps, very fast; recomposes more. Keep **Width x Height near 1 MP** (1024x1024, 1216x832, 832x1216): the adapters were trained there, and bigger sizes break into a grid of repeated tiny subjects, worse with short prompts. Write detailed prompts. For bigger images use Fast or Balanced.\n- **Turbo hi-res (experimental)**: Turbo max at ~1 MP, latent upscale to your size, then 3 Fast steps at 0.5 denoise. About twice as fast as Fast at big sizes (~6 s vs ~11 s at 1664x1136 on a 5090), but these settings don't hold up every time: detailed photo areas such as foliage get a canvas-like texture, and Turbo's odd choices (extra props, sloppy distant figures, misspelled text) carry over. Usually not worth it, but not fully tuned either: stage-2 steps, denoise and upscale method are a starting point if you want to experiment.\n\nLoRAs at strength 0 are skipped, but the files must exist (see the model card)."
+   ],
+   "title": "How to use"
+  },
+  {
+   "id": 3,
+   "type": "UNETLoader",
+   "pos": [
+    -1300,
+    294
+   ],
+   "size": [
+    520,
+    124
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      13
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UNETLoader"
+   },
+   "widgets_values": [
+    "moss_image_sft_bf16.safetensors",
+    "default"
+   ]
+  },
+  {
+   "id": 4,
+   "type": "CLIPLoader",
+   "pos": [
+    -1300,
+    458
+   ],
+   "size": [
+    520,
+    152
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      1,
+      3
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPLoader"
+   },
+   "widgets_values": [
+    "qwen3.5_9b_int8_convrot.safetensors",
+    "moss_image",
+    "default"
+   ]
+  },
+  {
+   "id": 5,
+   "type": "VAELoader",
+   "pos": [
+    -1300,
+    650
+   ],
+   "size": [
+    520,
+    96
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "VAE",
+     "type": "VAE",
+     "links": [
+      81
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAELoader"
+   },
+   "widgets_values": [
+    "flux2-vae.safetensors"
+   ]
+  },
+  {
+   "id": 6,
+   "type": "PrimitiveStringMultiline",
+   "pos": [
+    -1300,
+    786
+   ],
+   "size": [
+    520,
+    300
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "STRING",
+     "type": "STRING",
+     "links": [
+      2,
+      35
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PrimitiveStringMultiline"
+   },
+   "widgets_values": [
+    "A cozy anime illustration of a beautiful, cute woman in her early thirties with a graceful adult face and figure, sleek glossy black hair in a short bob, a soft white fringe of bangs framing her face, delicate gold hairpins shaped like snowflakes, sparkling diamond-blue eyes and a gentle blush. She wears an oversized white knit sweater with a cute little penguin knitted on the front, a flowing mid-length white pleated skirt that falls below her knees, a soft sky-blue scarf and white socks, with a thin gold necklace holding a small blue gem. She sits on a wide wooden window seat piled with pale blue and white cushions and a knitted blanket, holding a steaming white mug decorated with a little penguin in both hands and smiling warmly at the viewer. Through the large window behind her, a calm sky fades smoothly from soft gold near the horizon to icy pale blue and deep diamond blue at the top, over a glassy turquoise bay with glittering ice floes and drifting icebergs, where a few little penguins waddle along the snowy shore. A small hand-painted wooden sign on the windowsill reads \"MOSS-Image\". Cool winter light with warm gold accents, soft cel shading, clean line art, detailed background, gentle and wholesome mood."
+   ],
+   "title": "Prompt",
+   "color": "#232",
+   "bgcolor": "#353"
+  },
+  {
+   "id": 7,
+   "type": "CLIPTextEncode",
+   "pos": [
+    -1300,
+    1126
+   ],
+   "size": [
+    520,
+    166
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 1
+    },
+    {
+     "name": "text",
+     "type": "STRING",
+     "link": 2,
+     "widget": {
+      "name": "text"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      28
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "A cozy anime illustration of a beautiful, cute woman in her early thirties with a graceful adult face and figure, sleek glossy black hair in a short bob, a soft white fringe of bangs framing her face, delicate gold hairpins shaped like snowflakes, sparkling diamond-blue eyes and a gentle blush. She wears an oversized white knit sweater with a cute little penguin knitted on the front, a flowing mid-length white pleated skirt that falls below her knees, a soft sky-blue scarf and white socks, with a thin gold necklace holding a small blue gem. She sits on a wide wooden window seat piled with pale blue and white cushions and a knitted blanket, holding a steaming white mug decorated with a little penguin in both hands and smiling warmly at the viewer. Through the large window behind her, a calm sky fades smoothly from soft gold near the horizon to icy pale blue and deep diamond blue at the top, over a glassy turquoise bay with glittering ice floes and drifting icebergs, where a few little penguins waddle along the snowy shore. A small hand-painted wooden sign on the windowsill reads \"MOSS-Image\". Cool winter light with warm gold accents, soft cel shading, clean line art, detailed background, gentle and wholesome mood."
+   ],
+   "title": "Positive"
+  },
+  {
+   "id": 8,
+   "type": "CLIPTextEncode",
+   "pos": [
+    -1300,
+    1332
+   ],
+   "size": [
+    520,
+    166
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 3
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      29
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "worst quality, bad anatomy, watermark, jpeg artifact"
+   ],
+   "title": "Negative"
+  },
+  {
+   "id": 9,
+   "type": "ComfyMathExpression",
+   "pos": [
+    -700,
+    -600
+   ],
+   "size": [
+    460,
+    214
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "values.a",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": 4,
+     "label": "a"
+    },
+    {
+     "name": "values.b",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": null,
+     "shape": 7,
+     "label": "b"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "FLOAT",
+     "type": "FLOAT",
+     "links": [
+      14
+     ]
+    },
+    {
+     "name": "INT",
+     "type": "INT",
+     "links": []
+    },
+    {
+     "name": "BOOL",
+     "type": "BOOLEAN",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ComfyMathExpression"
+   },
+   "widgets_values": [
+    "1 if a == 0 else (1 if a == 1 else (1 if a == 2 else (1 if a == 3 else (1 if a == 4 else (0 if a == 5 else (0 if a == 6 else (0 if a == 7 else (1))))))))"
+   ],
+   "title": "banding fix strength"
+  },
+  {
+   "id": 10,
+   "type": "ComfyMathExpression",
+   "pos": [
+    -700,
+    -346
+   ],
+   "size": [
+    460,
+    214
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "values.a",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": 5,
+     "label": "a"
+    },
+    {
+     "name": "values.b",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": null,
+     "shape": 7,
+     "label": "b"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "FLOAT",
+     "type": "FLOAT",
+     "links": [
+      16
+     ]
+    },
+    {
+     "name": "INT",
+     "type": "INT",
+     "links": []
+    },
+    {
+     "name": "BOOL",
+     "type": "BOOLEAN",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ComfyMathExpression"
+   },
+   "widgets_values": [
+    "0 if a == 0 else (1 if a == 1 else (0 if a == 2 else (0 if a == 3 else (0 if a == 4 else (0 if a == 5 else (0 if a == 6 else (0 if a == 7 else (0))))))))"
+   ],
+   "title": "extra fix (32-36) strength"
+  },
+  {
+   "id": 11,
+   "type": "ComfyMathExpression",
+   "pos": [
+    -700,
+    -92
+   ],
+   "size": [
+    460,
+    214
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "values.a",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": 6,
+     "label": "a"
+    },
+    {
+     "name": "values.b",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": null,
+     "shape": 7,
+     "label": "b"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "FLOAT",
+     "type": "FLOAT",
+     "links": [
+      18
+     ]
+    },
+    {
+     "name": "INT",
+     "type": "INT",
+     "links": []
+    },
+    {
+     "name": "BOOL",
+     "type": "BOOLEAN",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ComfyMathExpression"
+   },
+   "widgets_values": [
+    "0 if a == 0 else (0 if a == 1 else (0.28 if a == 2 else (0.35 if a == 3 else (0 if a == 4 else (0 if a == 5 else (0 if a == 6 else (0 if a == 7 else (0.35))))))))"
+   ],
+   "title": "lodestones DMD strength"
+  },
+  {
+   "id": 12,
+   "type": "ComfyMathExpression",
+   "pos": [
+    -700,
+    162
+   ],
+   "size": [
+    460,
+    214
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "values.a",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": 7,
+     "label": "a"
+    },
+    {
+     "name": "values.b",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": null,
+     "shape": 7,
+     "label": "b"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "FLOAT",
+     "type": "FLOAT",
+     "links": [
+      20
+     ]
+    },
+    {
+     "name": "INT",
+     "type": "INT",
+     "links": []
+    },
+    {
+     "name": "BOOL",
+     "type": "BOOLEAN",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ComfyMathExpression"
+   },
+   "widgets_values": [
+    "0 if a == 0 else (0 if a == 1 else (0 if a == 2 else (0 if a == 3 else (0.35 if a == 4 else (0 if a == 5 else (0 if a == 6 else (0 if a == 7 else (0))))))))"
+   ],
+   "title": "darask0 strength"
+  },
+  {
+   "id": 13,
+   "type": "ComfyMathExpression",
+   "pos": [
+    -700,
+    416
+   ],
+   "size": [
+    460,
+    214
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "values.a",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": 8,
+     "label": "a"
+    },
+    {
+     "name": "values.b",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": null,
+     "shape": 7,
+     "label": "b"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "FLOAT",
+     "type": "FLOAT",
+     "links": []
+    },
+    {
+     "name": "INT",
+     "type": "INT",
+     "links": [
+      26
+     ]
+    },
+    {
+     "name": "BOOL",
+     "type": "BOOLEAN",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ComfyMathExpression"
+   },
+   "widgets_values": [
+    "25 if a == 0 else (25 if a == 1 else (14 if a == 2 else (10 if a == 3 else (10 if a == 4 else (25 if a == 5 else (25 if a == 6 else (25 if a == 7 else (3))))))))"
+   ],
+   "title": "steps"
+  },
+  {
+   "id": 14,
+   "type": "ComfyMathExpression",
+   "pos": [
+    -700,
+    670
+   ],
+   "size": [
+    460,
+    214
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "values.a",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": 9,
+     "label": "a"
+    },
+    {
+     "name": "values.b",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": null,
+     "shape": 7,
+     "label": "b"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "FLOAT",
+     "type": "FLOAT",
+     "links": []
+    },
+    {
+     "name": "INT",
+     "type": "INT",
+     "links": []
+    },
+    {
+     "name": "BOOL",
+     "type": "BOOLEAN",
+     "links": [
+      77
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ComfyMathExpression"
+   },
+   "widgets_values": [
+    "a == 6 or a == 7"
+   ],
+   "title": "use rapid-moss branch?"
+  },
+  {
+   "id": 15,
+   "type": "ComfyMathExpression",
+   "pos": [
+    -700,
+    924
+   ],
+   "size": [
+    460,
+    214
+   ],
+   "flags": {},
+   "order": 15,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "values.a",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": 10,
+     "label": "a"
+    },
+    {
+     "name": "values.b",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": null,
+     "shape": 7,
+     "label": "b"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "FLOAT",
+     "type": "FLOAT",
+     "links": []
+    },
+    {
+     "name": "INT",
+     "type": "INT",
+     "links": []
+    },
+    {
+     "name": "BOOL",
+     "type": "BOOLEAN",
+     "links": [
+      74
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ComfyMathExpression"
+   },
+   "widgets_values": [
+    "a == 7"
+   ],
+   "title": "4-step rapid-moss?"
+  },
+  {
+   "id": 16,
+   "type": "ComfyMathExpression",
+   "pos": [
+    -700,
+    1178
+   ],
+   "size": [
+    460,
+    214
+   ],
+   "flags": {},
+   "order": 16,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "values.a",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": 11,
+     "label": "a"
+    },
+    {
+     "name": "values.b",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": null,
+     "shape": 7,
+     "label": "b"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "FLOAT",
+     "type": "FLOAT",
+     "links": []
+    },
+    {
+     "name": "INT",
+     "type": "INT",
+     "links": []
+    },
+    {
+     "name": "BOOL",
+     "type": "BOOLEAN",
+     "links": [
+      69
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ComfyMathExpression"
+   },
+   "widgets_values": [
+    "a == 8"
+   ],
+   "title": "Turbo hi-res?"
+  },
+  {
+   "id": 17,
+   "type": "ComfyMathExpression",
+   "pos": [
+    -700,
+    1432
+   ],
+   "size": [
+    460,
+    214
+   ],
+   "flags": {},
+   "order": 17,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "values.a",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": 12,
+     "label": "a"
+    },
+    {
+     "name": "values.b",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": null,
+     "shape": 7,
+     "label": "b"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "FLOAT",
+     "type": "FLOAT",
+     "links": [
+      73
+     ]
+    },
+    {
+     "name": "INT",
+     "type": "INT",
+     "links": []
+    },
+    {
+     "name": "BOOL",
+     "type": "BOOLEAN",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ComfyMathExpression"
+   },
+   "widgets_values": [
+    "0.5 if a == 8 else 1.0"
+   ],
+   "title": "denoise"
+  },
+  {
+   "id": 18,
+   "type": "LoraLoaderModelOnly",
+   "pos": [
+    -140,
+    -600
+   ],
+   "size": [
+    520,
+    124
+   ],
+   "flags": {},
+   "order": 18,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 13
+    },
+    {
+     "name": "strength_model",
+     "type": "FLOAT",
+     "link": 14,
+     "widget": {
+      "name": "strength_model"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      15
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoraLoaderModelOnly"
+   },
+   "widgets_values": [
+    "moss_image_sft_banding_fix_L37-41_bf16.safetensors",
+    1.0
+   ],
+   "title": "Banding fix (layers 37-41)"
+  },
+  {
+   "id": 19,
+   "type": "LoraLoaderModelOnly",
+   "pos": [
+    -140,
+    -436
+   ],
+   "size": [
+    520,
+    124
+   ],
+   "flags": {},
+   "order": 19,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 15
+    },
+    {
+     "name": "strength_model",
+     "type": "FLOAT",
+     "link": 16,
+     "widget": {
+      "name": "strength_model"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      17
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoraLoaderModelOnly"
+   },
+   "widgets_values": [
+    "moss_image_sft_banding_fix_L32-36_extra_bf16.safetensors",
+    1.0
+   ],
+   "title": "Extra fix (layers 32-36, Quality+)"
+  },
+  {
+   "id": 20,
+   "type": "LoraLoaderModelOnly",
+   "pos": [
+    -140,
+    -272
+   ],
+   "size": [
+    520,
+    124
+   ],
+   "flags": {},
+   "order": 20,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 17
+    },
+    {
+     "name": "strength_model",
+     "type": "FLOAT",
+     "link": 18,
+     "widget": {
+      "name": "strength_model"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      19
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoraLoaderModelOnly"
+   },
+   "widgets_values": [
+    "lodestones_moss_sft_8step_dmd_lora_latest.safetensors",
+    1.0
+   ],
+   "title": "lodestones 8-step DMD (latest)"
+  },
+  {
+   "id": 21,
+   "type": "LoraLoaderModelOnly",
+   "pos": [
+    -140,
+    -108
+   ],
+   "size": [
+    520,
+    124
+   ],
+   "flags": {},
+   "order": 21,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 19
+    },
+    {
+     "name": "strength_model",
+     "type": "FLOAT",
+     "link": 20,
+     "widget": {
+      "name": "strength_model"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      23
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoraLoaderModelOnly"
+   },
+   "widgets_values": [
+    "darask0_moss_sft_4step_dmad_lora.safetensors",
+    1.0
+   ],
+   "title": "darask0 4-step DMAD"
+  },
+  {
+   "id": 22,
+   "type": "TemporalScoreRescaling",
+   "pos": [
+    520,
+    -600
+   ],
+   "size": [
+    520,
+    124
+   ],
+   "flags": {},
+   "order": 22,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 23
+    }
+   ],
+   "outputs": [
+    {
+     "name": "patched_model",
+     "type": "MODEL",
+     "links": [
+      24
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "TemporalScoreRescaling"
+   },
+   "widgets_values": [
+    0.95,
+    1.0
+   ]
+  },
+  {
+   "id": 23,
+   "type": "SkipLayerGuidanceDiTSimple",
+   "pos": [
+    520,
+    -436
+   ],
+   "size": [
+    520,
+    180
+   ],
+   "flags": {},
+   "order": 23,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 24
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      25,
+      27
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SkipLayerGuidanceDiTSimple"
+   },
+   "widgets_values": [
+    "",
+    "22, 24",
+    0.1,
+    0.7
+   ]
+  },
+  {
+   "id": 24,
+   "type": "BasicScheduler",
+   "pos": [
+    520,
+    -216
+   ],
+   "size": [
+    520,
+    152
+   ],
+   "flags": {},
+   "order": 24,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 25
+    },
+    {
+     "name": "steps",
+     "type": "INT",
+     "link": 26,
+     "widget": {
+      "name": "steps"
+     }
+    },
+    {
+     "name": "denoise",
+     "type": "FLOAT",
+     "link": 73,
+     "widget": {
+      "name": "denoise"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "SIGMAS",
+     "type": "SIGMAS",
+     "links": [
+      31
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "BasicScheduler"
+   },
+   "widgets_values": [
+    "simple",
+    25,
+    1.0
+   ]
+  },
+  {
+   "id": 25,
+   "type": "SamplerER_SDE",
+   "pos": [
+    520,
+    -24
+   ],
+   "size": [
+    520,
+    180
+   ],
+   "flags": {},
+   "order": 25,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "SAMPLER",
+     "type": "SAMPLER",
+     "links": [
+      30
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SamplerER_SDE"
+   },
+   "widgets_values": [
+    "ER-SDE",
+    3,
+    1.0,
+    1.05
+   ]
+  },
+  {
+   "id": 26,
+   "type": "PrimitiveInt",
+   "pos": [
+    520,
+    196
+   ],
+   "size": [
+    520,
+    124
+   ],
+   "flags": {},
+   "order": 26,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "INT",
+     "type": "INT",
+     "links": [
+      32,
+      36
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PrimitiveInt"
+   },
+   "widgets_values": [
+    7,
+    "randomize"
+   ],
+   "title": "Seed",
+   "color": "#322",
+   "bgcolor": "#533"
+  },
+  {
+   "id": 27,
+   "type": "PrimitiveInt",
+   "pos": [
+    520,
+    360
+   ],
+   "size": [
+    520,
+    124
+   ],
+   "flags": {},
+   "order": 27,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "INT",
+     "type": "INT",
+     "links": [
+      21,
+      53,
+      55,
+      57
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PrimitiveInt"
+   },
+   "widgets_values": [
+    1024,
+    "fixed"
+   ],
+   "title": "Width",
+   "color": "#322",
+   "bgcolor": "#533"
+  },
+  {
+   "id": 28,
+   "type": "PrimitiveInt",
+   "pos": [
+    520,
+    524
+   ],
+   "size": [
+    520,
+    124
+   ],
+   "flags": {},
+   "order": 28,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "INT",
+     "type": "INT",
+     "links": [
+      22,
+      54,
+      56,
+      58
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PrimitiveInt"
+   },
+   "widgets_values": [
+    1024,
+    "fixed"
+   ],
+   "title": "Height",
+   "color": "#322",
+   "bgcolor": "#533"
+  },
+  {
+   "id": 29,
+   "type": "EmptyFlux2LatentImage",
+   "pos": [
+    520,
+    688
+   ],
+   "size": [
+    520,
+    152
+   ],
+   "flags": {},
+   "order": 29,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "width",
+     "type": "INT",
+     "link": 21,
+     "widget": {
+      "name": "width"
+     }
+    },
+    {
+     "name": "height",
+     "type": "INT",
+     "link": 22,
+     "widget": {
+      "name": "height"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      44,
+      52,
+      70
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "EmptyFlux2LatentImage"
+   },
+   "widgets_values": [
+    1024,
+    1024,
+    1
+   ],
+   "title": "Size"
+  },
+  {
+   "id": 30,
+   "type": "SamplerCustom",
+   "pos": [
+    520,
+    880
+   ],
+   "size": [
+    520,
+    300
+   ],
+   "flags": {},
+   "order": 30,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 27
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 28
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 29
+    },
+    {
+     "name": "sampler",
+     "type": "SAMPLER",
+     "link": 30
+    },
+    {
+     "name": "sigmas",
+     "type": "SIGMAS",
+     "link": 31
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 72
+    },
+    {
+     "name": "noise_seed",
+     "type": "INT",
+     "link": 32,
+     "widget": {
+      "name": "noise_seed"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "output",
+     "type": "LATENT",
+     "links": [
+      78
+     ]
+    },
+    {
+     "name": "denoised_output",
+     "type": "LATENT",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SamplerCustom"
+   },
+   "widgets_values": [
+    true,
+    7,
+    "fixed",
+    3.0
+   ]
+  },
+  {
+   "id": 31,
+   "type": "MOSSImageUNETLoader",
+   "pos": [
+    -140,
+    146
+   ],
+   "size": [
+    520,
+    124
+   ],
+   "flags": {},
+   "order": 31,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      33
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "MOSSImageUNETLoader"
+   },
+   "widgets_values": [
+    "moss_image_sft_bf16_split_qkv.safetensors",
+    "default"
+   ],
+   "title": "SFT, split q/k/v (needed by rapid-moss)"
+  },
+  {
+   "id": 32,
+   "type": "MOSSImageCLIPLoader",
+   "pos": [
+    -140,
+    310
+   ],
+   "size": [
+    520,
+    124
+   ],
+   "flags": {},
+   "order": 32,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      34
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "MOSSImageCLIPLoader"
+   },
+   "widgets_values": [
+    "qwen3.5_9b_int8_convrot.safetensors",
+    "default"
+   ]
+  },
+  {
+   "id": 33,
+   "type": "LoraLoaderModelOnly",
+   "pos": [
+    -140,
+    474
+   ],
+   "size": [
+    520,
+    124
+   ],
+   "flags": {},
+   "order": 33,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 33
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      37,
+      45
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoraLoaderModelOnly"
+   },
+   "widgets_values": [
+    "moss_image_sft_banding_fix_L37-41_bf16_splitqkv.safetensors",
+    1.0
+   ],
+   "title": "Banding fix (split q/k/v version)"
+  },
+  {
+   "id": 34,
+   "type": "CLIPTextEncode",
+   "pos": [
+    -140,
+    638
+   ],
+   "size": [
+    520,
+    166
+   ],
+   "flags": {},
+   "order": 34,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 34
+    },
+    {
+     "name": "text",
+     "type": "STRING",
+     "link": 35,
+     "widget": {
+      "name": "text"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      39,
+      47
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "A cozy anime illustration of a beautiful, cute woman in her early thirties with a graceful adult face and figure, sleek glossy black hair in a short bob, a soft white fringe of bangs framing her face, delicate gold hairpins shaped like snowflakes, sparkling diamond-blue eyes and a gentle blush. She wears an oversized white knit sweater with a cute little penguin knitted on the front, a flowing mid-length white pleated skirt that falls below her knees, a soft sky-blue scarf and white socks, with a thin gold necklace holding a small blue gem. She sits on a wide wooden window seat piled with pale blue and white cushions and a knitted blanket, holding a steaming white mug decorated with a little penguin in both hands and smiling warmly at the viewer. Through the large window behind her, a calm sky fades smoothly from soft gold near the horizon to icy pale blue and deep diamond blue at the top, over a glassy turquoise bay with glittering ice floes and drifting icebergs, where a few little penguins waddle along the snowy shore. A small hand-painted wooden sign on the windowsill reads \"MOSS-Image\". Cool winter light with warm gold accents, soft cel shading, clean line art, detailed background, gentle and wholesome mood."
+   ],
+   "title": "Positive (rapid-moss)"
+  },
+  {
+   "id": 35,
+   "type": "RandomNoise",
+   "pos": [
+    -140,
+    844
+   ],
+   "size": [
+    520,
+    124
+   ],
+   "flags": {},
+   "order": 35,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "noise_seed",
+     "type": "INT",
+     "link": 36,
+     "widget": {
+      "name": "noise_seed"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "NOISE",
+     "type": "NOISE",
+     "links": [
+      40,
+      48,
+      61
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "RandomNoise"
+   },
+   "widgets_values": [
+    7,
+    "fixed"
+   ]
+  },
+  {
+   "id": 36,
+   "type": "RapidMOSSAdapter",
+   "pos": [
+    -140,
+    1008
+   ],
+   "size": [
+    520,
+    200
+   ],
+   "flags": {},
+   "order": 36,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 37
+    }
+   ],
+   "outputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "links": [
+      38
+     ]
+    },
+    {
+     "name": "sampler",
+     "type": "SAMPLER",
+     "links": [
+      42
+     ]
+    },
+    {
+     "name": "sigmas",
+     "type": "SIGMAS",
+     "links": [
+      43
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "RapidMOSSAdapter"
+   },
+   "widgets_values": [
+    "lodestones-8step-latest",
+    8,
+    0.7
+   ],
+   "title": "rapid-moss adapter: lodestones 8-step (latest)"
+  },
+  {
+   "id": 37,
+   "type": "BasicGuider",
+   "pos": [
+    -140,
+    1248
+   ],
+   "size": [
+    520,
+    92
+   ],
+   "flags": {},
+   "order": 37,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 38
+    },
+    {
+     "name": "conditioning",
+     "type": "CONDITIONING",
+     "link": 39
+    }
+   ],
+   "outputs": [
+    {
+     "name": "GUIDER",
+     "type": "GUIDER",
+     "links": [
+      41
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "BasicGuider"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 38,
+   "type": "SamplerCustomAdvanced",
+   "pos": [
+    -140,
+    1380
+   ],
+   "size": [
+    520,
+    164
+   ],
+   "flags": {},
+   "order": 38,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "noise",
+     "type": "NOISE",
+     "link": 40
+    },
+    {
+     "name": "guider",
+     "type": "GUIDER",
+     "link": 41
+    },
+    {
+     "name": "sampler",
+     "type": "SAMPLER",
+     "link": 42
+    },
+    {
+     "name": "sigmas",
+     "type": "SIGMAS",
+     "link": 43
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 44
+    }
+   ],
+   "outputs": [
+    {
+     "name": "output",
+     "type": "LATENT",
+     "links": [
+      75
+     ]
+    },
+    {
+     "name": "denoised_output",
+     "type": "LATENT",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SamplerCustomAdvanced"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 39,
+   "type": "RapidMOSSAdapter",
+   "pos": [
+    -140,
+    1584
+   ],
+   "size": [
+    520,
+    200
+   ],
+   "flags": {},
+   "order": 39,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 45
+    }
+   ],
+   "outputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "links": [
+      46
+     ]
+    },
+    {
+     "name": "sampler",
+     "type": "SAMPLER",
+     "links": [
+      50,
+      63
+     ]
+    },
+    {
+     "name": "sigmas",
+     "type": "SIGMAS",
+     "links": [
+      51,
+      64
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "RapidMOSSAdapter"
+   },
+   "widgets_values": [
+    "rapid-moss-4step",
+    4,
+    1.0
+   ],
+   "title": "rapid-moss adapter: darask0 4-step"
+  },
+  {
+   "id": 40,
+   "type": "BasicGuider",
+   "pos": [
+    -140,
+    1824
+   ],
+   "size": [
+    520,
+    92
+   ],
+   "flags": {},
+   "order": 40,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 46
+    },
+    {
+     "name": "conditioning",
+     "type": "CONDITIONING",
+     "link": 47
+    }
+   ],
+   "outputs": [
+    {
+     "name": "GUIDER",
+     "type": "GUIDER",
+     "links": [
+      49,
+      62
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "BasicGuider"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 41,
+   "type": "SamplerCustomAdvanced",
+   "pos": [
+    -140,
+    1956
+   ],
+   "size": [
+    520,
+    164
+   ],
+   "flags": {},
+   "order": 41,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "noise",
+     "type": "NOISE",
+     "link": 48
+    },
+    {
+     "name": "guider",
+     "type": "GUIDER",
+     "link": 49
+    },
+    {
+     "name": "sampler",
+     "type": "SAMPLER",
+     "link": 50
+    },
+    {
+     "name": "sigmas",
+     "type": "SIGMAS",
+     "link": 51
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 52
+    }
+   ],
+   "outputs": [
+    {
+     "name": "output",
+     "type": "LATENT",
+     "links": [
+      76
+     ]
+    },
+    {
+     "name": "denoised_output",
+     "type": "LATENT",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SamplerCustomAdvanced"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 42,
+   "type": "ComfyMathExpression",
+   "pos": [
+    -700,
+    1776
+   ],
+   "size": [
+    460,
+    214
+   ],
+   "flags": {},
+   "order": 42,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "values.a",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": 53,
+     "label": "a"
+    },
+    {
+     "name": "values.b",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": 54,
+     "shape": 7,
+     "label": "b"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "FLOAT",
+     "type": "FLOAT",
+     "links": []
+    },
+    {
+     "name": "INT",
+     "type": "INT",
+     "links": [
+      59
+     ]
+    },
+    {
+     "name": "BOOL",
+     "type": "BOOLEAN",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ComfyMathExpression"
+   },
+   "widgets_values": [
+    "int(round(a * min(1, sqrt(1048576 / (a * b))) / 16) * 16)"
+   ],
+   "title": "hi-res stage 1 width (~1 MP)"
+  },
+  {
+   "id": 43,
+   "type": "ComfyMathExpression",
+   "pos": [
+    -700,
+    2030
+   ],
+   "size": [
+    460,
+    214
+   ],
+   "flags": {},
+   "order": 43,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "values.a",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": 55,
+     "label": "a"
+    },
+    {
+     "name": "values.b",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": 56,
+     "shape": 7,
+     "label": "b"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "FLOAT",
+     "type": "FLOAT",
+     "links": []
+    },
+    {
+     "name": "INT",
+     "type": "INT",
+     "links": [
+      60
+     ]
+    },
+    {
+     "name": "BOOL",
+     "type": "BOOLEAN",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ComfyMathExpression"
+   },
+   "widgets_values": [
+    "int(round(b * min(1, sqrt(1048576 / (a * b))) / 16) * 16)"
+   ],
+   "title": "hi-res stage 1 height (~1 MP)"
+  },
+  {
+   "id": 44,
+   "type": "ComfyMathExpression",
+   "pos": [
+    -700,
+    2284
+   ],
+   "size": [
+    460,
+    214
+   ],
+   "flags": {},
+   "order": 44,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "values.a",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": 57,
+     "label": "a"
+    },
+    {
+     "name": "values.b",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": null,
+     "shape": 7,
+     "label": "b"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "FLOAT",
+     "type": "FLOAT",
+     "links": []
+    },
+    {
+     "name": "INT",
+     "type": "INT",
+     "links": [
+      67
+     ]
+    },
+    {
+     "name": "BOOL",
+     "type": "BOOLEAN",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ComfyMathExpression"
+   },
+   "widgets_values": [
+    "a // 2"
+   ],
+   "title": "hi-res target width / 2"
+  },
+  {
+   "id": 45,
+   "type": "ComfyMathExpression",
+   "pos": [
+    -700,
+    2538
+   ],
+   "size": [
+    460,
+    214
+   ],
+   "flags": {},
+   "order": 45,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "values.a",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": 58,
+     "label": "a"
+    },
+    {
+     "name": "values.b",
+     "type": "FLOAT,INT,BOOLEAN",
+     "link": null,
+     "shape": 7,
+     "label": "b"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "FLOAT",
+     "type": "FLOAT",
+     "links": []
+    },
+    {
+     "name": "INT",
+     "type": "INT",
+     "links": [
+      68
+     ]
+    },
+    {
+     "name": "BOOL",
+     "type": "BOOLEAN",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ComfyMathExpression"
+   },
+   "widgets_values": [
+    "a // 2"
+   ],
+   "title": "hi-res target height / 2"
+  },
+  {
+   "id": 46,
+   "type": "EmptyFlux2LatentImage",
+   "pos": [
+    -140,
+    2250
+   ],
+   "size": [
+    520,
+    152
+   ],
+   "flags": {},
+   "order": 46,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "width",
+     "type": "INT",
+     "link": 59,
+     "widget": {
+      "name": "width"
+     }
+    },
+    {
+     "name": "height",
+     "type": "INT",
+     "link": 60,
+     "widget": {
+      "name": "height"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      65
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "EmptyFlux2LatentImage"
+   },
+   "widgets_values": [
+    1024,
+    1024,
+    1
+   ],
+   "title": "hi-res stage 1 size (automatic)"
+  },
+  {
+   "id": 47,
+   "type": "SamplerCustomAdvanced",
+   "pos": [
+    -140,
+    2442
+   ],
+   "size": [
+    520,
+    164
+   ],
+   "flags": {},
+   "order": 47,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "noise",
+     "type": "NOISE",
+     "link": 61
+    },
+    {
+     "name": "guider",
+     "type": "GUIDER",
+     "link": 62
+    },
+    {
+     "name": "sampler",
+     "type": "SAMPLER",
+     "link": 63
+    },
+    {
+     "name": "sigmas",
+     "type": "SIGMAS",
+     "link": 64
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 65
+    }
+   ],
+   "outputs": [
+    {
+     "name": "output",
+     "type": "LATENT",
+     "links": [
+      66
+     ]
+    },
+    {
+     "name": "denoised_output",
+     "type": "LATENT",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SamplerCustomAdvanced"
+   },
+   "widgets_values": [],
+   "title": "hi-res stage 1: Turbo max"
+  },
+  {
+   "id": 48,
+   "type": "LatentUpscale",
+   "pos": [
+    -140,
+    2646
+   ],
+   "size": [
+    520,
+    180
+   ],
+   "flags": {},
+   "order": 48,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "samples",
+     "type": "LATENT",
+     "link": 66
+    },
+    {
+     "name": "width",
+     "type": "INT",
+     "link": 67,
+     "widget": {
+      "name": "width"
+     }
+    },
+    {
+     "name": "height",
+     "type": "INT",
+     "link": 68,
+     "widget": {
+      "name": "height"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      71
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LatentUpscale"
+   },
+   "widgets_values": [
+    "bislerp",
+    512,
+    512,
+    "disabled"
+   ],
+   "title": "hi-res: upscale latent to Width x Height (gets Width/2, Height/2: Flux2 latents are 16 px)"
+  },
+  {
+   "id": 49,
+   "type": "ComfySwitchNode",
+   "pos": [
+    520,
+    1220
+   ],
+   "size": [
+    520,
+    120
+   ],
+   "flags": {},
+   "order": 49,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "switch",
+     "type": "BOOLEAN",
+     "link": 69,
+     "widget": {
+      "name": "switch"
+     }
+    },
+    {
+     "name": "on_false",
+     "type": "LATENT",
+     "link": 70,
+     "shape": 7
+    },
+    {
+     "name": "on_true",
+     "type": "LATENT",
+     "link": 71,
+     "shape": 7
+    }
+   ],
+   "outputs": [
+    {
+     "name": "output",
+     "type": "LATENT",
+     "links": [
+      72
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ComfySwitchNode"
+   },
+   "widgets_values": [
+    false
+   ],
+   "title": "empty latent vs hi-res upscaled latent (automatic)"
+  },
+  {
+   "id": 50,
+   "type": "ComfySwitchNode",
+   "pos": [
+    520,
+    1380
+   ],
+   "size": [
+    520,
+    120
+   ],
+   "flags": {},
+   "order": 50,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "switch",
+     "type": "BOOLEAN",
+     "link": 74,
+     "widget": {
+      "name": "switch"
+     }
+    },
+    {
+     "name": "on_false",
+     "type": "LATENT",
+     "link": 75,
+     "shape": 7
+    },
+    {
+     "name": "on_true",
+     "type": "LATENT",
+     "link": 76,
+     "shape": 7
+    }
+   ],
+   "outputs": [
+    {
+     "name": "output",
+     "type": "LATENT",
+     "links": [
+      79
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ComfySwitchNode"
+   },
+   "widgets_values": [
+    false
+   ],
+   "title": "pick rapid-moss adapter (automatic)"
+  },
+  {
+   "id": 51,
+   "type": "ComfySwitchNode",
+   "pos": [
+    520,
+    1540
+   ],
+   "size": [
+    520,
+    120
+   ],
+   "flags": {},
+   "order": 51,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "switch",
+     "type": "BOOLEAN",
+     "link": 77,
+     "widget": {
+      "name": "switch"
+     }
+    },
+    {
+     "name": "on_false",
+     "type": "LATENT",
+     "link": 78,
+     "shape": 7
+    },
+    {
+     "name": "on_true",
+     "type": "LATENT",
+     "link": 79,
+     "shape": 7
+    }
+   ],
+   "outputs": [
+    {
+     "name": "output",
+     "type": "LATENT",
+     "links": [
+      80
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ComfySwitchNode"
+   },
+   "widgets_values": [
+    false
+   ],
+   "title": "normal vs rapid-moss (automatic)"
+  },
+  {
+   "id": 52,
+   "type": "VAEDecode",
+   "pos": [
+    520,
+    1700
+   ],
+   "size": [
+    520,
+    92
+   ],
+   "flags": {},
+   "order": 52,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "samples",
+     "type": "LATENT",
+     "link": 80
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 81
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      82
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAEDecode"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 53,
+   "type": "SaveImage",
+   "pos": [
+    1120,
+    -600
+   ],
+   "size": [
+    900,
+    1000
+   ],
+   "flags": {},
+   "order": 53,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 82
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "moss_banding_fix"
+   ]
+  }
+ ],
+ "links": [
+  [
+   1,
+   4,
+   0,
+   7,
+   0,
+   "CLIP"
+  ],
+  [
+   2,
+   6,
+   0,
+   7,
+   1,
+   "STRING"
+  ],
+  [
+   3,
+   4,
+   0,
+   8,
+   0,
+   "CLIP"
+  ],
+  [
+   4,
+   1,
+   1,
+   9,
+   0,
+   "INT"
+  ],
+  [
+   5,
+   1,
+   1,
+   10,
+   0,
+   "INT"
+  ],
+  [
+   6,
+   1,
+   1,
+   11,
+   0,
+   "INT"
+  ],
+  [
+   7,
+   1,
+   1,
+   12,
+   0,
+   "INT"
+  ],
+  [
+   8,
+   1,
+   1,
+   13,
+   0,
+   "INT"
+  ],
+  [
+   9,
+   1,
+   1,
+   14,
+   0,
+   "INT"
+  ],
+  [
+   10,
+   1,
+   1,
+   15,
+   0,
+   "INT"
+  ],
+  [
+   11,
+   1,
+   1,
+   16,
+   0,
+   "INT"
+  ],
+  [
+   12,
+   1,
+   1,
+   17,
+   0,
+   "INT"
+  ],
+  [
+   13,
+   3,
+   0,
+   18,
+   0,
+   "MODEL"
+  ],
+  [
+   14,
+   9,
+   0,
+   18,
+   1,
+   "FLOAT"
+  ],
+  [
+   15,
+   18,
+   0,
+   19,
+   0,
+   "MODEL"
+  ],
+  [
+   16,
+   10,
+   0,
+   19,
+   1,
+   "FLOAT"
+  ],
+  [
+   17,
+   19,
+   0,
+   20,
+   0,
+   "MODEL"
+  ],
+  [
+   18,
+   11,
+   0,
+   20,
+   1,
+   "FLOAT"
+  ],
+  [
+   19,
+   20,
+   0,
+   21,
+   0,
+   "MODEL"
+  ],
+  [
+   20,
+   12,
+   0,
+   21,
+   1,
+   "FLOAT"
+  ],
+  [
+   21,
+   27,
+   0,
+   29,
+   0,
+   "INT"
+  ],
+  [
+   22,
+   28,
+   0,
+   29,
+   1,
+   "INT"
+  ],
+  [
+   23,
+   21,
+   0,
+   22,
+   0,
+   "MODEL"
+  ],
+  [
+   24,
+   22,
+   0,
+   23,
+   0,
+   "MODEL"
+  ],
+  [
+   25,
+   23,
+   0,
+   24,
+   0,
+   "MODEL"
+  ],
+  [
+   26,
+   13,
+   1,
+   24,
+   1,
+   "INT"
+  ],
+  [
+   27,
+   23,
+   0,
+   30,
+   0,
+   "MODEL"
+  ],
+  [
+   28,
+   7,
+   0,
+   30,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   29,
+   8,
+   0,
+   30,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   30,
+   25,
+   0,
+   30,
+   3,
+   "SAMPLER"
+  ],
+  [
+   31,
+   24,
+   0,
+   30,
+   4,
+   "SIGMAS"
+  ],
+  [
+   32,
+   26,
+   0,
+   30,
+   6,
+   "INT"
+  ],
+  [
+   33,
+   31,
+   0,
+   33,
+   0,
+   "MODEL"
+  ],
+  [
+   34,
+   32,
+   0,
+   34,
+   0,
+   "CLIP"
+  ],
+  [
+   35,
+   6,
+   0,
+   34,
+   1,
+   "STRING"
+  ],
+  [
+   36,
+   26,
+   0,
+   35,
+   0,
+   "INT"
+  ],
+  [
+   37,
+   33,
+   0,
+   36,
+   0,
+   "MODEL"
+  ],
+  [
+   38,
+   36,
+   0,
+   37,
+   0,
+   "MODEL"
+  ],
+  [
+   39,
+   34,
+   0,
+   37,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   40,
+   35,
+   0,
+   38,
+   0,
+   "NOISE"
+  ],
+  [
+   41,
+   37,
+   0,
+   38,
+   1,
+   "GUIDER"
+  ],
+  [
+   42,
+   36,
+   1,
+   38,
+   2,
+   "SAMPLER"
+  ],
+  [
+   43,
+   36,
+   2,
+   38,
+   3,
+   "SIGMAS"
+  ],
+  [
+   44,
+   29,
+   0,
+   38,
+   4,
+   "LATENT"
+  ],
+  [
+   45,
+   33,
+   0,
+   39,
+   0,
+   "MODEL"
+  ],
+  [
+   46,
+   39,
+   0,
+   40,
+   0,
+   "MODEL"
+  ],
+  [
+   47,
+   34,
+   0,
+   40,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   48,
+   35,
+   0,
+   41,
+   0,
+   "NOISE"
+  ],
+  [
+   49,
+   40,
+   0,
+   41,
+   1,
+   "GUIDER"
+  ],
+  [
+   50,
+   39,
+   1,
+   41,
+   2,
+   "SAMPLER"
+  ],
+  [
+   51,
+   39,
+   2,
+   41,
+   3,
+   "SIGMAS"
+  ],
+  [
+   52,
+   29,
+   0,
+   41,
+   4,
+   "LATENT"
+  ],
+  [
+   53,
+   27,
+   0,
+   42,
+   0,
+   "INT"
+  ],
+  [
+   54,
+   28,
+   0,
+   42,
+   1,
+   "INT"
+  ],
+  [
+   55,
+   27,
+   0,
+   43,
+   0,
+   "INT"
+  ],
+  [
+   56,
+   28,
+   0,
+   43,
+   1,
+   "INT"
+  ],
+  [
+   57,
+   27,
+   0,
+   44,
+   0,
+   "INT"
+  ],
+  [
+   58,
+   28,
+   0,
+   45,
+   0,
+   "INT"
+  ],
+  [
+   59,
+   42,
+   1,
+   46,
+   0,
+   "INT"
+  ],
+  [
+   60,
+   43,
+   1,
+   46,
+   1,
+   "INT"
+  ],
+  [
+   61,
+   35,
+   0,
+   47,
+   0,
+   "NOISE"
+  ],
+  [
+   62,
+   40,
+   0,
+   47,
+   1,
+   "GUIDER"
+  ],
+  [
+   63,
+   39,
+   1,
+   47,
+   2,
+   "SAMPLER"
+  ],
+  [
+   64,
+   39,
+   2,
+   47,
+   3,
+   "SIGMAS"
+  ],
+  [
+   65,
+   46,
+   0,
+   47,
+   4,
+   "LATENT"
+  ],
+  [
+   66,
+   47,
+   0,
+   48,
+   0,
+   "LATENT"
+  ],
+  [
+   67,
+   44,
+   1,
+   48,
+   1,
+   "INT"
+  ],
+  [
+   68,
+   45,
+   1,
+   48,
+   2,
+   "INT"
+  ],
+  [
+   69,
+   16,
+   2,
+   49,
+   0,
+   "BOOLEAN"
+  ],
+  [
+   70,
+   29,
+   0,
+   49,
+   1,
+   "LATENT"
+  ],
+  [
+   71,
+   48,
+   0,
+   49,
+   2,
+   "LATENT"
+  ],
+  [
+   72,
+   49,
+   0,
+   30,
+   5,
+   "LATENT"
+  ],
+  [
+   73,
+   17,
+   0,
+   24,
+   2,
+   "FLOAT"
+  ],
+  [
+   74,
+   15,
+   2,
+   50,
+   0,
+   "BOOLEAN"
+  ],
+  [
+   75,
+   38,
+   0,
+   50,
+   1,
+   "LATENT"
+  ],
+  [
+   76,
+   41,
+   0,
+   50,
+   2,
+   "LATENT"
+  ],
+  [
+   77,
+   14,
+   2,
+   51,
+   0,
+   "BOOLEAN"
+  ],
+  [
+   78,
+   30,
+   0,
+   51,
+   1,
+   "LATENT"
+  ],
+  [
+   79,
+   50,
+   0,
+   51,
+   2,
+   "LATENT"
+  ],
+  [
+   80,
+   51,
+   0,
+   52,
+   0,
+   "LATENT"
+  ],
+  [
+   81,
+   5,
+   0,
+   52,
+   1,
+   "VAE"
+  ],
+  [
+   82,
+   52,
+   0,
+   53,
+   0,
+   "IMAGE"
+  ]
+ ],
+ "groups": [
+  {
+   "title": "① Pick a preset",
+   "bounding": [
+    -1320,
+    -666,
+    560,
+    850
+   ],
+   "color": "#3f789e",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "title": "② Models & prompt",
+   "bounding": [
+    -1320,
+    228,
+    560,
+    1290
+   ],
+   "color": "#444",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "title": "Preset values (automatic)",
+   "bounding": [
+    -720,
+    -666,
+    500,
+    2332
+   ],
+   "color": "#444",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "title": "③ LoRAs (strengths set by preset)",
+   "bounding": [
+    -160,
+    -666,
+    560,
+    702
+   ],
+   "color": "#3f6b4a",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "title": "⑤ rapid-moss turbo (custom nodes)",
+   "bounding": [
+    -160,
+    80,
+    560,
+    2060
+   ],
+   "color": "#6b4a7a",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "title": "Turbo hi-res sizes (automatic)",
+   "bounding": [
+    -720,
+    1710,
+    500,
+    1062
+   ],
+   "color": "#444",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "title": "⑥ Turbo hi-res stage 1 (custom nodes)",
+   "bounding": [
+    -160,
+    2184,
+    560,
+    662
+   ],
+   "color": "#6b4a7a",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "title": "④ Sampling",
+   "bounding": [
+    500,
+    -666,
+    560,
+    2478
+   ],
+   "color": "#8a5a2b",
+   "font_size": 24,
+   "flags": {}
+  }
+ ],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.55,
+   "offset": [
+    900,
+    420
+   ]
+  }
+ },
+ "version": 0.4
+}

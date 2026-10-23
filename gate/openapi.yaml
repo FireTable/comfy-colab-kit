@@ -1,0 +1,123 @@
+openapi: 3.1.0
+info:
+  title: comfy-gate
+  version: 0.1.0
+  description: |
+    Wake-on-demand gateway for ComfyUI on Google Colab. One global shared session per gate:
+    `POST /_gate/wake` is idempotent — callers join an in-flight or running session.
+    Every path that is not `/_gate/*` is reverse-proxied to ComfyUI (including `/ws`) once the state is `ready`;
+    before that `/` serves the wake page and API paths return 503 `asleep`.
+servers:
+  - url: https://comfy.example.com
+security:
+  - cfAccess: []
+  - agentBearer: []
+components:
+  securitySchemes:
+    cfAccess:
+      type: apiKey
+      in: header
+      name: Cf-Access-Jwt-Assertion
+      description: Injected by Cloudflare Access; RS256 JWT verified against the team JWKS and CF_ACCESS_AUD.
+    agentBearer:
+      type: http
+      scheme: bearer
+      description: Contents of AGENT_TOKEN_FILE. Agents are treated as owners.
+  schemas:
+    State:
+      type: string
+      enum: [sleeping, allocating, installing, downloading, booting, smoke_testing, ready, switching, stopping, failed]
+    Status:
+      type: object
+      properties:
+        state: {$ref: "#/components/schemas/State"}
+        profile: {type: [string, "null"]}
+        reason: {type: string}
+        since: {type: number}
+        session_started: {type: [number, "null"]}
+        extends_used: {type: integer}
+        busy: {type: boolean, description: true while starting/stopping — the Wake button shows "Starting…" for everyone}
+        progress:
+          type: object
+          properties:
+            stage: {type: string}
+            download:
+              type: object
+              properties: {done_gb: {type: number}, total_gb: {type: number}, files_done: {type: integer}, files_total: {type: integer}, gbps: {type: number}}
+        remaining_s: {type: [number, "null"]}
+        warn: {type: string, enum: ["", session_ending]}
+        can_extend: {type: boolean}
+        cu: {type: object, properties: {today: {type: number}, month: {type: number}, balance: {type: [number, "null"]}, per_hour: {type: number}}}
+        clients: {type: integer}
+        default_view: {type: string, enum: [app, graph]}
+        you: {type: object, properties: {email: {type: string}, owner: {type: boolean}}}
+        owner_only: {type: array, items: {type: string}}
+        version: {type: string}
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: |
+            no_access_token | invalid_token | bad_alg | unknown_kid | no_email | not_allowed | bad_agent_token |
+            owner_only | unknown_profile | quiet_hours | daily_budget | monthly_budget | low_balance |
+            extend_limit | asleep | backend_unreachable
+        message: {type: string}
+  responses:
+    Unauthorized: {description: Missing/invalid Access JWT or bearer, content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}}
+    Forbidden: {description: Not allowed (email not allowed or owner-only action), content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}}
+paths:
+  /_gate/healthz:
+    get:
+      security: []
+      summary: Liveness (no auth)
+      responses: {"200": {description: ok}}
+  /_gate/status:
+    get:
+      summary: Shared session status
+      responses:
+        "200": {description: ok, content: {application/json: {schema: {$ref: "#/components/schemas/Status"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /_gate/events:
+    get:
+      summary: Server-Sent Events stream shared by every viewer
+      description: |
+        Events: `state` (Status JSON), `progress` (progress object), `log` (string; setup output, backlog replayed on connect),
+        `warn` ({warn, remaining_s}). Comment pings every 20 s.
+      responses: {"200": {description: text/event-stream}}
+  /_gate/profiles:
+    get:
+      summary: Available profiles and validation errors
+      responses: {"200": {description: ok}}
+  /_gate/wake:
+    post:
+      summary: Wake (idempotent; joins an existing session)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profile: {type: string, description: ignored when joining a running session}
+                workflows: {type: array, items: {type: string}, description: workflow ids to install (default = non-optional ones)}
+      responses:
+        "202": {description: this call started a new session}
+        "200": {description: joined the session already starting or running}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {description: unknown profile}
+        "409": {description: refused by quiet hours / budget / balance}
+  /_gate/switch:
+    post:
+      summary: Switch profile (owner-only by default; v1 = cold switch)
+      requestBody: {content: {application/json: {schema: {type: object, required: [profile], properties: {profile: {type: string}}}}}}
+      responses: {"202": {description: switching}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {description: unknown profile}}
+  /_gate/stop:
+    post:
+      summary: Stop now and release the Colab VM (owner-only by default)
+      responses: {"200": {description: stopped}, "403": {$ref: "#/components/responses/Forbidden"}}
+  /_gate/extend:
+    post:
+      summary: Extend the session by EXTEND_HOURS (owner-only by default)
+      responses: {"200": {description: extended}, "409": {description: extend_limit}, "403": {$ref: "#/components/responses/Forbidden"}}

@@ -1,0 +1,30 @@
+# Run from the repo root:  docker compose -f deploy/docker-compose.yml up -d
+# Joins the network of your existing Caddy so Caddy can reach comfy-gate:8080.
+services:
+  comfy-gate:
+    build: {context: .., dockerfile: deploy/Dockerfile}
+    image: comfy-colab-kit/gate:local
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      HOME: /data/home
+    volumes:
+      - ../data:/data                  # state (session.json, cu_ledger.json) + colab CLI login; owner 10001, mode 700
+      - ../examples/profiles:/app/examples/profiles:ro
+    secrets: [cf_service.json, colab_tunnel_token, agent_token]
+    networks: [caddy]
+    expose: ["8080"]
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+secrets:
+  cf_service.json: {file: ../secrets/cf_service.json}
+  colab_tunnel_token: {file: ../secrets/colab_tunnel_token}
+  agent_token: {file: ../secrets/agent_token}
+
+networks:
+  caddy:
+    external: true
+    name: ${CADDY_NETWORK:-caddy}

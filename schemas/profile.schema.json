@@ -1,0 +1,348 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/FireTable/comfy-colab-kit/schemas/profile.schema.json",
+  "title": "comfy-colab-kit profile",
+  "description": "Public, secret-free description of a ComfyUI environment. Validated in CI and by gate/profiles.py.",
+  "type": "object",
+  "required": [
+    "id",
+    "comfyui"
+  ],
+  "additionalProperties": false,
+  "propertyNames": {
+    "not": {
+      "pattern": "(?i)(token|secret|password|passwd|api[_-]?key|authorization|cookie|credential)"
+    }
+  },
+  "$defs": {
+    "url": {
+      "type": "string",
+      "pattern": "^(https://[^\\s?#]+|hf://[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(@[A-Za-z0-9_.-]+)?/[^\\s?#]+)$"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,62}$"
+    },
+    "nodeRef": {
+      "type": [
+        "integer",
+        "string"
+      ]
+    }
+  },
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "title": {
+      "type": "string"
+    },
+    "accelerator": {
+      "type": "string",
+      "enum": [
+        "L4",
+        "A100",
+        "T4",
+        "H100",
+        "G4"
+      ]
+    },
+    "comfyui": {
+      "type": "object",
+      "required": [
+        "commit"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "repo": {
+          "$ref": "#/$defs/url"
+        },
+        "commit": {
+          "type": "string",
+          "minLength": 7
+        },
+        "args": {
+          "description": "Extra ComfyUI CLI flags, e.g. [--fast, --use-sage-attention, --preview-method, auto]. --listen/--port/--output-directory/--disable-auto-launch/--extra-model-paths-config are reserved.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "settings": {
+          "description": "Merged into user/default/comfy.settings.json (frontend settings).",
+          "type": "object"
+        },
+        "env": {
+          "description": "Environment variables for the ComfyUI process only (never secrets).",
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[A-Z_][A-Z0-9_]*$",
+            "not": {
+              "enum": [
+                "CF_TUNNEL_TOKEN",
+                "HF_TOKEN",
+                "KIT_GATE_URL",
+                "KIT_PROFILE_JSON"
+              ]
+            }
+          },
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "extra_model_paths": {
+          "description": "Content of an extra_model_paths.yaml.",
+          "type": "object"
+        }
+      }
+    },
+    "frontend": {
+      "type": "object",
+      "properties": {
+        "package": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "dest",
+          "url"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/id"
+          },
+          "dest": {
+            "type": "string",
+            "pattern": "^(checkpoints|diffusion_models|text_encoders|clip|vae|loras|upscale_models|controlnet|embeddings|clip_vision|unet|rapid_moss|model_patches)/[^.][^\\s]*$"
+          },
+          "url": {
+            "$ref": "#/$defs/url"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{64}$"
+          },
+          "size_gb": {
+            "type": "number",
+            "minimum": 0
+          },
+          "license": {
+            "type": "string"
+          },
+          "core": {
+            "type": "boolean"
+          },
+          "gated": {
+            "type": "boolean",
+            "description": "HF repo requires accepting a license; needs HF_TOKEN_FILE."
+          }
+        }
+      }
+    },
+    "custom_nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "url"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/id"
+          },
+          "url": {
+            "$ref": "#/$defs/url"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "subdir": {
+            "type": "string"
+          },
+          "license": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "workflows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "source",
+          "license"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/id"
+          },
+          "title": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "description": "source_url: page of the original author (required)."
+          },
+          "url": {
+            "$ref": "#/$defs/url"
+          },
+          "format": {
+            "enum": [
+              "json",
+              "png",
+              "builtin"
+            ]
+          },
+          "license": {
+            "type": "string"
+          },
+          "optional": {
+            "type": "boolean"
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/id"
+            }
+          },
+          "custom_nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/id"
+            }
+          },
+          "overrides": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "node",
+                "widget_index",
+                "value"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "node": {
+                  "$ref": "#/$defs/nodeRef"
+                },
+                "widget_index": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "value": {}
+              }
+            }
+          },
+          "app": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "inputs": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "$ref": "#/$defs/nodeRef"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              },
+              "outputs": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/nodeRef"
+                },
+                "minItems": 1
+              }
+            }
+          },
+          "file": {
+            "type": "string",
+            "pattern": "^workflows/[^/.][^\\s]*$",
+            "description": "Community workflow committed under <profile>/workflows/ (alternative to url)."
+          },
+          "loras": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/url"
+            },
+            "description": "Extra LoRAs by public URL (hf://…), downloaded into models/loras/."
+          },
+          "upstream_url": {
+            "$ref": "#/$defs/url",
+            "description": "Original download URL of a vendored file."
+          },
+          "upstream_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "sha256 of the upstream file at review time."
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "app_default": {
+      "$ref": "#/$defs/id"
+    },
+    "smoke": {
+      "type": "object",
+      "required": [
+        "api_url",
+        "license"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "api_url": {
+          "$ref": "#/$defs/url"
+        },
+        "license": {
+          "type": "string"
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "custom_nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "timeout_s": {
+          "type": "integer",
+          "minimum": 30
+        }
+      }
+    }
+  }
+}

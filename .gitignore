@@ -1,0 +1,25 @@
+# secrets & runtime state — never commit
+.env
+.env.*
+!.env.example
+secrets/
+data/
+*.token
+*.pem
+*.key
+token.json
+cf_service*.json
+# outputs & weights
+outputs/
+*.safetensors
+*.ckpt
+*.gguf
+# python / os
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+.DS_Store

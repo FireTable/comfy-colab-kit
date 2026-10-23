@@ -1,0 +1,475 @@
+# MOSS-Image profile. Every workflow is an unmodified community/official upstream file (vendored only when
+# Apache-2.0/MIT, otherwise fetched by URL at setup). Models are always downloaded from the original repos.
+# yaml-language-server: $schema=../../../schemas/profile.schema.json
+id: moss-image
+title: MOSS-Image (DeBand int8 default · 4-step fast · official quality/layout · edit)
+accelerator: L4
+comfyui:
+  repo: https://github.com/comfyanonymous/ComfyUI
+  commit: bc5f880
+  args:
+  - --preview-method
+  - auto
+  - --reserve-vram
+  - '1'
+  settings:
+    Comfy.LinkRenderMode: 2
+  env:
+    PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
+frontend:
+  package: comfyui-frontend-package==1.57.1
+models:
+- id: deband-int8
+  dest: diffusion_models/moss_image_sft_deband_int8_convrot.safetensors
+  url: hf://MATLOWAI/MOSS-Image-SFT-DeBand-int8/moss_image_sft_deband_int8_convrot.safetensors
+  license: apache-2.0
+  sha256: 25082f19aaa11a4ebb3309080b5dd8bce59f0557bfd542976a7d6287e4869634
+  size_gb: 5.41
+  core: true
+- id: deband-plus-int8
+  dest: diffusion_models/moss_image_sft_deband_plus_int8_convrot.safetensors
+  url: hf://MATLOWAI/MOSS-Image-SFT-DeBand-int8/moss_image_sft_deband_plus_int8_convrot.safetensors
+  license: apache-2.0
+  sha256: da4e363d8206f41ffacf95787d7e0a67414dc3adb0636f27de338071d85f9cb5
+  size_gb: 5.41
+- id: deband-fast-int8
+  dest: diffusion_models/moss_image_sft_deband_fast_dmd035_int8_convrot.safetensors
+  url: hf://MATLOWAI/MOSS-Image-SFT-DeBand-int8/moss_image_sft_deband_fast_dmd035_int8_convrot.safetensors
+  license: apache-2.0
+  sha256: ae5470cc8afb6a1b632d19ad28156c47ce9631fdceb69f3239ccceccd03a1e33
+  size_gb: 5.41
+- id: te-int8
+  dest: text_encoders/qwen3.5_9b_int8_convrot.safetensors
+  url: hf://Comfy-Org/MOSS-Image/text_encoders/qwen3.5_9b_int8_convrot.safetensors
+  license: apache-2.0
+  sha256: 32e3787472f708fa5f83624acbf5ef23f7fc89c439e05065ea57cfe5a97f025a
+  size_gb: 9.75
+  core: true
+- id: vae
+  dest: vae/flux2-vae.safetensors
+  url: hf://Comfy-Org/MOSS-Image/vae/flux2-vae.safetensors
+  license: apache-2.0
+  sha256: 868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3
+  size_gb: 0.34
+  core: true
+- id: sft-bf16
+  dest: diffusion_models/moss_image_sft_bf16.safetensors
+  url: hf://Comfy-Org/MOSS-Image/diffusion_models/moss_image_sft_bf16.safetensors
+  license: apache-2.0
+  sha256: f96738d8116d78b7316b57c663d8c98591ddafab7488f48e3099b7655e34ab6f
+  size_gb: 10.16
+- id: sft-int8
+  dest: diffusion_models/moss_image_sft_int8_convrot.safetensors
+  url: hf://Comfy-Org/MOSS-Image/diffusion_models/moss_image_sft_int8_convrot.safetensors
+  license: apache-2.0
+  sha256: b4d1475bc7eeffd7b809e82ea13a1fba1fb85c4e18365af3813722faa5c0fe4f
+  size_gb: 5.41
+- id: base-int8
+  dest: diffusion_models/moss_image_base_int8_convrot.safetensors
+  url: hf://Comfy-Org/MOSS-Image/diffusion_models/moss_image_base_int8_convrot.safetensors
+  license: apache-2.0
+  sha256: f601c1e1161915fb3fea003da0c1782e374dd960fbb3978bc0e4e3fa1f2d8e6f
+  size_gb: 5.41
+- id: te-w4a8
+  dest: text_encoders/qwen3.5_9b_w4a8_gptq.safetensors
+  url: hf://Comfy-Org/MOSS-Image/text_encoders/qwen3.5_9b_w4a8_gptq.safetensors
+  license: apache-2.0
+  sha256: 4cc6a1543ad2061806da46f35f90cadb4801dcba246c44782cf42ec0feb6407c
+  size_gb: 7.34
+- id: vae-small
+  dest: vae/flux2-vae_small.safetensors
+  url: hf://Comfy-Org/MOSS-Image/vae/flux2-vae_small.safetensors
+  license: apache-2.0
+  sha256: d8d52ba036475f5fb07c8b435e176d3d97ebfa82f0d1a1c317f9cc1e25bd013b
+  size_gb: 0.25
+- id: akhaliq-4step-v2
+  dest: loras/moss_image_sft_4step_v2.0.safetensors
+  url: hf://akhaliq/MOSS-Image-SFT-4-steps/moss_image_sft_4step_v2.0.safetensors
+  license: apache-2.0
+  sha256: 154c7f1455c3bf9925945c2f1ea2e4f09d0d0c67256081384a094b2b585f913f
+  size_gb: 1.19
+- id: kijai-4step-v2
+  dest: loras/moss_image_sft_4_steps_lora_v2_600_avg_rank_72_bf16.safetensors
+  url: hf://Kijai/MOSS-image_experimental/loras/moss_image_sft_4_steps_lora_v2_600_avg_rank_72_bf16.safetensors
+  license: unspecified (link-only, never mirrored)
+  sha256: 632ff58fba4b09893ba591c043f447240768cf9ac989e12bffa25f5d684b6616
+  size_gb: 0.33
+- id: rapid-4step-lora
+  dest: rapid_moss/rapid-moss-4step/lora.safetensors
+  url: hf://darask0/MOSS-Image_4-step_adapter_lora/lora.safetensors
+  license: apache-2.0
+  sha256: 4a4c8e2d6244a0fcdc2822b87b3435226ae57c289aef99fc2ac54edeab9e09bb
+  size_gb: 1.19
+- id: rapid-4step-time
+  dest: rapid_moss/rapid-moss-4step/time_embedding.safetensors
+  url: hf://darask0/MOSS-Image_4-step_adapter_lora/time_embedding.safetensors
+  license: apache-2.0
+  sha256: 2ebabc91e2a9e68c00e948dd80b05235a826e808817b5b2600b441457570d244
+  size_gb: 0.04
+- id: rapid-4step-dataspace
+  dest: rapid_moss/rapid-moss-4step/dataspace.safetensors
+  url: hf://darask0/MOSS-Image_4-step_adapter_lora/dataspace.safetensors
+  license: apache-2.0
+  sha256: d19f0e695bb26886cfce57441fd412f358e159d6eec8555ec1a71daaf30a7968
+- id: lodestones-8step-lora
+  dest: rapid_moss/lodestones-8step-latest/lora.safetensors
+  url: hf://lodestones/MOSS-Image-SFT-8-steps-dmd/lora_latest.safetensors
+  license: apache-2.0
+  sha256: be82ab2bef78194651815bb6de443cec67553e01c14559f2ad365449445f0452
+  size_gb: 1.19
+- id: lodestones-8step-time
+  dest: rapid_moss/lodestones-8step-latest/time_embedding.safetensors
+  url: hf://lodestones/MOSS-Image-SFT-8-steps-dmd/time_embedding.safetensors
+  license: apache-2.0
+  sha256: 54f081f33f48f4abda3362cdc41abec947ddabd11894ce6158b15a9ff6340a3d
+  size_gb: 0.04
+- id: lodestones-8step-dataspace
+  dest: rapid_moss/lodestones-8step-latest/dataspace.safetensors
+  url: hf://lodestones/MOSS-Image-SFT-8-steps-dmd/dataspace.safetensors
+  license: apache-2.0
+  sha256: 816cf216448000c9f525539adcc005a6b929d1bdb2e4e30e2fe82e094152dcb5
+- id: lodestones-8step-as-lora
+  dest: loras/lodestones_moss_sft_8step_dmd_lora_latest.safetensors
+  url: hf://lodestones/MOSS-Image-SFT-8-steps-dmd/lora_latest.safetensors
+  license: apache-2.0
+  sha256: be82ab2bef78194651815bb6de443cec67553e01c14559f2ad365449445f0452
+  size_gb: 1.19
+- id: darask0-4step-as-lora
+  dest: loras/darask0_moss_sft_4step_dmad_lora.safetensors
+  url: hf://darask0/MOSS-Image_4-step_adapter_lora/lora.safetensors
+  license: apache-2.0
+  sha256: 4a4c8e2d6244a0fcdc2822b87b3435226ae57c289aef99fc2ac54edeab9e09bb
+  size_gb: 1.19
+- id: deband-l37-41
+  dest: loras/moss_image_sft_banding_fix_L37-41_bf16.safetensors
+  url: hf://MATLOWAI/MOSS-Image-SFT-DeBand/moss_image_sft_banding_fix_L37-41_bf16.safetensors
+  license: apache-2.0
+  sha256: 01329abd340dd9cf55677381a11558fe5307c7fd648f1988b441172fbbd86fd5
+  size_gb: 1.13
+- id: deband-l32-36
+  dest: loras/moss_image_sft_banding_fix_L32-36_extra_bf16.safetensors
+  url: hf://MATLOWAI/MOSS-Image-SFT-DeBand/moss_image_sft_banding_fix_L32-36_extra_bf16.safetensors
+  license: apache-2.0
+  sha256: 7f6e43c7566b0c04ad9772cf3efdf9da973b65e242d1a384b17e8db91a6337cd
+  size_gb: 1.13
+- id: deband-l37-41-splitqkv
+  dest: loras/moss_image_sft_banding_fix_L37-41_bf16_splitqkv.safetensors
+  url: hf://MATLOWAI/MOSS-Image-SFT-DeBand/moss_image_sft_banding_fix_L37-41_bf16_splitqkv.safetensors
+  license: apache-2.0
+  sha256: 34b29f56c168f33a50624a5b9728cae4026db43b88b46b381a739926921bc882
+  size_gb: 1.13
+- id: sft-bf16-splitqkv
+  dest: diffusion_models/moss_image_sft_bf16_split_qkv.safetensors
+  url: hf://MATLOWAI/MOSS-Image-SFT-DeBand/split_qkv/moss_image_sft_bf16_split_qkv.safetensors
+  license: apache-2.0
+  sha256: 0e5803a087c07cb4c7d8010a2d44153494a053706337edc7f76b455e9900b3a6
+  size_gb: 10.16
+- id: chinoll-edit-patch
+  dest: model_patches/moss_image_edit.safetensors
+  url: hf://chinoll/Moss-Image-Edit/adapter_model.safetensors
+  license: unspecified (link-only, never mirrored)
+  sha256: 17a48b8c605dcffdedb92a2b887d18cf316505be90802717669fb6556098dcdf
+  size_gb: 0.3
+custom_nodes:
+- id: rapid-moss
+  url: https://huggingface.co/darask0/MOSS-Image_4-step_adapter_lora
+  subdir: comfyui/rapid-moss
+  license: apache-2.0
+- id: moss-image-edit
+  url: https://github.com/Chenkin-x/ComfyUI-Moss-Image-Edit
+  license: GPL-3.0
+workflows:
+- id: matlowai-deband-int8
+  title: Default · DeBand int8 presets (25 / Fast 10 steps)
+  source: https://huggingface.co/MATLOWAI/MOSS-Image-SFT-DeBand-int8
+  license: Apache-2.0
+  file: workflows/matlowai_deband_int8.json
+  upstream_url: https://huggingface.co/MATLOWAI/MOSS-Image-SFT-DeBand-int8/resolve/main/workflows/moss_deband_int8.json
+  upstream_sha256: 3fb36959a80ce050c3970ea5a0a72e8bd518e1cecd0e492e472cc53cbdfc13dd
+  models:
+  - deband-int8
+  - deband-plus-int8
+  - deband-fast-int8
+  - te-int8
+  - vae
+  app:
+    inputs:
+    - - 6
+      - value
+    - - 1
+      - choice
+    - - 14
+      - value
+    - - 15
+      - width
+    - - 15
+      - height
+    outputs:
+    - 18
+- id: akhaliq-4step
+  title: Fast · 4-step turbo LoRA (akhaliq)
+  source: https://huggingface.co/akhaliq/MOSS-Image-SFT-4-steps
+  license: Apache-2.0 (redistributable)
+  file: workflows/akhaliq_moss-image-4step-turbo.json
+  upstream_url: https://huggingface.co/akhaliq/MOSS-Image-SFT-4-steps/resolve/main/comfyui/moss-image-4step-turbo.json
+  upstream_sha256: 1c4d3068ed98c518fcd0c6d716ab2aa30d101ae3d579c54c04e8e08216ee1bdf
+  models:
+  - sft-bf16
+  - te-int8
+  - vae
+  - akhaliq-4step-v2
+  app:
+    inputs:
+    - - 3
+      - text
+    - - 6
+      - width
+    - - 6
+      - height
+    - - 7
+      - seed
+    outputs:
+    - 9
+- id: rapid-moss-4step
+  title: Fast · rapid-moss 4-step adapter (darask0)
+  source: https://huggingface.co/darask0/MOSS-Image_4-step_adapter_lora
+  license: Apache-2.0
+  file: workflows/rapid-moss-4step-native.json
+  upstream_url: https://huggingface.co/darask0/MOSS-Image_4-step_adapter_lora/resolve/main/comfyui/rapid-moss/example_workflows/rapid-moss-4step-native.json
+  upstream_sha256: 3382f3dfe8b881d27a0c4841b33eaa031a4495098f66da83fa524315096f9975
+  models:
+  - sft-bf16
+  - te-int8
+  - vae
+  - rapid-4step-lora
+  - rapid-4step-time
+  - rapid-4step-dataspace
+  custom_nodes:
+  - rapid-moss
+  app:
+    inputs:
+    - - 3
+      - text
+    - - 6
+      - width
+    - - 6
+      - height
+    - - 5
+      - noise_seed
+    outputs:
+    - 9
+- id: official-t2i
+  title: Quality · official Text to Image (Comfy-Org)
+  source: https://docs.comfy.org/tutorials/image/moss-image/moss-image
+  license: MIT templates; model Apache-2.0
+  file: workflows/official_moss_t2i.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_moss_image_t2i.json
+  upstream_sha256: 91d76c158a1e427c09904c6222978065c1ed965c8b3f40ae323e649808af2198
+  models:
+  - sft-int8
+  - te-w4a8
+  - vae-small
+  app: &id001
+    inputs:
+    - - 18
+      - value
+    - - 18
+      - switch
+    outputs:
+    - 9
+- id: official-layout
+  title: Layout · official Layout-Guided (Comfy-Org)
+  source: https://docs.comfy.org/tutorials/image/moss-image/moss-image
+  license: MIT/Apache-2.0
+  file: workflows/official_moss_t2i_bboxes.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_moss_image_t2i_bboxes.json
+  upstream_sha256: 225aa1c2831bc24083971099d1d6e756f6930e4e7a225268ee95b9ec808fad2c
+  models:
+  - sft-int8
+  - te-w4a8
+  - vae-small
+  app:
+    inputs:
+    - - 18
+      - value
+    outputs:
+    - 9
+- id: matlowai-presets
+  title: Presets · banding-fix LoRAs + DMD/DMAD fast modes
+  source: https://huggingface.co/MATLOWAI/MOSS-Image-SFT-DeBand
+  license: Apache-2.0
+  file: workflows/matlowai_banding_fix_presets.json
+  upstream_url: https://huggingface.co/MATLOWAI/MOSS-Image-SFT-DeBand/resolve/main/workflows/moss_banding_fix_presets.json
+  upstream_sha256: 7183c0d2f921c41cc76e94be96666f561e3c43d6d3136aa4134d320f8c34a76b
+  models:
+  - sft-bf16
+  - te-int8
+  - vae
+  - deband-l37-41
+  - deband-l32-36
+  - lodestones-8step-as-lora
+  - darask0-4step-as-lora
+  app:
+    inputs:
+    - - 6
+      - value
+    - - 1
+      - choice
+    - - 22
+      - value
+    - - 23
+      - width
+    - - 23
+      - height
+    outputs:
+    - 26
+- id: kijai-4step
+  title: Fast · Kijai 4-step LoRA v2 (akhaliq graph, LoRA swapped)
+  source: https://huggingface.co/akhaliq/MOSS-Image-SFT-4-steps
+  license: workflow Apache-2.0; LoRA unspecified (link-only)
+  url: https://huggingface.co/akhaliq/MOSS-Image-SFT-4-steps/resolve/main/comfyui/moss-image-4step-turbo.json
+  upstream_sha256: 1c4d3068ed98c518fcd0c6d716ab2aa30d101ae3d579c54c04e8e08216ee1bdf
+  optional: true
+  models:
+  - sft-bf16
+  - te-int8
+  - vae
+  - kijai-4step-v2
+  overrides:
+  - node: 12
+    widget_index: 0
+    value: moss_image_sft_4_steps_lora_v2_600_avg_rank_72_bf16.safetensors
+  app:
+    inputs:
+    - - 3
+      - text
+    - - 6
+      - width
+    - - 6
+      - height
+    - - 7
+      - seed
+    outputs:
+    - 9
+- id: matlowai-presets-rapid
+  title: Presets + rapid-moss branch (heavy)
+  source: https://huggingface.co/MATLOWAI/MOSS-Image-SFT-DeBand
+  license: Apache-2.0
+  file: workflows/matlowai_banding_fix_presets_rapid_moss.json
+  upstream_url: https://huggingface.co/MATLOWAI/MOSS-Image-SFT-DeBand/resolve/main/workflows/moss_banding_fix_presets_rapid_moss.json
+  upstream_sha256: 3e0fcab3e11c923a859bcd0336b80626e5e0ffecf74a414f6469b2081eecc210
+  optional: true
+  models:
+  - sft-bf16
+  - te-int8
+  - vae
+  - deband-l37-41
+  - deband-l32-36
+  - lodestones-8step-as-lora
+  - darask0-4step-as-lora
+  - sft-bf16-splitqkv
+  - deband-l37-41-splitqkv
+  - rapid-4step-lora
+  - rapid-4step-time
+  - rapid-4step-dataspace
+  - lodestones-8step-lora
+  - lodestones-8step-time
+  - lodestones-8step-dataspace
+  custom_nodes:
+  - rapid-moss
+  app:
+    inputs:
+    - - 6
+      - value
+    - - 1
+      - choice
+    - - 26
+      - value
+    - - 27
+      - value
+    - - 28
+      - value
+    outputs:
+    - 53
+- id: official-base-t2i
+  title: Base · official Base Text to Image
+  source: https://docs.comfy.org/tutorials/image/moss-image/moss-image
+  license: MIT/Apache-2.0
+  file: workflows/official_moss_base_t2i.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_moss_image_base_t2i.json
+  upstream_sha256: 79f897bcc9d8ae049f731f633110b6b919042198575cf7794ed9e023055c540a
+  optional: true
+  models:
+  - base-int8
+  - te-w4a8
+  - vae-small
+  app: *id001
+- id: chinoll-edit-single
+  title: Edit · single reference (chinoll)
+  source: https://github.com/Chenkin-x/ComfyUI-Moss-Image-Edit
+  license: code GPL-3.0; weights unlicensed -> link only, don't bundle
+  url: https://raw.githubusercontent.com/Chenkin-x/ComfyUI-Moss-Image-Edit/main/workflows/moss_edit_single_reference.json
+  upstream_sha256: ff99301be6e59f6417cec65d67a3907f06a25bc3095e936efb199f1b303fffec
+  optional: true
+  models:
+  - sft-int8
+  - te-int8
+  - vae-small
+  - chinoll-edit-patch
+  custom_nodes:
+  - moss-image-edit
+  overrides:
+  - node: 1
+    widget_index: 0
+    value: moss_image_sft_int8_convrot.safetensors
+  - node: 2
+    widget_index: 0
+    value: qwen3.5_9b_int8_convrot.safetensors
+  app:
+    inputs:
+    - - 6
+      - image
+    - - 9
+      - text
+    outputs:
+    - 16
+- id: chinoll-edit-multi
+  title: Edit · multi reference (chinoll)
+  source: https://github.com/Chenkin-x/ComfyUI-Moss-Image-Edit
+  license: GPL-3.0 code
+  url: https://raw.githubusercontent.com/Chenkin-x/ComfyUI-Moss-Image-Edit/main/workflows/moss_edit_multi_reference.json
+  upstream_sha256: 898e8450e38fa2eab8d379192ffe5391622c3d8a33b4866f845fe4a5f82b778a
+  optional: true
+  models:
+  - sft-int8
+  - te-int8
+  - vae-small
+  - chinoll-edit-patch
+  custom_nodes:
+  - moss-image-edit
+  overrides:
+  - node: 1
+    widget_index: 0
+    value: moss_image_sft_int8_convrot.safetensors
+  - node: 2
+    widget_index: 0
+    value: qwen3.5_9b_int8_convrot.safetensors
+  app:
+    inputs:
+    - - 6
+      - image
+    - - 19
+      - image
+    - - 9
+      - text
+    outputs:
+    - 16
+app_default: matlowai-deband-int8
+smoke:
+  api_url: https://huggingface.co/MATLOWAI/MOSS-Image-SFT-DeBand-int8/resolve/main/workflows/moss_deband_int8_api.json
+  license: apache-2.0
+  models:
+  - deband-int8
+  - te-int8
+  - vae
+  timeout_s: 600
