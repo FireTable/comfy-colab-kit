@@ -122,6 +122,14 @@ $("theme").onclick=()=>{const n=root.dataset.theme==="dark"?"light":"dark";root.
 const card=$("card");card.addEventListener("pointermove",e=>{const r=card.getBoundingClientRect();card.style.setProperty("--mx",e.clientX-r.left+"px");card.style.setProperty("--my",e.clientY-r.top+"px")});
 async function api(p,o){const r=await fetch(p,Object.assign({headers:{"Content-Type":"application/json"}},o));const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||r.status);return j}
 function fmt(s){s=Math.max(0,Math.round(s));return s>=3600?`${Math.floor(s/3600)}h ${Math.floor(s%3600/60)}m`:s>=60?`${Math.floor(s/60)}m ${s%60}s`:`${s}s`}
+// download progress: byte fields (core_bytes_* gate readiness) with fallback to the old file-granular GB fields
+function dlp(d){if(!d)return null;const G=1e9;
+ if(d.core_bytes_total!=null||d.bytes_total!=null){const core=d.core_bytes_total>0;
+  return{done:core?d.core_bytes_done:d.bytes_done,total:core?d.core_bytes_total:d.bytes_total,rate:d.bytes_per_s||0,
+   eta:d.eta_s!=null&&!core?d.eta_s:(d.bytes_per_s>0?((core?d.core_bytes_total-d.core_bytes_done:d.bytes_total-d.bytes_done)/d.bytes_per_s):null),
+   paused:!!d.paused,restarts:d.restarts||0,files:`${d.files_done}/${d.files_total}`,bg:core&&d.bytes_total>d.core_bytes_total?d.bytes_total-d.core_bytes_total:0}}
+ if(!d.total_gb)return null;return{done:d.done_gb*G,total:d.total_gb*G,rate:(d.gbps||0)*G,eta:d.gbps>0?(d.total_gb-d.done_gb)/d.gbps:null,paused:false,restarts:0,files:`${d.files_done}/${d.files_total}`,bg:0}}
+const gb=b=>(b/1e9).toFixed(b>=1e10?1:2);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function render(){if(!S)return;const st=S.state,waking=BOOT.includes(st)||st==="switching",now=Date.now()/1000;
  if(st!==lastSt){stageT[st]=now;lastSt=st;window.kitBg&&kitBg.set({amp:waking?1.6:1})}
@@ -133,17 +141,17 @@ function render(){if(!S)return;const st=S.state,waking=BOOT.includes(st)||st==="
  $("title").textContent=st==="sleeping"?"ComfyUI is sleeping":st==="ready"?"Ready — opening ComfyUI":st==="failed"?"Start failed":st==="stopping"?"Releasing GPU…":st==="switching"?"Switching profile…":"Waking up…";
  const started=S.session_started||S.since;
  $("sub").textContent=st==="sleeping"?(S.reason?`Last stop: ${S.reason}. GPU released — no compute units in use.`:"GPU released — no compute units in use. Wake it to start a shared session."):st==="failed"?(S.reason||""):waking?`Elapsed ${fmt(now-started)}${S.reason?" · "+S.reason:""}`:st==="ready"?"Redirecting to App mode…":"";
- const ol=$("stages");ol.hidden=!waking;ol.innerHTML="";const ci=BOOT.indexOf(st);const d=S.progress&&S.progress.download;
+ const ol=$("stages");ol.hidden=!waking;ol.innerHTML="";const ci=BOOT.indexOf(st);const d=dlp(S.progress&&S.progress.download);
  STAGES.forEach(([k,l],i)=>{const li=document.createElement("li");li.className=i<ci?"done":i===ci?"cur":"";
-  let t="";if(i===ci&&stageT[k])t=fmt(now-stageT[k]);if(k==="downloading"&&d&&d.total_gb)t=(i===ci?t+" · ":"")+`${Math.round(100*d.done_gb/d.total_gb)}%`;
+  let t="";if(i===ci&&stageT[k])t=fmt(now-stageT[k]);if(k==="downloading"&&d&&d.total)t=(i===ci?t+" · ":"")+`${Math.round(100*d.done/d.total)}%`+(d.paused?" · paused":"");
   li.innerHTML=`<span class="k">${i<ci?"✓":""}</span><span>${l}</span><span class="t">${t}</span>`;ol.appendChild(li)});
  // overall progress + ETA (stage weights; download weight from size)
- $("prog").hidden=!waking;if(waking&&ci>=0){const dlw=d&&d.total_gb?Math.max(30,d.total_gb*8):120;const W=STAGES.map(s=>s[0]==="downloading"?dlw:s[2]);
-  const tot=W.reduce((a,b)=>a+b,0);let frac=0;if(k_dl())frac=d.total_gb?Math.min(1,d.done_gb/d.total_gb):0;else frac=Math.min(.9,(now-(stageT[st]||now))/W[ci]);
+ $("prog").hidden=!waking;if(waking&&ci>=0){const dlw=d&&d.total?Math.max(30,d.total/1e9*8):120;const W=STAGES.map(s=>s[0]==="downloading"?dlw:s[2]);
+  const tot=W.reduce((a,b)=>a+b,0);let frac=0;if(k_dl())frac=d.total?Math.min(1,d.done/d.total):0;else frac=Math.min(.9,(now-(stageT[st]||now))/W[ci]);
   const done=W.slice(0,ci).reduce((a,b)=>a+b,0)+W[ci]*frac;const pct=Math.min(99,100*done/tot);$("pbar").style.width=pct.toFixed(1)+"%";
-  let eta;if(k_dl()&&d.gbps>0)eta=(d.total_gb-d.done_gb)/d.gbps+W.slice(ci+1).reduce((a,b)=>a+b,0);else eta=Math.max(0,tot-done);
+  let eta;if(k_dl()&&d.eta!=null)eta=d.eta+W.slice(ci+1).reduce((a,b)=>a+b,0);else eta=Math.max(0,tot-done);
   $("plabel").textContent=`${pct.toFixed(0)}%`;$("eta").textContent=`ETA ~${fmt(eta)}`;
-  $("pdl").textContent=d&&d.total_gb?`${d.done_gb} / ${d.total_gb} GB · ${d.files_done}/${d.files_total} files${d.gbps?` · ${(d.gbps*1000).toFixed(0)} MB/s`:""}`:""}
+  $("pdl").textContent=d&&d.total?`${gb(d.done)} / ${gb(d.total)} GB · ${d.files} files${d.rate?` · ${(d.rate/1e6).toFixed(0)} MB/s`:""}${d.paused?" · paused (prompt running)":""}${d.restarts?` · ${d.restarts} stalled file${d.restarts>1?"s":""} restarted`:""}${d.bg?` · +${gb(d.bg)} GB later`:""}`:""}
  function k_dl(){return st==="downloading"&&d}
  $("pick").hidden=!(st==="sleeping"||st==="failed");
  const w=$("wake");w.hidden=st==="ready";w.disabled=!(st==="sleeping"||st==="failed");$("wtext").textContent=st==="failed"?"↻ Retry":(st==="sleeping"?"⚡ Wake":"Starting…");
