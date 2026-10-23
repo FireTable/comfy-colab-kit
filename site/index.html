@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Comfy Colab Kit — wake-on-demand ComfyUI on Google Colab</title>
+<meta name="description" content="Comfy Colab Kit runs ComfyUI on demand on free or cheap Google Colab L4 GPUs, behind your own gate with Caddy and a Cloudflare Access login. Open one URL, press Wake, and start creating.">
+<meta property="og:title" content="Comfy Colab Kit — wake-on-demand ComfyUI on Google Colab">
+<meta property="og:description" content="ComfyUI on Colab GPUs, awake only when you need it. One URL, one shared session, auto-shutdown when idle.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0E0A12">
+<link rel="icon" href="assets/logo-e-fusion-dark-64.png" type="image/png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<canvas id="bg" aria-hidden="true"></canvas>
+<div class="grid" aria-hidden="true"></div>
+
+<nav class="nav">
+  <a class="brand" href="#top"><img src="assets/logo-e-fusion-dark.svg" alt="" width="30" height="30">Comfy Colab Kit</a>
+  <div class="nav-links">
+    <a href="#problem">Problem</a>
+    <a href="#how">How it works</a>
+    <a href="#features">Features</a>
+    <a href="#profiles">Profiles</a>
+    <a href="#numbers">Numbers</a>
+    <a href="#quickstart">Quick start</a>
+    <a href="#faq">FAQ</a>
+  </div>
+  <a class="btn btn-primary btn-sm" href="https://github.com/OWNER/comfy-colab-kit">GitHub</a>
+</nav>
+
+<section class="hero" id="top">
+  <div class="inner">
+    <span class="badge"><span class="dot" aria-hidden="true"></span>Wake-on-demand ComfyUI</span>
+    <p class="state-line"><span class="states"><i>Sleeping</i> → <i>Waking</i> → <b>Ready</b></span></p>
+    <img class="hero-logo" src="assets/logo-e-fusion-dark.svg" alt="Comfy Colab Kit logo" width="96" height="96">
+    <h1 class="shiny">ComfyUI on Colab GPUs, awake only when you need it</h1>
+    <p class="sub">Comfy Colab Kit runs ComfyUI on demand on free or cheap Google Colab L4 GPUs, fronted by your own gate: a small VPS with Caddy and a Cloudflare Access login. Open one URL, press Wake, and start creating.</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="https://github.com/OWNER/comfy-colab-kit">View on GitHub</a>
+      <a class="btn btn-secondary" href="#quickstart">Quick start</a>
+    </div>
+    <p class="hero-stat">L4 · ~1.54 CU/h · 28.4 s per 1024² image</p>
+  </div>
+</section>
+
+<section id="problem">
+  <div class="inner">
+    <h2>The <span class="shiny">problem</span></h2>
+    <div class="grid-cards">
+      <article class="card">
+        <h3>GPUs are expensive to keep on</h3>
+        <p>A rented GPU box bills you around the clock, even while nobody is generating.</p>
+      </article>
+      <article class="card">
+        <h3>Colab is cheap but awkward</h3>
+        <p>Notebooks time out, URLs change on every run, and setting up ComfyUI again is slow and manual.</p>
+      </article>
+      <article class="card">
+        <h3>Sharing is messy</h3>
+        <p>Two people press start, two VMs boot, and your compute budget is gone.</p>
+      </article>
+    </div>
+    <p class="closing">Comfy Colab Kit gives Colab a stable front door that sleeps when idle and wakes in one click.</p>
+  </div>
+</section>
+
+<section id="how">
+  <div class="inner">
+    <h2>How it <span class="shiny">works</span></h2>
+    <div class="flow">
+      <div class="flow-h">
+        <svg viewBox="0 0 1000 180" role="img" aria-label="Browser to Cloudflare Access to VPS gate to Google Colab L4">
+          <defs>
+            <linearGradient id="arr" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#E8710A"/>
+              <stop offset="1" stop-color="#F9AB00"/>
+            </linearGradient>
+          </defs>
+          <g font-family="Inter,system-ui,sans-serif" text-anchor="middle">
+            <rect x="8" y="40" width="180" height="100" rx="22" fill="rgba(33,25,39,.72)" stroke="rgba(255,255,255,.16)"/>
+            <text x="98" y="88" fill="#F4F1F6" font-size="16" font-weight="700">Browser</text>
+            <text x="98" y="112" fill="#a49cab" font-size="12" font-family="ui-monospace,Menlo,monospace">you, one URL</text>
+            <line x1="196" y1="90" x2="232" y2="90" stroke="url(#arr)" stroke-width="2.5"/>
+            <polygon points="232,84 246,90 232,96" fill="#F9AB00"/>
+
+            <rect x="254" y="40" width="200" height="100" rx="22" fill="rgba(33,25,39,.72)" stroke="rgba(255,255,255,.16)"/>
+            <text x="354" y="88" fill="#F4F1F6" font-size="16" font-weight="700">Cloudflare Access</text>
+            <text x="354" y="112" fill="#a49cab" font-size="12" font-family="ui-monospace,Menlo,monospace">login</text>
+            <line x1="462" y1="90" x2="498" y2="90" stroke="url(#arr)" stroke-width="2.5"/>
+            <polygon points="498,84 512,90 498,96" fill="#F9AB00"/>
+
+            <rect x="520" y="40" width="190" height="100" rx="22" fill="rgba(33,25,39,.72)" stroke="rgba(255,255,255,.16)"/>
+            <text x="615" y="88" fill="#F4F1F6" font-size="16" font-weight="700">VPS gate</text>
+            <text x="615" y="112" fill="#a49cab" font-size="12" font-family="ui-monospace,Menlo,monospace">Caddy + comfy-gate</text>
+            <line x1="718" y1="90" x2="754" y2="90" stroke="url(#arr)" stroke-width="2.5"/>
+            <polygon points="754,84 768,90 754,96" fill="#F9AB00"/>
+
+            <rect x="776" y="40" width="216" height="100" rx="22" fill="rgba(33,25,39,.72)" stroke="#F2FF59" stroke-width="2"/>
+            <text x="884" y="88" fill="#F4F1F6" font-size="16" font-weight="700">Google Colab L4</text>
+            <text x="884" y="112" fill="#a49cab" font-size="12" font-family="ui-monospace,Menlo,monospace">ComfyUI</text>
+          </g>
+        </svg>
+      </div>
+      <div class="flow-v">
+        <article class="card node-card"><h3>Browser</h3><small>you, one URL</small></article>
+        <div class="arrow-down" aria-hidden="true">↓</div>
+        <article class="card node-card"><h3>Cloudflare Access</h3><small>login</small></article>
+        <div class="arrow-down" aria-hidden="true">↓</div>
+        <article class="card node-card"><h3>VPS gate</h3><small>Caddy + comfy-gate</small></article>
+        <div class="arrow-down" aria-hidden="true">↓</div>
+        <article class="card node-card node-hot"><h3>Google Colab L4</h3><small>ComfyUI</small></article>
+      </div>
+    </div>
+    <ol class="steps">
+      <li>Open your URL. Cloudflare Access checks who you are.</li>
+      <li>If the GPU is asleep, the gate shows a wake card. Press Wake.</li>
+      <li>The gate starts a Colab L4, installs ComfyUI and downloads the profile's models. Everyone watching sees the same live progress.</li>
+      <li>When it is ready, the same URL becomes ComfyUI. Idle, over time or over budget, it goes back to sleep.</li>
+    </ol>
+    <div class="card wake-demo">
+      <div class="prow"><span>Waking… downloading models</span><span>62%</span></div>
+      <div class="bar" role="presentation"><i></i></div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="inner">
+    <h2>Feature <span class="shiny">highlights</span></h2>
+    <div class="grid-cards">
+      <article class="card">
+        <h3>One-click wake</h3>
+        <p>Press Wake once. The gate starts Colab, sets up ComfyUI and proxies it on the same URL, WebSockets included.</p>
+      </article>
+      <article class="card">
+        <h3>One shared session</h3>
+        <p>Wake is idempotent. Everyone sees the same progress and logs, and a second visitor joins the boot instead of launching a duplicate VM.</p>
+      </article>
+      <article class="card">
+        <h3>Auto-shutdown</h3>
+        <p>Sessions go back to sleep on idle, on max session time, or when the CU budget is used up.</p>
+      </article>
+      <article class="card">
+        <h3>App mode first</h3>
+        <p>Boots into ComfyUI App mode: type a prompt, get an image. Switch back to the full node UI anytime.</p>
+      </article>
+      <article class="card">
+        <h3>Plug-and-play profiles</h3>
+        <p>Each profile bundles models, community workflows and ComfyUI args in one config.</p>
+      </article>
+      <article class="card">
+        <h3>Update with git pull</h3>
+        <p>Workflow changes only need a git pull. No image rebuild, no redeploy.</p>
+      </article>
+    </div>
+    <article class="card roadmap">
+      <span class="tag">Roadmap</span>
+      <p>MCP server based on <a href="https://github.com/joenorton/comfyui-mcp-server">joenorton/comfyui-mcp-server</a>, mounted at /mcp, so AI agents can generate images through your gate.</p>
+    </article>
+  </div>
+</section>
+
+<section id="profiles">
+  <div class="inner">
+    <h2><span class="shiny">Profiles</span></h2>
+    <p class="lead">A profile is a single profile.yaml: models by public URL, community workflows and ComfyUI args. Pick one before waking.</p>
+    <div class="grid-cards">
+      <article class="card">
+        <span class="tag">Focus</span>
+        <h3>MOSS-Image</h3>
+        <p>Primary profile: OpenMOSS MOSS-Image on a Colab L4, defaulting to the MATLOWAI DeBand int8 workflow with 4-step turbo and official quality graphs in the same App menu.</p>
+        <p class="mono">examples/profiles/moss-image</p>
+      </article>
+      <article class="card">
+        <h3>SD3.5</h3>
+        <p>Stable Diffusion 3.5 on a Colab L4, defaulting to the official SD 3.5 Large fp8 graph with TurboX and Medium turbo fast variants.</p>
+        <p class="mono">examples/profiles/sd-latest</p>
+      </article>
+      <article class="card">
+        <h3>Qwen-Image 2.1</h3>
+        <p>Qwen-Image 2.1 official templates on a Colab L4, defaulting to 2.1 Turbo text-to-image with int8 weights that fit 24 GB.</p>
+        <p class="mono">examples/profiles/qwen-image</p>
+      </article>
+    </div>
+    <pre><code>name: moss-image
+description: MOSS-Image on a Colab L4, DeBand int8 default
+models:
+  - id: deband-int8
+    url: https://huggingface.co/MATLOWAI/MOSS-Image-SFT-DeBand-int8
+  - id: text-encoder
+    url: https://huggingface.co/Comfy-Org/MOSS-Image
+comfy:
+  args:
+    - --preview-method
+    - auto</code></pre>
+  </div>
+</section>
+
+<section id="numbers">
+  <div class="inner">
+    <h2>Measured <span class="shiny">numbers</span></h2>
+    <div class="grid-cards">
+      <article class="card stat">
+        <b>~1.54 CU/h</b>
+        <span>Colab L4 compute cost per hour</span>
+      </article>
+      <article class="card stat">
+        <b>28.4 s</b>
+        <span>One 1024² image, 25 steps</span>
+      </article>
+      <article class="card stat">
+        <b>461–557 s</b>
+        <span>Cold start to ready</span>
+      </article>
+    </div>
+    <p class="footnote">Measured on Colab L4 with the MOSS-Image profile. Your numbers will vary.</p>
+  </div>
+</section>
+
+<section id="quickstart">
+  <div class="inner">
+    <h2>Quick <span class="shiny">start</span></h2>
+    <p class="lead">Deploy the gate on a small VPS behind Cloudflare Access, then wake Colab from your browser. The full step-by-step guide for the VPS route lives in docs/AGENT.md.</p>
+    <a class="btn btn-primary" href="https://github.com/OWNER/comfy-colab-kit/blob/main/docs/AGENT.md">Read the deploy guide</a>
+    <pre><code>git clone https://github.com/OWNER/comfy-colab-kit.git
+cd comfy-colab-kit
+cp .env.example .env   # fill in your own values
+# follow docs/AGENT.md to set up Caddy, Cloudflare Access and the gate
+# then open https://comfy.example.com and press Wake</code></pre>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="inner">
+    <h2><span class="shiny">FAQ</span></h2>
+    <div class="faq-list">
+      <details class="card">
+        <summary>Is it free?</summary>
+        <div class="answer">The kit is open source (MIT). Colab compute comes from your own Google account: free tier or paid compute units.</div>
+      </details>
+      <details class="card">
+        <summary>Can I share it with friends?</summary>
+        <div class="answer">It is a personal-use tool. Colab compute belongs to your Google account, and sharing it widely may break Colab's terms. Keep access to yourself or a few family members or friends.</div>
+      </details>
+      <details class="card">
+        <summary>What happens when nobody uses it?</summary>
+        <div class="answer">It shuts down on idle, on max session time, or when it goes over the CU budget, and the page goes back to the wake card.</div>
+      </details>
+      <details class="card">
+        <summary>Do I lose the node editor?</summary>
+        <div class="answer">No. It opens in App mode by default, and one tap switches to the full ComfyUI node graph.</div>
+      </details>
+      <details class="card">
+        <summary>How do I add a workflow?</summary>
+        <div class="answer">Add it to a profile and git pull on the gate. No rebuild needed.</div>
+      </details>
+      <details class="card">
+        <summary>Is it affiliated with Google or Comfy Org?</summary>
+        <div class="answer">No. It is an independent open-source project.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="inner">
+    <img src="assets/logo-e-fusion-dark.svg" alt="" width="24" height="24">
+    <strong>Comfy Colab Kit</strong>
+    <span>MIT License</span>
+    <a href="https://github.com/OWNER/comfy-colab-kit">GitHub</a>
+    <span>Not affiliated with Google or Comfy Org.</span>
+    <span>Built on ComfyUI and Google Colab.</span>
+  </div>
+</footer>
+<script src="main.js" defer></script>
+</body>
+</html>
