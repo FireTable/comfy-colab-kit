@@ -17,8 +17,9 @@ docs/
 ├── DEPLOY_VPS.md    # Docker Compose + Caddy deployment, colab CLI login, secrets layout, upgrades
 ├── CLOUDFLARE.md    # two hostnames, Access apps, service token, tunnel, scripts/cf-setup.sh
 ├── SECURITY.md      # threat model, secret handling, identity checks, scanning
-├── API.md           # HTTP API summary (full spec: gate/openapi.yaml)
-└── AGENT_SKILL.md   # skill spec for autonomous agents that wake / use / stop a deployed gate
+├── API.md           # HTTP API summary (full spec: apps/gate/openapi.yaml)
+├── AGENT_SKILL.md   # skill spec for autonomous agents that wake / use / stop a deployed gate
+└── AGENT.md         # end-to-end VPS deployment runbook & credential procurement guide
 ```
 
 ---
@@ -27,14 +28,14 @@ docs/
 
 | Task | Primary guide | Core invariants |
 | :--- | :--- | :--- |
-| Change the boot sequence / add a state | [`ARCHITECTURE.md`](ARCHITECTURE.md) | All transitions go through `gate/state.py` `TRANSITIONS`; Colab stages map via `STAGE_TO_STATE`; `wake()` stays idempotent under `Session.lock`; state is persisted after every transition. |
+| Change the boot sequence / add a state | [`ARCHITECTURE.md`](ARCHITECTURE.md) | All transitions go through `apps/gate/state.py` `TRANSITIONS`; Colab stages map via `STAGE_TO_STATE`; `wake()` stays idempotent under `Session.lock`; state is persisted after every transition. |
 | Add or change a profile / workflow | [`PROFILES.md`](PROFILES.md) | Never author workflows; vendor only Apache-2.0/MIT files unchanged with `upstream_sha256`; models are URL-only; run `scripts/validate-profile.py`. |
 | Pass flags / settings / env to ComfyUI | [`PROFILES.md#comfyui-passthrough`](PROFILES.md#comfyui-passthrough) | `--listen`, `--port`, `--output-directory`, `--disable-auto-launch`, `--extra-model-paths-config` are reserved; no secrets in profiles. |
-| Change when the VM stops | [`AUTO_STOP.md`](AUTO_STOP.md) | Pure rules in `gate/stopper.py`; idle never fires while the ComfyUI queue is busy; config only from `.env`. |
-| Wake page / overlay UI | [`WAKE_PAGE.md`](WAKE_PAGE.md) | Everyone sees the same shared session; the Wake button becomes "Starting…" for all viewers. |
+| Change when the VM stops | [`AUTO_STOP.md`](AUTO_STOP.md) | Pure rules in `apps/gate/stopper.py`; idle never fires while the ComfyUI queue is busy; config only from `.env`. |
+| Wake page / overlay UI | [`WAKE_PAGE.md`](WAKE_PAGE.md) | The Gate is a lifecycle manager; once `ready`, traffic proxies to the genuine ComfyUI Web App. Overlay toggles App ⇄ Graph. |
 | Auth / Access / owners | [`SECURITY.md`](SECURITY.md), [`CLOUDFLARE.md`](CLOUDFLARE.md) | Verify `Cf-Access-Jwt-Assertion` (RS256, aud, iss) on every request; strip user Access headers before proxying. |
-| Deploy / upgrade | [`DEPLOY_VPS.md`](DEPLOY_VPS.md) | Secrets are files under `secrets/` (0600), referenced by `*_FILE`; never in `.env` or the image. |
-| Drive the gate from an agent | [`AGENT_SKILL.md`](AGENT_SKILL.md), [`API.md`](API.md) | Bearer agent token; poll `/_gate/status` or stream `/_gate/events`; stop when done. |
+| Deploy / upgrade / setup | [`DEPLOY_VPS.md`](DEPLOY_VPS.md), [`AGENT.md`](AGENT.md) | Secrets are files under `secrets/` (0600), referenced by `*_FILE`; never in `.env` or the image. |
+| Drive the gate from an agent | [`AGENT_SKILL.md`](AGENT_SKILL.md), [`API.md`](API.md) | Bearer agent token; poll `/_gate/status` or stream `/_gate/events`; call standard ComfyUI API when ready; stop when done. |
 
 ## Rules for this folder
 

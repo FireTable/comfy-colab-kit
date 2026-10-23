@@ -1,24 +1,29 @@
 # Wake page and overlay
 
-## Wake page (`gate/web/index.html` + `gate/web/bg.js`)
+> [!NOTE]
+> **Architecture Clarification**: The wake page exists strictly during cold-start, stopping, and sleeping states. Once the session reaches `ready`, the user interacts with the **genuine, full-featured ComfyUI Web Application** directly, with full access to ComfyUI's native frontend, extensions, custom node canvases, and the App mode interface.
+
+## Wake page (`apps/gate/web/index.html` + `apps/gate/web/bg.js`)
 
 Served on `/` whenever ComfyUI is not `ready` — same layout idea as a sleeping Hugging Face Space (one
 truly centered card), with our own brand look (logo palette: ComfyUI `#211927`/`#F2FF59`, Colab `#F9AB00`/`#E8710A`).
 No build step: plain HTML/CSS/JS, static files served from `/_gate/static/`.
 
+- **Zero-FOUC Theme Script**: Synchronously executed in `<head>` before CSS parses to guarantee instant dark/light match with zero layout flash.
 - **Background**: animated WebGL aurora (`bg.js`, a vanilla port of React Bits *Aurora*) over a faint masked grid;
   it intensifies while waking. No WebGL → plain background. `prefers-reduced-motion` → one static frame, no CSS animations.
-- **Card** (SpotlightCard-style cursor glow, glass blur): state badge, live viewer count, ShinyText title.
-- **Profile selector** listing `GET /_gate/profiles` (title, workflow count, default download size, accelerator).
-- **Wake** button (StarBorder-style) → `POST /_gate/wake`. The session is shared: once anyone wakes it every open
+- **Card** (SpotlightCard-style cursor glow, glass blur): state badge, live viewer count (without distracting pulsing dot), ShinyText title.
+- **Profile selector**: shadcn-style dismissible popover with click-outside transparent backdrop and `Escape` key close.
+- **Language selector**: popover dropdown with `[✓ 简体中文, English]`.
+- **Theme & GitHub**: 38x38px glassmorphic square icon buttons for instantaneous theme toggle and GitHub repository navigation.
+- **Wake** button: 180° vertically symmetrical gradient with top highlight edge. The session is shared: once anyone wakes it every open
   page switches to **Starting…** (disabled) via the SSE stream (`/_gate/events`); a second click just joins.
 - **Waking**: stage stepper (allocate → install → download → boot → smoke test) with per-stage elapsed time,
   an overall progress bar with ETA (download stage uses `KIT_PROGRESS` GB/speed, other stages use typical durations),
   and download detail (GB, files, MB/s).
 - **Stop** (owners only, see `OWNER_ONLY_ACTIONS`); refusal reasons (`quiet_hours`, budget) shown inline.
 - **CU** tiles: today / month / balance.
-- **Console**: collapsible monospace log, last 400 boot-log lines, live.
-- Dark by default; ◐ toggles light (stored in `localStorage["kit.theme"]`). Mobile layout tested at 412 px.
+- **Console**: collapsible monospace log, last 400 boot-log lines, live and pre-injected in SSR for zero-delay display.
 
 When the state becomes `ready` the card fades and the page reloads into ComfyUI (the overlay then opens the
 default workflow in App mode).
@@ -26,7 +31,7 @@ default workflow in App mode).
 Credits: Aurora / ShinyText / StarBorder / SpotlightCard effects adapted from [React Bits](https://reactbits.dev)
 (MIT, © David Haz).
 
-## Overlay (`gate/web/overlay.js`)
+## Overlay (`apps/gate/web/overlay.js`)
 
 Injected into ComfyUI's `index.html` by the proxy. A small pill shows:
 

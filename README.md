@@ -30,16 +30,16 @@
 
 ## 📖 Overview
 
-A tiny gateway, **comfy-gate** (Python / aiohttp), runs on your VPS behind Cloudflare Access. It behaves like a
-sleeping Hugging Face Space: when the GPU is off you see a wake card with a profile picker; press **Wake** and
-everyone watching sees the same staged progress and live logs; when ComfyUI is up the same URL becomes ComfyUI
-(App mode by default, one tap to the node graph). Idle, over-time or over-budget sessions go back to sleep.
+A tiny gateway, **comfy-gate** (Python / aiohttp), runs on your VPS behind Cloudflare Access.
+
+> [!NOTE]
+> **The Gate's Essential Role**: `comfy-gate` is fundamentally a **lifecycle, cold-start, and auto-shutdown gateway** — it does **NOT** reimplement ComfyUI. When the GPU is asleep, it serves a lightweight, zero-compute wake card with real-time SSE progress. When booted, it transparently reverse-proxies directly into the **authentic, full-featured ComfyUI Web Application** (including node graph, App mode, custom nodes, extensions, and WebSocket streaming), injecting only a non-intrusive floating overlay to switch between App mode and the Node Graph.
 
 | Pillar | What you see | How |
 |---|---|---|
-| **1 · Wake on demand** | Sleep card → Wake → stages + logs → ComfyUI | 10-state machine, `colab new` (L4) + setup via `colab exec`, same-host reverse proxy incl. `/ws` |
-| **2 · Switchable profiles** | Pick MOSS-Image, SD1.5, … before waking | `profile.yaml` + JSON Schema; zero secrets, models by public URL |
-| **3 · Auto-stop** | Overlay shows time left; sleeps on idle / max session / quiet hours / CU budget | every rule in `.env` |
+| **1 · Wake on demand** | Sleep card → Wake → stages + logs → ComfyUI Web App | 10-state machine, `colab new` (L4) + setup via `colab exec`, streaming reverse proxy (HTTP + `/ws`) |
+| **2 · Switchable profiles** | Pick MOSS-Image, SD3.5, … before waking | `profile.yaml` + JSON Schema; zero secrets, models by public URL |
+| **3 · Auto-stop** | Overlay shows time left; sleeps on idle / max session / quiet hours / CU budget | every rule configured in `.env` |
 
 ## 💡 Why Comfy Colab Kit? (The Paradigm Shift)
 
@@ -84,6 +84,33 @@ docker compose -f deploy/docker-compose.yml up -d
 ```
 
 Full walkthrough: [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md), [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md), and [docs/AGENT.md](docs/AGENT.md) (comprehensive credential guide).
+
+## 🤖 For AI Agents & Automation (Agent Skill Protocol)
+
+Autonomous coding agents (Claude Code, Cursor, OpenClaw, Codex, LangGraph) can wake, monitor, use, and release the ComfyUI GPU backend without manual browser interaction:
+
+```
+[Agent] ──Bearer / Service Token──► comfy-gate (/_gate/status)
+                                          │ If sleeping: POST /_gate/wake
+                                          ▼
+                                    Colab VM boots L4 ComfyUI
+                                          ▼
+[Agent] ◄──standard ComfyUI API───► Proxied /prompt, /history, /view
+                                          ▼
+[Agent] ──POST /_gate/stop────────► Releases GPU (or auto-sleep on idle)
+```
+
+1. **Authentication**: Provide `Authorization: Bearer <agent_token>` (configured in `secrets/agent_token`) or Cloudflare Access Service Token headers (`CF-Access-Client-Id` & `CF-Access-Client-Secret`).
+2. **Status Check**: Call `GET /_gate/status` (or run `packages/cli/ckit status --json`). If `state == "ready"`, reuse the already running instance.
+3. **Idempotent Wake**: Call `POST /_gate/wake` (or run `packages/cli/ckit wake --profile <name> --wait`). Multiple concurrent wakes safely join the in-flight boot.
+4. **ComfyUI API Passthrough**: Once `ready`, call standard ComfyUI endpoints directly through the gate (`POST /prompt`, `GET /history/{prompt_id}`, `GET /view?filename=...`, and WebSocket `/ws`).
+5. **Clean Shutdown**: When execution completes and no humans are active (`clients == 0`), call `POST /_gate/stop`, or simply disconnect and allow the idle auto-stop rule to reclaim the VM.
+
+📖 **Agent References & Protocols**:
+- [docs/AGENT_SKILL.md](docs/AGENT_SKILL.md) — Formal Agent Skill specification (`comfy_colab_gate`), credential handling, and tool patterns.
+- [docs/AGENT.md](docs/AGENT.md) — Autonomous VPS deployment guide, credential procurement, and Cloudflare Access setup.
+- [apps/gate/openapi.yaml](apps/gate/openapi.yaml) — OpenAPI 3.1 specification for all `/_gate/*` and passthrough routes.
+- [llms.txt](llms.txt) — LLM context index for AI systems.
 
 ## 🧩 Profiles
 

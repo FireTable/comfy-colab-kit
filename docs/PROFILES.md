@@ -2,20 +2,20 @@
 
 A profile is a folder with a `profile.yaml`, a `README.md` and a `workflows/` folder. The gate loads every
 folder listed in `PROFILES` (comma separated); the wake page lets you choose one, `DEFAULT_PROFILE` is
-preselected. Schema: [`schemas/profile.schema.json`](../schemas/profile.schema.json) (JSON Schema 2020-12);
-the gate additionally runs the checks in `gate/profiles.py`. Validate before committing:
+preselected. Schema: [`packages/schemas/profile.schema.json`](../packages/schemas/profile.schema.json) (JSON Schema 2020-12);
+the gate additionally runs the checks in `apps/gate/profiles.py`. Validate before committing:
 
 ```bash
-python scripts/validate-profile.py examples/profiles/*/
+python scripts/validate-profile.py profiles/examples/*/
 ```
 
 Shipped profiles:
 
 | Profile | Default App workflow | Notes |
 |---|---|---|
-| [`moss-image`](../examples/profiles/moss-image/) (primary) | `matlowai-presets` | SFT bf16 + DeBand LoRAs (default), 4-step turbo graphs, official quality / layout; DeBand int8 merged, split-qkv rapid, Base, chinoll edit (opt-in). One shared base / text encoder / VAE |
-| [`sd-latest`](../examples/profiles/sd-latest/) | `sd35-large` | SD 3.5 Large fp8, TurboX 8-step, SD 3.5 Medium turbo (gated, optional) |
-| [`qwen-image`](../examples/profiles/qwen-image/) | `qwen21-turbo-t2i` | Qwen-Image 2.1 Turbo / full T2I and Edit |
+| [`moss-image`](../profiles/examples/moss-image/) (primary) | `matlowai-presets` | SFT bf16 + DeBand LoRAs (default), 4-step turbo graphs, official quality / layout; DeBand int8 merged, split-qkv rapid, Base, chinoll edit (opt-in). One shared base / text encoder / VAE |
+| [`sd-latest`](../profiles/examples/sd-latest/) | `sd35-large` | SD 3.5 Large fp8, TurboX 8-step, SD 3.5 Medium turbo (gated, optional) |
+| [`qwen-image`](../profiles/examples/qwen-image/) | `qwen21-turbo-t2i` | Qwen-Image 2.1 Turbo / full T2I and Edit |
 
 ## Workflow policy
 

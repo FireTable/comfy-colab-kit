@@ -16,22 +16,38 @@
                                    Colab L4 VM: ComfyUI :8188 + kit heartbeat node + watchdog
 ```
 
-## Components
+## Components (Monorepo Layout)
 
 | Path | Role |
 |---|---|
-| `gate/app.py` | aiohttp app: auth middleware, `/_gate/*` routes, catch-all (proxy when ready, wake page otherwise), 30 s background loop |
-| `gate/session.py` | The **single shared global session**: lock, persistence, SSE broadcaster, wake / switch / stop / extend, boot task |
-| `gate/state.py` | 10-state machine and allowed transitions |
-| `gate/stopper.py` | Pure auto-stop and wake-admission rules ([AUTO_STOP.md](AUTO_STOP.md)) |
-| `gate/budget.py` | Local CU ledger (per day / month, last known balance) |
-| `gate/colab.py` | `ColabRunner` protocol + `ColabCLI` (async subprocess around `google-colab-cli`) |
-| `gate/proxy.py` | Streaming HTTP + WebSocket reverse proxy, overlay injection, queue / heartbeat probes |
-| `gate/auth.py` | Cloudflare Access JWT verification (JWKS cache), agent token, owners |
-| `gate/profiles.py`, `gate/plan.py` | Profile parsing/validation and the JSON plan sent to Colab |
-| `colab/setup.py` | Runs inside the Colab kernel: install, parallel downloads, workflows, ComfyUI boot, tunnel, watchdog, smoke test |
-| `gate/web/` | Wake page (`index.html`), in-ComfyUI overlay (`overlay.js`), logo |
-| `cli/ckit` | Stdlib CLI for humans and agents |
+| `apps/gate/app.py` | aiohttp app: auth middleware, `/_gate/*` routes, catch-all (proxy when ready, wake page otherwise), 30 s background loop |
+| `apps/gate/session.py` | The **single shared global session**: lock, persistence, SSE broadcaster, wake / switch / stop / extend, boot task |
+| `apps/gate/state.py` | 10-state machine and allowed transitions |
+| `apps/gate/stopper.py` | Pure auto-stop and wake-admission rules ([AUTO_STOP.md](AUTO_STOP.md)) |
+| `apps/gate/budget.py` | Local CU ledger (per day / month, last known balance) |
+| `apps/gate/colab.py` | `ColabRunner` protocol + `ColabCLI` (async subprocess around `google-colab-cli`) |
+| `apps/gate/proxy.py` | Streaming HTTP + WebSocket reverse proxy, overlay injection, queue / heartbeat probes |
+| `apps/gate/auth.py` | Cloudflare Access JWT verification (JWKS cache), agent token, owners |
+| `apps/gate/profiles.py`, `apps/gate/plan.py` | Profile parsing/validation and the JSON plan sent to Colab |
+| `apps/gate/web/` | Wake page (`index.html`), in-ComfyUI overlay (`overlay.js`), logo |
+| `packages/colab/setup.py` | Runs inside the Colab kernel: install, parallel downloads, workflows, ComfyUI boot, tunnel, watchdog, smoke test |
+| `packages/cli/ckit` | Python stdlib CLI for operators and autonomous agents |
+| `packages/schemas/profile.schema.json` | JSON Schema definitions for profile validation |
+| `apps/site/` | Showcase & architecture documentation static website (Cloudflare Pages) |
+
+## Lifecycle Gate vs. ComfyUI Web Application
+
+A key architectural design principle of this project is separation of concerns:
+
+- **What `comfy-gate` IS**:
+  An intelligent **lifecycle gatekeeper**. It manages the state machine (`sleeping` ⇄ `ready`), handles authentication (Cloudflare Access JWT & Bearer tokens), boots Colab VMs on-demand via the Colab CLI, streams setup progress via SSE, tracks Compute Unit (CU) consumption, and enforces auto-stop rules (idle timeouts, max session caps, quiet hours).
+- **What `comfy-gate` is NOT**:
+  It is **not** a reimplementation of ComfyUI's user interface, graph renderer, or execution engine.
+- **The Transition**:
+  While the VM is booting or asleep, `GET /` serves the zero-compute wake page. The exact millisecond the state reaches `ready`, the gate transitions into a transparent, low-overhead reverse proxy:
+  - All standard ComfyUI HTTP endpoints (`/prompt`, `/history`, `/view`, `/system_stats`, `/upload/image`) and the WebSocket stream (`/ws`) pass directly through to ComfyUI running in the Colab VM.
+  - The browser loads the **official, full-featured ComfyUI Web Application** (including node canvas, App mode, custom nodes, and extensions).
+  - The proxy injects only a minimal floating overlay (`overlay.js`) that provides session countdown, stop button, and toggles between App mode and the Node Graph via ComfyUI's native command `Comfy.ToggleLinear`.
 
 ## The shared global session
 
@@ -91,3 +107,13 @@ While not ready: `/` serves the wake page, API paths answer `503 asleep`, everyt
 
 Queue / heartbeat probe when ready, re-attach probe after restart, auto-stop `tick`, orphan sweep
 (`ORPHAN_SWEEP_MIN`: a VM that exists while the gate is sleeping is stopped) and `colab ccu-info` balance refresh.
+
+## Frontend Architecture & Asset Delivery
+
+### Zero-FOUC Theme Initialization
+Both `apps/gate/web/index.html` and `apps/site/index.html` execute a synchronous inline `<script>` in `<head>` before any stylesheet or DOM node parses. It checks `localStorage.getItem("kit.theme")` or falls back to `(prefers-color-scheme: dark)`, immediately assigning `data-theme` to `<html>`. This eliminates Flash of Unstyled Content (FOUC).
+
+### Static Asset Cache-Busting (No-Bundler Approach)
+Cloudflare Pages caches static files (`.css`, `.js`) for 4 hours by default. To deliver instantaneous updates without the complexity of a heavyweight frontend bundler:
+1. **MD5 Query Hashing**: `scripts/deploy-site.sh` calculates the MD5 hash of `styles.css` and `main.js` and injects query strings (`styles.css?v=<hash>`) into `index.html` on every deployment.
+2. **Edge Revalidation Headers**: `apps/site/_headers` configures `Cache-Control: public, max-age=0, must-revalidate` for HTML, CSS, and JS, guaranteeing that CDN edge servers and visitor browsers validate ETags instantly.

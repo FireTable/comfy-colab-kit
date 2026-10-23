@@ -1,8 +1,11 @@
 # HTTP API
 
-Full machine-readable spec: [`gate/openapi.yaml`](../gate/openapi.yaml) (OpenAPI 3.1).
+Full machine-readable spec: [`apps/gate/openapi.yaml`](../apps/gate/openapi.yaml) (OpenAPI 3.1).
 All routes except `/_gate/healthz` and `/_gate/static/*` require a Cloudflare Access session
 (`Cf-Access-Jwt-Assertion`) or `Authorization: Bearer <agent token>`.
+
+> [!NOTE]
+> **Proxy Passthrough**: The routes listed below are the Gate's control endpoints (`/_gate/*`). When `state == "ready"`, all other HTTP routes (e.g. `POST /prompt`, `GET /history/{id}`, `GET /view`) and WebSocket connections (`/ws`) are proxied directly to the native ComfyUI instance running inside the Colab VM.
 
 | Method & path | Description | Responses |
 |---|---|---|
