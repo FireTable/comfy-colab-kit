@@ -36,6 +36,9 @@ class ColabCLI:
         if token_dir:
             # google-colab-cli keeps its token under ~/.config/colab-cli; point HOME-relative config there
             self.env["XDG_CONFIG_HOME"] = token_dir
+        # the CLI is Python: without this its stdout is block-buffered on a pipe and `exec` output
+        # (setup progress) would only arrive in 4-8 KB chunks or at the very end
+        self.env["PYTHONUNBUFFERED"] = "1"
 
     async def _run(self, *args: str, stdin: str | None = None, timeout: float = 600) -> str:
         proc = await asyncio.create_subprocess_exec(
@@ -54,12 +57,7 @@ class ColabCLI:
 
     async def sessions(self) -> list[str]:
         out = await self._run("sessions", timeout=60)
-        names = []
-        for line in out.splitlines():
-            m = re.match(r"^\s*([A-Za-z0-9_.-]+)\s", line)
-            if m and m.group(1).lower() not in ("name", "session", "no"):
-                names.append(m.group(1))
-        return names
+        return parse_sessions(out)
 
     async def new(self, name: str, accelerator: str) -> None:
         await self._run("new", "-s", name, "--gpu", accelerator, timeout=600)
@@ -86,10 +84,17 @@ class ColabCLI:
 
     async def ccu_info(self) -> float | None:
         try:
-            out = await self._run("ccu-info", timeout=60)
+            out = await self._run("usage", timeout=60)
         except ColabError:
             return None
         return parse_ccu_balance(out)
+
+
+def parse_sessions(text: str) -> list[str]:
+    """`colab sessions` (0.7.x) prints one line per server-side assignment:
+    `[name] endpoint | Hardware: L4 | Shape: ... | Variant: GPU`; `[?]` = assignment with no local name."""
+    return [m.group(1) for line in text.splitlines()
+            if " | " in line and (m := re.match(r"^\s*\[([^\]]+)\]\s", line))]
 
 
 def parse_ccu_balance(text: str) -> float | None:
