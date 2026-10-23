@@ -59,6 +59,8 @@ def build_plan(profile: Profile, settings: Settings, workflow_ids: list[str] | N
         "default_view": settings.default_view,
         "fast_start": settings.fast_start,
         "download_concurrency": settings.download_concurrency,
+        "xet_high_performance": settings.xet_high_performance,
+        "pip_installer": settings.pip_installer,
         "watchdog_gate_lost_min": settings.auto_stop.watchdog_gate_lost_min,
         "max_session_hours": settings.auto_stop.max_session_hours
         + settings.auto_stop.extend_max_times * settings.auto_stop.extend_hours,

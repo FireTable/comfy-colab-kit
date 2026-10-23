@@ -124,6 +124,8 @@ class Settings:
     default_view: str = "app"
     fast_start: bool = True
     download_concurrency: int = 8
+    xet_high_performance: bool = True
+    pip_installer: str = "uv"
     listen_host: str = "0.0.0.0"
     listen_port: int = 8080
     state_dir: str = "/data/state"
@@ -188,6 +190,8 @@ class Settings:
             default_view=view,
             fast_start=_bool(env, "FAST_START", True),
             download_concurrency=_int(env, "DOWNLOAD_CONCURRENCY", 8, 1),
+            xet_high_performance=_bool(env, "XET_HIGH_PERFORMANCE", True),
+            pip_installer="pip" if (env.get("PIP_INSTALLER") or "uv").strip().lower() == "pip" else "uv",
             listen_host=host,
             listen_port=int(port),
             state_dir=(env.get("STATE_DIR") or "/data/state").strip(),

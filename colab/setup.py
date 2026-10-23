@@ -388,7 +388,8 @@ def main():
         return
     with Stage("bootstrap"):
         sh("pip install -q -U uv 'huggingface_hub>=0.36' 'hf-xet>=1.5.2'", quiet=True)
-        os.environ["HF_XET_HIGH_PERFORMANCE"] = "1"
+        if PLAN.get("xet_high_performance", True):
+            os.environ["HF_XET_HIGH_PERFORMANCE"] = "1"
         os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"  # tqdm bars flood the wake-page log
         if not shutil.which("cloudflared"):
             sh("wget -q -O /tmp/cf.deb https://github.com/cloudflare/cloudflared/releases/latest/download/"
@@ -402,8 +403,9 @@ def main():
     with Stage("deps"):
         frontend = cfg.get("frontend_package")
         sh(f"cd {COMFY} && grep -viE '^(torch|torchvision|torchaudio)([<>=~ ]|$)' requirements.txt > /tmp/req.txt && "
-           f"(uv pip install --system -q -r /tmp/req.txt {repr(frontend) if frontend else ''} || "
-           f"pip install -q -r /tmp/req.txt {repr(frontend) if frontend else ''})")
+           + (f"(uv pip install --system -q -r /tmp/req.txt {repr(frontend) if frontend else ''} || "
+              if PLAN.get("pip_installer", "uv") == "uv" else "(")
+           + f"pip install -q -r /tmp/req.txt {repr(frontend) if frontend else ''})")
         install_custom_nodes()
     with Stage("install_workflows"):
         install_workflows()
