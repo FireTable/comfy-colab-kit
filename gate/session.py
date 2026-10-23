@@ -40,9 +40,10 @@ class WakeResult:
 
 
 class Broadcaster:
-    def __init__(self, backlog: int = 400):
+    def __init__(self, backlog: int = 1000, on_log: Callable[[str], None] | None = None):
         self.subscribers: set[asyncio.Queue] = set()
         self.logs: deque[str] = deque(maxlen=backlog)
+        self.on_log = on_log
 
     def subscribe(self) -> asyncio.Queue:
         q: asyncio.Queue = asyncio.Queue(maxsize=1000)
@@ -54,7 +55,13 @@ class Broadcaster:
 
     def publish(self, kind: str, data: Any) -> None:
         if kind == "log":
-            self.logs.append(str(data))
+            s = str(data)
+            self.logs.append(s)
+            if self.on_log:
+                try:
+                    self.on_log(s)
+                except Exception:
+                    pass
         for q in list(self.subscribers):
             try:
                 q.put_nowait((kind, data))
@@ -68,8 +75,9 @@ class Session:
         self.settings, self.profiles, self.colab, self.clock = settings, profiles, colab, clock
         self.machine = Machine(clock=clock)
         self.lock = asyncio.Lock()
-        self.bus = Broadcaster()
         self.state_file = Path(settings.state_dir) / "session.json"
+        self.log_file = Path(settings.state_dir) / "session.log"
+        self.bus = Broadcaster(backlog=1000, on_log=self._append_log)
         self.ledger = Ledger.load(Path(settings.state_dir) / "cu_ledger.json")
         self.last_activity = clock()
         self.open_clients = 0
@@ -85,31 +93,53 @@ class Session:
         self._last_accrual = clock()
         self.machine.listeners.append(lambda ev: self.bus.publish("state", self.status()))
 
+    def _append_log(self, line: str) -> None:
+        try:
+            self.state_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.log_file, "a", encoding="utf-8") as f:
+                f.write(line + "\n")
+        except Exception:
+            pass
+
     # ── persistence ───────────────────────────────────────────────────────
     def persist(self) -> None:
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.state_file.with_suffix(".tmp")
         tmp.write_text(json.dumps({**self.machine.snapshot(), "workflows": self.workflows,
-                                   "last_activity": self.last_activity}))
+                                   "last_activity": self.last_activity,
+                                   "progress": self.progress}))
         tmp.replace(self.state_file)
 
     def restore(self) -> None:
-        if not self.state_file.is_file():
-            return
-        d = json.loads(self.state_file.read_text())
-        try:
-            st = State(d.get("state", "sleeping"))
-        except ValueError:
-            st = State.SLEEPING
-        m = self.machine
-        m.state, m.profile, m.reason = st, d.get("profile"), d.get("reason", "")
-        m.since, m.session_started = d.get("since", self.clock()), d.get("session_started")
-        m.extends_used = int(d.get("extends_used", 0))
-        self.workflows = d.get("workflows")
-        self.last_activity = d.get("last_activity", self.clock())
-        if st == State.STOPPING:
-            m.state = State.FAILED  # stop was interrupted; tick() will retry it
-            m.reason = "stop interrupted by gate restart"
+        if self.state_file.is_file():
+            try:
+                d = json.loads(self.state_file.read_text())
+            except Exception as e:
+                log.warning("failed to parse state file %s: %s", self.state_file, e)
+                d = {}
+            try:
+                st = State(d.get("state", "sleeping"))
+            except ValueError:
+                st = State.SLEEPING
+            m = self.machine
+            m.state, m.profile, m.reason = st, d.get("profile"), d.get("reason", "")
+            m.since, m.session_started = d.get("since", self.clock()), d.get("session_started")
+            m.extends_used = int(d.get("extends_used", 0))
+            self.workflows = d.get("workflows")
+            self.last_activity = d.get("last_activity", self.clock())
+            self.progress = d.get("progress") or {}
+            if st == State.STOPPING:
+                m.state = State.FAILED  # stop was interrupted; tick() will retry it
+                m.reason = "stop interrupted by gate restart"
+        if self.log_file.is_file():
+            try:
+                lines = self.log_file.read_text(encoding="utf-8", errors="replace").splitlines()
+                self.bus.logs.clear()
+                maxlen = self.bus.logs.maxlen or 1000
+                for line in lines[-maxlen:]:
+                    self.bus.logs.append(line)
+            except Exception as e:
+                log.warning("failed to restore logs from %s: %s", self.log_file, e)
 
     async def reconcile(self) -> None:
         """After restart: if we think a VM exists, check Colab still has it."""
@@ -183,6 +213,8 @@ class Session:
                 return WakeResult(False, m.state.value, m.profile, refused=why)
             if m.state == State.FAILED:
                 await self._stop_locked("restart after failure")
+            self.bus.logs.clear()
+            self.log_file.unlink(missing_ok=True)
             m.profile, self.workflows, self.progress = pid, workflows, {}
             m.to(State.ALLOCATING, f"wake by {by or 'unknown'}")
             self.last_activity = self.clock()

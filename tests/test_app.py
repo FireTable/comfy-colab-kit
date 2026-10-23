@@ -72,3 +72,26 @@ async def test_stop_endpoint(tmp_path):
         assert (await r.json())["state"] == "sleeping"
     finally:
         await c.close()
+
+
+async def test_events_sse_replays_logs_and_progress(tmp_path):
+    c, app = await client(tmp_path)
+    try:
+        sess = app[SESSION]
+        sess.progress = {"download": {"bytes_done": 100, "bytes_total": 200}}
+        sess.bus.publish("log", "historical line 1")
+        sess.bus.publish("log", "historical line 2")
+
+        res = await c.get("/_gate/events")
+        assert res.status == 200
+        body = b""
+        for _ in range(10):
+            chunk = await res.content.read(1024)
+            body += chunk
+            if b"historical line 2" in body and b"bytes_done" in body:
+                break
+        assert b"historical line 1" in body
+        assert b"historical line 2" in body
+        assert b"bytes_done" in body
+    finally:
+        await c.close()

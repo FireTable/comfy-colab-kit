@@ -172,6 +172,8 @@ async def events(request: web.Request) -> web.StreamResponse:
     s.client_opened()
     try:
         await send("state", s.status())
+        if s.progress:
+            await send("progress", s.progress)
         for line in list(s.bus.logs):
             await send("log", line)
         while True:

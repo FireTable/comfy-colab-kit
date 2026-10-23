@@ -140,3 +140,31 @@ async def test_extend_limit(tmp_path):
     s = make(tmp_path, FakeColab())
     assert await s.extend() is True
     assert await s.extend() is False
+
+
+async def test_logs_and_progress_persisted_and_restored(tmp_path):
+    colab = FakeColab(lines=[
+        "KIT_STAGE download start",
+        'KIT_PROGRESS download {"bytes_done": 500, "bytes_total": 1000}',
+        "custom log line from setup",
+        "KIT_READY {}",
+    ])
+    s = make(tmp_path, colab)
+    await s.wake(None)
+    await wait_for(lambda: s.machine.state == State.READY)
+
+    log_file = tmp_path / "session.log"
+    assert log_file.exists()
+    content = log_file.read_text()
+    assert "custom log line from setup" in content
+    assert "KIT_READY" in content
+
+    state_file = tmp_path / "session.json"
+    saved = json.loads(state_file.read_text())
+    assert saved["progress"]["download"]["bytes_done"] == 500
+
+    s2 = make(tmp_path, colab)
+    s2.restore()
+    assert s2.progress["download"]["bytes_done"] == 500
+    assert any("custom log line from setup" in line for line in s2.bus.logs)
+    assert any("KIT_READY" in line for line in s2.bus.logs)

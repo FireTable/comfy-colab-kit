@@ -317,6 +317,8 @@ class Downloads:
     def wait(self, ids):
         for i in ids:
             self.futures[i].result()
+        if set(self.core_ids).issubset(set(ids)):
+            self.core_done.wait()
 
 
 # ─────────────────────────── workflows ───────────────────────────
