@@ -24,3 +24,4 @@ build/
 dist/
 .DS_Store
 .deploy-notes.md
+grok/

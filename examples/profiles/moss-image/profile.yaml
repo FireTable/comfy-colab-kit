@@ -102,6 +102,7 @@ models:
   url: hf://darask0/MOSS-Image_4-step_adapter_lora/dataspace.safetensors
   license: apache-2.0
   sha256: d19f0e695bb26886cfce57441fd412f358e159d6eec8555ec1a71daaf30a7968
+  size_gb: 0.01
 - id: lodestones-8step-lora
   dest: rapid_moss/lodestones-8step-latest/lora.safetensors
   url: hf://lodestones/MOSS-Image-SFT-8-steps-dmd/lora_latest.safetensors
