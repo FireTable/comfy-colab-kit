@@ -19,3 +19,6 @@ testpaths = ["tests"]
 
 [tool.setuptools.package-dir]
 gate = "apps/gate"
+
+[tool.setuptools.package-data]
+gate = ["web/*", "openapi.yaml"]
