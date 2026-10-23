@@ -16,3 +16,9 @@
 # Static media assets (logos, images, fonts): Cache for 1 day
 /assets/*
   Cache-Control: public, max-age=86400
+
+# SEO metadata files
+/robots.txt
+  Cache-Control: public, max-age=86400
+/sitemap.xml
+  Cache-Control: public, max-age=86400

@@ -90,7 +90,7 @@ class AutoStop:
     extend_hours: float = 1.0
     warn_before_min: int = 10
     boot_timeout_min: int = 40
-    stop_on_page_close_min: int = 0
+    stop_on_page_close_min: int = 5
     quiet_hours: tuple[dtime, dtime] | None = None
     daily_cu_budget: float = 12.0
     monthly_cu_budget: float = 150.0

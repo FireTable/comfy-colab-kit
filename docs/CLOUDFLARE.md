@@ -1,42 +1,56 @@
-# Cloudflare setup
+# Cloudflare Zero Trust & Access Architecture
 
-Two hostnames, two Access applications:
+Comfy Colab Kit utilizes a **Dual-Hostname Zero Trust Architecture** that isolates public user authentication from the private backend compute VM.
 
-| Hostname | Points to | Access app | Who gets in |
-|---|---|---|---|
-| `PUBLIC_HOST` (e.g. `comfy.example.com`) | VPS (proxied A/AAAA record) → Caddy → gate | created in the dashboard | your Access policy (e-mails, IdP) |
-| `COLAB_TUNNEL_HOST` (e.g. `comfy-colab.example.com`) | named tunnel → `http://127.0.0.1:8188` inside Colab | `comfy-colab-kit-backend` (by `cf-setup.sh`) | **only** the gate's service token |
+---
 
-## 1. Public host (dashboard)
+## 1. Dual-Hostname Request Flow
 
-1. DNS: proxied record for `PUBLIC_HOST` → VPS IP. SSL/TLS mode **Full (strict)**; create an Origin
-   certificate and install it in Caddy (`/etc/caddy/certs/origin.pem|key`).
-2. Zero Trust → Access → Applications → *Self-hosted* on `PUBLIC_HOST`, policy *Allow* your e-mails.
-3. Copy the **Application Audience (AUD) tag** to `CF_ACCESS_AUD` and your team domain
-   (`<team>.cloudflareaccess.com`) to `CF_ACCESS_TEAM_DOMAIN`.
-4. Optionally restrict the VPS firewall to Cloudflare IP ranges.
+```mermaid
+flowchart LR
+    subgraph PublicHost ["1. Public Host (e.g. comfy.yourdomain.com)"]
+        User["User / Agent"] -->|HTTPS| PublicAccess["Cloudflare Access\n(Email OTP / GitHub SSO)"]
+        PublicAccess -->|Proxied DNS| VPS_Caddy["VPS: Caddy Gateway\n(Verifies Access JWT)"]
+    end
 
-## 2. Backend host (`scripts/cf-setup.sh`)
+    subgraph BackendHost ["2. Backend Host (e.g. comfy-colab.yourdomain.com)"]
+        VPS_Gate["comfy-gate Reverse Proxy\n(Injects Service Token)"] -->|HTTPS| BackendAccess["Cloudflare Access\n(Service Token Auth Rule)"]
+        BackendAccess -->|Named Tunnel| ColabVM["cloudflared in Colab\n(ComfyUI :8188)"]
+    end
 
-Idempotent; needs an API token with *Cloudflare Tunnel:Edit*, *Access: Apps and Policies:Edit*,
-*Access: Service Tokens:Edit* and *Zone DNS:Edit*:
-
-```bash
-ZONE_NAME=example.com COLAB_TUNNEL_HOST=comfy-colab.example.com CLOUDFLARE_API_TOKEN=… scripts/cf-setup.sh
+    VPS_Caddy --> VPS_Gate
 ```
 
-It creates or updates the remotely-managed tunnel (`TUNNEL_NAME`, default `comfy-colab`), a proxied CNAME (it
-refuses to overwrite a record it did not create), a service token (`SVC_NAME`, default `comfy-gate`) and the
-backend Access app with a single *Service Auth* policy. It writes `secrets/colab_tunnel_token`,
-`secrets/cf_service.json` and `secrets/cf_ids.json` (0600) and never prints them.
+---
 
-## How a request flows
+## 2. Hostname Responsibilities
 
-User → Access login on `PUBLIC_HOST` → gate verifies the JWT → gate calls `COLAB_TUNNEL_HOST` with the
-service token → tunnel → ComfyUI. ComfyUI is never reachable without the service token, and the service token
-never leaves the VPS.
+### Public Host (`PUBLIC_HOST`)
+- **DNS**: Proxied `A` or `AAAA` record pointing to your VPS public IPv4/IPv6. SSL/TLS encryption mode set to **Full (strict)**.
+- **Access Application**: Self-hosted application covering `PUBLIC_HOST`. Configured with an **Allow** policy restricting access to authorized team emails or identity providers.
+- **Audience Tag**: The Application AUD tag is saved in `.env` as `CF_ACCESS_AUD`. The gate cryptographically validates the `Cf-Access-Jwt-Assertion` header on every incoming request against Cloudflare's public JWKS keys.
 
-## Rotation
+### Backend Host (`COLAB_TUNNEL_HOST`)
+- **DNS**: Proxied `CNAME` pointing to the remotely-managed Cloudflare Named Tunnel.
+- **Access Application**: Self-hosted application covering `COLAB_TUNNEL_HOST`. Configured with a single **Service Auth** rule that permits access *only* when valid `CF-Access-Client-Id` and `CF-Access-Client-Secret` headers are present.
+- **Isolation**: Nobody can access `COLAB_TUNNEL_HOST` directly through a web browser. Only `comfy-gate` holds the Service Token (`secrets/cf_service.json`), ensuring all traffic must pass through the gateway's state machine, rate limits, and authentication guards.
 
-Delete `secrets/cf_service.json` and re-run `cf-setup.sh` to rotate the service token; restart the gate.
-Re-running also refreshes the tunnel token (picked up at the next wake).
+---
+
+## 3. Automated Configuration with `scripts/cf-setup.sh`
+
+The included setup script is fully idempotent. To run it, create a Cloudflare API Token with the following permissions:
+- **Account** > **Cloudflare Tunnel**: `Edit`
+- **Account** > **Access: Apps and Policies**: `Edit`
+- **Account** > **Access: Service Tokens**: `Edit`
+- **Zone** > **DNS**: `Edit`
+
+Execute the script on your VPS:
+```bash
+ZONE_NAME="yourdomain.com" \
+COLAB_TUNNEL_HOST="comfy-colab.yourdomain.com" \
+CLOUDFLARE_API_TOKEN="your-api-token" \
+scripts/cf-setup.sh
+```
+
+The script will automatically configure the tunnel, create the DNS CNAME, generate the service token, and write `secrets/colab_tunnel_token`, `secrets/cf_service.json`, and `secrets/cf_ids.json` with secure `0600` permissions.

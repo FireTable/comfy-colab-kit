@@ -1,46 +1,100 @@
-# Auto-stop, wake admission and CU budget
+# Auto-Stop, Wake Admission, and CU Budget Management
 
-All rules live in `gate/stopper.py` as pure functions and are configured **only** through `.env`
-(see `.env.example`). The gate evaluates them every 30 s (`Session.tick`) and stops the VM with
-`colab stop` when one fires; the reason is logged and broadcast to every viewer.
+Google Colab compute units (CU) represent finite cloud spend. Comfy Colab Kit implements a **three-tier defensive barrier** to ensure that compute resources are provisioned strictly when needed and cleanly terminated the moment work finishes.
 
-## Wake admission (`admit_wake`)
+---
 
-A wake is refused with `409 <reason>` when:
+## 1. Decision Flowchart (`Session.tick`)
 
-| Reason | Rule | Variable |
+All rules reside in `apps/gate/stopper.py` as pure functions and are evaluated every 30 seconds:
+
+```mermaid
+flowchart TD
+    Tick["Session.tick() (Runs Every 30 Seconds)"] --> CheckBilling{Is Session in\nBilling State?}
+    CheckBilling -- No --> Sleep["Idle Wait (sleeping / stopping)"]
+    CheckBilling -- Yes --> CheckFailed{State == failed?}
+
+    CheckFailed -- Yes --> StopVM["Trigger colab stop\n(Release GPU immediately)"]
+    CheckFailed -- No --> CheckBootTimeout{Boot duration >\nBOOT_TIMEOUT_MIN?}
+
+    CheckBootTimeout -- Yes --> StopVM
+    CheckBootTimeout -- No --> CheckPolicy{Breaches Quiet Hours\nor CU Budgets?}
+
+    CheckPolicy -- Yes --> StopVM
+    CheckPolicy -- No --> CheckMaxSession{Session Age >\nMAX_SESSION_HOURS?}
+
+    CheckMaxSession -- Yes --> StopVM
+    CheckMaxSession -- No --> CheckQueue{Is ComfyUI Queue Active\nor Prompt Executing?}
+
+    CheckQueue -- Yes --> Continue["Reset Idle Timer\nContinue Running"]
+    CheckQueue -- No --> CheckIdle{Inactivity >\nIDLE_TIMEOUT_MIN?}
+
+    CheckIdle -- Yes --> StopVM
+    CheckIdle -- No --> CheckPageClose{All Web/WS Disconnected >\nSTOP_ON_PAGE_CLOSE_MIN?}
+
+    CheckPageClose -- Yes --> StopVM
+    CheckPageClose -- No --> Continue
+```
+
+---
+
+## 2. Wake Admission Rules (`admit_wake`)
+
+Before `colab new` is called, the gate evaluates admission policies. If a rule triggers, the request is rejected with `409 Conflict`:
+
+| Reason | Condition | Environment Variable |
 |---|---|---|
-| `quiet_hours` | local time inside the window (may wrap midnight, e.g. `23:30-07:00`) | `QUIET_HOURS`, `TZ` |
-| `daily_budget` | CU used today ≥ budget | `DAILY_CU_BUDGET` (0 = off) |
-| `monthly_budget` | CU used this month ≥ budget | `MONTHLY_CU_BUDGET` (0 = off) |
-| `low_balance` | last `colab ccu-info` balance < minimum | `MIN_CU_BALANCE` |
+| `quiet_hours` | Current local time is inside the prohibited window (supports midnight wrap, e.g. `23:30-07:00`) | `QUIET_HOURS`, `TZ` |
+| `daily_budget` | Compute units accrued today ≥ daily threshold | `DAILY_CU_BUDGET` (0 = disabled) |
+| `monthly_budget` | Compute units accrued this month ≥ monthly threshold | `MONTHLY_CU_BUDGET` (0 = disabled) |
+| `low_balance` | Balance reported by `colab ccu-info` < safety threshold | `MIN_CU_BALANCE` |
 
-## Stop rules (`evaluate`, in priority order)
+---
 
-| Reason | Fires when | Variable |
+## 3. Auto-Stop Rules (`evaluate`, in Priority Order)
+
+| Reason | Trigger Condition | Knob / Variable |
 |---|---|---|
-| `failed` | the session is in `failed` (VM may still exist) | — |
-| `boot_timeout` | still booting N min after the wake | `BOOT_TIMEOUT_MIN` |
-| `quiet_hours` / `daily_budget` / `monthly_budget` / `low_balance` | same rules as admission, applied to running sessions | as above |
-| `max_session` | session age ≥ `MAX_SESSION_HOURS` + extensions × `EXTEND_HOURS` | `MAX_SESSION_HOURS`, `EXTEND_HOURS`, `EXTEND_MAX_TIMES` |
-| `idle` | `ready`, ComfyUI queue empty and no HTTP / WebSocket activity for N min | `IDLE_TIMEOUT_MIN` (0 = off) |
-| `page_closed` | `ready`, queue empty and no wake page / overlay open for N min | `STOP_ON_PAGE_CLOSE_MIN` (0 = off) |
+| `failed` | Booting encountered fatal error (VM exists, immediate shutdown) | Handled automatically |
+| `boot_timeout` | VM has been in a boot state longer than allowed limit | `BOOT_TIMEOUT_MIN` (default: 40m) |
+| `quiet_hours` / `daily_budget` / `monthly_budget` / `low_balance` | Policy threshold breached while session was active | Evaluated every 30s |
+| `max_session` | Session duration ≥ `MAX_SESSION_HOURS` + extensions × `EXTEND_HOURS` | `MAX_SESSION_HOURS` (default: 6h) |
+| `idle` | ComfyUI queue is empty AND no HTTP/WS traffic for N minutes | `IDLE_TIMEOUT_MIN` (default: 30m) |
+| `page_closed` | ComfyUI queue is empty AND all browser tabs / overlays closed for N minutes | `STOP_ON_PAGE_CLOSE_MIN` (default: 5m) |
 
-`idle` and `page_closed` never fire while a prompt is running or queued.
-When the remaining session time is ≤ `WARN_BEFORE_MIN`, status carries `warn: "session_ending"`; the overlay
-shows it and offers **+1h** (`POST /_gate/extend`, at most `EXTEND_MAX_TIMES`).
+---
 
-## Other knobs
+## 🛡️ Fail-Safe 1: Queue-Aware Inactivity Guard
 
-| Variable | Effect |
-|---|---|
-| `WAKE_ON_VISIT` | `true` = opening `/` while sleeping wakes the default profile (Hugging Face Space behaviour) |
-| `ORPHAN_SWEEP_MIN` | how often the gate checks `colab sessions`; a VM that exists while the gate is sleeping is stopped |
-| `WATCHDOG_GATE_LOST_MIN` | Colab side: if the gate's heartbeat (`/kit/heartbeat`) is absent for N min the VM releases itself (`runtime.unassign`) — protects against a dead VPS |
-| `CU_PER_HOUR` | estimate used by the local ledger (`STATE_DIR/cu_ledger.json`) between balance refreshes |
+The gate evaluates inactivity using two complementary rules:
+1. **`idle` (`IDLE_TIMEOUT_MIN`)**: Measures elapsed time since the last HTTP request or WebSocket packet was processed.
+2. **`page_closed` (`STOP_ON_PAGE_CLOSE_MIN`)**: Measures elapsed time since the last active browser tab or client overlay disconnected.
 
-## CU ledger
+> [!IMPORTANT]
+> **Active Generation Protection**:
+> Neither `idle` nor `page_closed` will **ever** stop the VM while ComfyUI is generating images or has tasks queued. The gateway probes ComfyUI's internal endpoints (`/queue` and `/system_stats`) every 30 seconds. As long as `queue_running` or `queue_pending` exceeds 0, idle counters remain frozen at zero.
 
-CU are accrued while the session is in a billing state (see [ARCHITECTURE.md](ARCHITECTURE.md#state-machine))
-and before every stop. `GET /_gate/status` exposes `cu.today`, `cu.month`, `cu.balance` and `cu.per_hour`.
-The ledger is an estimate; `colab ccu-info` is the source of truth for the balance.
+---
+
+## 🛡️ Fail-Safe 2: The Colab-Side Heartbeat Watchdog
+
+What happens if the VPS crashes, Docker daemon halts, or network connectivity between the VPS and Colab drops? Without a mechanism running directly on the VM, the remote Colab instance would continue running and draining Compute Units until your Google quota hit zero.
+
+Comfy Colab Kit solves this with an in-kernel Colab watchdog (`packages/colab/setup.py`):
+1. The gate probes the Colab VM's `/kit/heartbeat` endpoint every 30 seconds.
+2. If the Colab kernel does not receive a heartbeat probe from the gate within **`WATCHDOG_GATE_LOST_MIN`** (default: 20 minutes), the watchdog concludes that the managing gateway is unreachable.
+3. The watchdog executes Google Colab's native kernel self-termination command:
+   ```python
+   from google.colab import runtime
+   runtime.unassign()
+   ```
+   The VM is released immediately on Google's infrastructure, capping worst-case unattended spend.
+
+---
+
+## 📊 Local Compute Unit (CU) Ledger
+
+Compute units accrue continuously whenever the session is in a billing state (`allocating`, `installing`, `downloading`, `booting`, `smoke_testing`, `ready`, `switching`, `failed`).
+- The gate updates an on-disk ledger (`data/state/cu_ledger.json`) tracking `today` and `month` usage based on `CU_PER_HOUR` (default: 1.71 for Colab L4).
+- The background loop queries `colab ccu-info` periodically to refresh the ground-truth Google balance.
+- Live CU metrics are surfaced to viewers on the Wake card and exposed via `GET /_gate/status`.

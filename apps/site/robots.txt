@@ -1,0 +1,7 @@
+# Robots.txt for Comfy Colab Kit Showcase
+# https://comfy-colab-kit.firetable.tech/
+
+User-agent: *
+Allow: /
+
+Sitemap: https://comfy-colab-kit.firetable.tech/sitemap.xml

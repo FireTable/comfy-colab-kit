@@ -166,6 +166,19 @@ comfy-colab-kit/
 └── tests/                    # 完整自动化单元与集成测试套件（108+ 测试）
 ```
 
+## 💖 鸣谢与开源致敬 (Acknowledgments)
+
+Comfy Colab Kit 站在开源巨人的肩膀上。我们由衷感谢以下卓越的开源项目与团队：
+
+- **[ComfyUI](https://github.com/comfyanonymous/ComfyUI)** —— 感谢 @comfyanonymous 与 Comfy Org 打造的极具扩展性的节点式扩散生成引擎与现代 Web App 架构。
+- **[Google Colab](https://colab.research.google.com/)** —— 感谢 Google 提供的弹性云端 GPU 算力平台（NVIDIA L4 24GB）与命令行生态。
+- **[Cloudflare](https://www.cloudflare.com/)** —— 感谢 Cloudflare 提供的 Zero Trust 零信任安全网关、加密穿透隧道（`cloudflared`）与全球 CDN Pages 托管服务。
+- **[React Bits](https://reactbits.dev)** —— 唤醒页深邃灵动的 WebGL 极光背景（Aurora）、Spotlight 高光卡片与流光动效灵感来源于 **David Haz** 的开源设计。
+- **[Hugging Face](https://huggingface.co/)** —— 感谢拥抱开源社区的模型托管服务与极速并行权重分发协议（`hf_xet`）。
+- **[uv by Astral](https://astral.sh/uv)** —— 感谢 Astral 团队打造的毫秒级 Python 依赖解析与极速安装工具。
+- **[MOSS-Image](https://huggingface.co/MATLOWAI/MOSS-Image-SFT-DeBand-int8)** —— 感谢 OpenLMLab 与 MATLOWAI 团队开源的高品质文生图模型、DeBand 去带 LoRA 与社区工作流。
+- **[Stability AI](https://stability.ai/) 与 [阿里通义 Qwen 团队](https://github.com/QwenLM)** —— 感谢开源的高性能图像生成基础模型（SD 3.5 Large 与 Qwen-Image 2.1）。
+
 ## 📄 许可证
 
 本仓库 MIT。profile 引用的模型、LoRA、自定义节点与工作流保留各自许可证（见各 profile README），均从原始来源下载。

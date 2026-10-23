@@ -179,6 +179,19 @@ python -m pytest -q
 AUTH_DISABLED=true STATE_DIR=/tmp/kit COLAB_BIN=/bin/false python -m gate.app   # wake page on :8080
 ```
 
+## 💖 Acknowledgments & Open-Source Credits
+
+Comfy Colab Kit stands on the shoulders of giants. We express our deepest gratitude to the creators and open-source communities who make this project possible:
+
+- **[ComfyUI](https://github.com/comfyanonymous/ComfyUI)** — The revolutionary node-based diffusion execution engine and modern Web App interface created by @comfyanonymous and the Comfy Org.
+- **[Google Colab](https://colab.research.google.com/)** — For democratizing high-performance GPU compute (NVIDIA L4 24GB).
+- **[Cloudflare](https://www.cloudflare.com/)** — For the rock-solid Zero Trust Access network, Named Tunnels (`cloudflared`), and global Pages hosting.
+- **[React Bits](https://reactbits.dev)** — The visual design foundation for the Aurora WebGL shaders, SpotlightCard cursor glow, and ShinyText animations created by **David Haz**.
+- **[Hugging Face](https://huggingface.co/)** — High-speed model hosting and parallel weight streaming (`hf_xet`).
+- **[uv by Astral](https://astral.sh/uv)** — Blazing fast Python environment initialization.
+- **[MOSS-Image](https://huggingface.co/MATLOWAI/MOSS-Image-SFT-DeBand-int8)** — Cutting-edge open diffusion weights, DeBand LoRAs, and community workflows by OpenLMLab and MATLOWAI.
+- **[Stability AI](https://stability.ai/) & [Qwen Team](https://github.com/QwenLM)** — For open-weights research (SD 3.5 Large & Qwen-Image 2.1).
+
 ## 📄 License
 
 MIT for this repository. Models, LoRAs, custom nodes and workflows referenced by profiles keep their own licenses

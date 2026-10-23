@@ -130,3 +130,52 @@ async def test_client_deduplication_by_cid(tmp_path):
         assert sess.open_clients == 1
     finally:
         await c.close()
+
+
+async def test_robots_txt_and_crawler_blocking(tmp_path):
+    c, app = await client(tmp_path)
+    try:
+        r = await c.get("/robots.txt")
+        assert r.status == 200
+        text = await r.text()
+        assert "User-agent: *" in text
+        assert "Disallow: /" in text
+        assert "noindex" in r.headers.get("X-Robots-Tag", "")
+
+        r = await c.get("/")
+        assert r.headers.get("X-Robots-Tag") == "noindex, nofollow, noarchive, nosnippet"
+
+        r_bot = await c.get("/", headers={"User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"})
+        assert r_bot.status == 403
+        assert "forbidden" in (await r_bot.text()).lower()
+    finally:
+        await c.close()
+
+
+async def test_mcp_endpoint(tmp_path):
+    c, app = await client(tmp_path)
+    try:
+        r = await c.get("/mcp")
+        assert r.status == 200
+        info = await r.json()
+        assert info["name"] == "comfy-colab-kit"
+
+        r = await c.post("/_gate/mcp", json={"jsonrpc": "2.0", "id": 1, "method": "initialize"})
+        assert r.status == 200
+        init_res = await r.json()
+        assert init_res["result"]["serverInfo"]["name"] == "comfy-colab-kit"
+
+        r = await c.post("/_gate/mcp", json={"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
+        assert r.status == 200
+        tools_res = await r.json()
+        tool_names = [t["name"] for t in tools_res["result"]["tools"]]
+        assert "gate_status" in tool_names
+        assert "gate_wake" in tool_names
+        assert "gate_stop" in tool_names
+
+        r = await c.post("/_gate/mcp", json={"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "gate_status"}})
+        assert r.status == 200
+        call_res = await r.json()
+        assert "state" in call_res["result"]["content"][0]["text"]
+    finally:
+        await c.close()

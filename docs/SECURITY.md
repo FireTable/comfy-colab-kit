@@ -1,48 +1,59 @@
-# Security
+# Security & Threat Model
 
-## Threat model
+The gateway fronts a cloud GPU instance that incurs Compute Unit costs and executes user-defined diffusion graphs. Comfy Colab Kit enforces security across three strictly isolated perimeters:
 
-The gate fronts a GPU VM that costs money and runs arbitrary ComfyUI graphs. Goals: only allow-listed people
-and your agents can reach it; nobody can reach ComfyUI directly; no secret ever lands in git, images, logs,
-argv or Colab disk; a dead VPS cannot leave a VM billing forever.
+---
 
-## Identity
+## 1. 3-Tier Defense-in-Depth Architecture
 
-| Layer | Check |
-|---|---|
-| Cloudflare Access on `PUBLIC_HOST` | login (OTP / Google / GitHub) against your Access policy |
-| Gate (`gate/auth.py`) | verifies `Cf-Access-Jwt-Assertion` on **every** request: RS256 only, signature against `https://<CF_ACCESS_TEAM_DOMAIN>/cdn-cgi/access/certs` (cached JWKS), `aud == CF_ACCESS_AUD`, `iss == https://<team domain>`, expiry; then the e-mail must be in `ALLOWED_EMAILS` |
-| Agents | `Authorization: Bearer <token>` compared in constant time with `AGENT_TOKEN_FILE` |
-| Owners | `OWNER_EMAILS` (empty = everyone allowed is an owner); actions in `OWNER_ONLY_ACTIONS` need an owner. Agents count as owners |
-| `COLAB_TUNNEL_HOST` | separate Access app that admits **only** the gate's service token; the gate adds `CF-Access-Client-Id/Secret` and strips the user's Access headers and cookies |
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ 1. EDGE PERIMETER: Cloudflare Zero Trust Access                        │
+│    • Public domain protected by mandatory Email OTP / SSO              │
+│    • Gateway cryptographically verifies RS256 JWT, AUD tag, and issuer │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ Strips incoming user credentials
+┌───────────────────────────────────▼────────────────────────────────────┐
+│ 2. GATEWAY PERIMETER: comfy-gate (Linux UID 10001, Read-Only FS)       │
+│    • Anti-crawler shield: Blocks scrapers with 403 & X-Robots-Tag      │
+│    • Enforces single-instance concurrency lock (Session.lock)          │
+│    • Evaluates auto-stop, quiet hours, and CU budgets pure functions   │
+│    • Only holder of Cloudflare Service Token (secrets/cf_service.json) │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ Stdin JSON pipe over encrypted tunnel
+┌───────────────────────────────────▼────────────────────────────────────┐
+│ 3. VM PERIMETER: Google Colab L4 Runtime Kernel                        │
+│    • Tunnel host accepts ONLY the Gateway's Service Token              │
+│    • Tokens received on stdin; live in memory only (never on disk)     │
+│    • Kernel watchdog self-terminates if heartbeat lost for 20 minutes  │
+└────────────────────────────────────────────────────────────────────────┘
+```
 
-`AUTH_DISABLED=true` exists for local development only; never set it on a public host.
+---
 
-## Secrets
+## 2. Attack Vector & Mitigation Matrix
 
-| Secret | Where it lives | How it is used |
-|---|---|---|
-| Access service token | `secrets/cf_service.json` → `CF_SERVICE_TOKEN_FILE` | gate → backend headers |
-| Tunnel token | `secrets/colab_tunnel_token` → `CF_TUNNEL_TOKEN_FILE` | sent to Colab on stdin, written 0600 for cloudflared |
-| Agent token | `secrets/agent_token` → `AGENT_TOKEN_FILE` | bearer auth |
-| HF read token (optional) | `HF_TOKEN_FILE` | sent to Colab on stdin for gated / rate-limited downloads |
-| colab CLI OAuth | `COLAB_TOKEN_DIR` (data volume) | written by `colab` login |
+| Potential Attack Vector | Severity | Architectural Mitigation |
+| :--- | :--- | :--- |
+| **Bypassing Gateway to reach ComfyUI directly** | High | `COLAB_TUNNEL_HOST` is protected by a separate Cloudflare Access Application requiring a Service Token. Only `comfy-gate` possesses this token. Direct browser access is rejected with HTTP 403 at Cloudflare's edge. |
+| **Malicious or Unauthorized Wake Spamming** | High | In-flight wake operations are strictly serialized under `Session.lock`. Concurrent wake calls safely join the existing session without spinning up additional VMs. Non-owners cannot trigger cold profile switches. |
+| **Web Crawlers / Search Engines Scraping Gateway** | Medium | `apps/gate/app.py` blocks known web crawlers with 403 Forbidden, serves `Disallow: /` on `/robots.txt`, and attaches `X-Robots-Tag: noindex, nofollow, noarchive, nosnippet` to every response. |
+| **Exfiltration of Tokens via Colab VM Disk or Logs** | High | Bootstrap secrets (`CF_TUNNEL_TOKEN`, `HF_TOKEN`) are passed into `colab exec` via **stdin as JSON**. They are never written to disk, never placed in command-line arguments (`argv`), and never printed in logs. |
+| **Runaway GPU Spend from VPS Host Crash** | High | The in-kernel watchdog (`packages/colab/setup.py`) monitors heartbeat pings. If the gate becomes unreachable for `WATCHDOG_GATE_LOST_MIN`, the VM triggers `runtime.unassign()` autonomously. |
+| **Accidental Credential Commit to Git** | Critical | `.env`, `secrets/*`, and `data/*` are ignored in `.gitignore`. Secrets must use `*_FILE` pointers. Pre-commit hooks execute `scripts/check-secrets.sh` and CI runs Gitleaks on every commit. |
 
-Rules: secrets are files (0600, folder 0700) mounted as Docker secrets; `.env` only holds `*_FILE` paths;
-`secrets/`, `.env` and `data/` are git-ignored; profiles reject secret-like keys and values; secrets go to
-Colab as JSON on stdin of `colab exec` and stay in kernel memory, never in argv, the uploaded tarball or logs.
+---
 
-## Scanning
+## 3. Secret Management Rules
 
-- `scripts/check-secrets.sh` — fast local scan of tracked / staged files (token patterns, private keys,
-  `secrets/` paths); used by pre-commit.
-- `.gitleaks.toml` + `.github/workflows/secret-scan.yml` — gitleaks on every push / PR.
+1. **Files only, never environment strings**: All credentials reside in `secrets/` with strict `0600` permissions (directory `0700`). Environment variables only hold path pointers ending in `_FILE`.
+2. **Never vendor secrets**: `.env`, `secrets/`, and `data/` are strictly ignored by Git.
+3. **Automated Scanning**:
+   - `scripts/check-secrets.sh` scans tracked and staged files for token patterns and private keys.
+   - Gitleaks runs automatically in GitHub Actions CI on every commit and pull request.
 
-## Cost safety
+---
 
-Wake admission and auto-stop rules ([AUTO_STOP.md](AUTO_STOP.md)), the orphan sweep, and the Colab-side
-watchdog that releases the VM when the gate's heartbeat disappears for `WATCHDOG_GATE_LOST_MIN`.
+## 4. Vulnerability Reporting
 
-## Reporting
-
-Please report vulnerabilities privately to the repository owner rather than in a public issue.
+Please report security issues privately to the repository maintainers via GitHub Security Advisories rather than opening a public issue.

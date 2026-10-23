@@ -243,8 +243,6 @@ class Downloads:
             time.sleep(wait)
         shutil.move(path, dst)  # local_dir keeps repo subfolders; the file always lands flat at models/<dest>
         shutil.rmtree(tmp, ignore_errors=True)
-        with self.lock:
-            self.live.pop(m["id"], None)
 
     def _one(self, m):
         dst = f"{COMFY}/models/{m['dest']}"
@@ -276,6 +274,7 @@ class Downloads:
 
     def _finish(self, m):
         with self.lock:
+            self.live.pop(m["id"], None)
             self.files_done += 1
             self.done_bytes += self.size[m["id"]]
             if m.get("core"):

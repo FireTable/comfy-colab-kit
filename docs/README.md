@@ -1,44 +1,70 @@
-# comfy-colab-kit Documentation & Agent Navigation Guide
+# Comfy Colab Kit Documentation & Navigation Guide
 
-This folder documents the **finished product**: how comfy-colab-kit works, how to deploy it and how to extend it.
-It is written for operators and for **AI coding agents** that change or drive the kit.
-
----
-
-## 🗺️ Documentation map
-
-```
-docs/
-├── README.md        # [this file] map + agent fast path
-├── ARCHITECTURE.md  # components, request/data flow, shared global session, 10-state machine, reverse proxy, Colab bootstrap
-├── WAKE_PAGE.md     # HF-Space-style wake page, live SSE progress, profile selector, in-ComfyUI overlay (App ⇄ Graph, +1h, stop)
-├── PROFILES.md      # profile.yaml format, workflows (vendored vs URL-only), App-mode metadata, `comfyui:` passthrough
-├── AUTO_STOP.md     # every auto-stop / admission rule and its .env variable, CU ledger, Colab-side watchdog
-├── DEPLOY_VPS.md    # Docker Compose + Caddy deployment, colab CLI login, secrets layout, upgrades
-├── CLOUDFLARE.md    # two hostnames, Access apps, service token, tunnel, scripts/cf-setup.sh
-├── SECURITY.md      # threat model, secret handling, identity checks, scanning
-├── API.md           # HTTP API summary (full spec: apps/gate/openapi.yaml)
-├── AGENT_SKILL.md   # skill spec for autonomous agents that wake / use / stop a deployed gate
-└── AGENT.md         # end-to-end VPS deployment runbook & credential procurement guide
-```
+Welcome to the **Comfy Colab Kit** engineering and operator documentation. This repository provides an on-demand, cost-optimized lifecycle gateway that boots and proxies ComfyUI on Google Colab GPU instances behind Cloudflare Zero Trust.
 
 ---
 
-## 🧭 Task-oriented fast path for coding agents
+## 🧭 Navigation by Role
 
-| Task | Primary guide | Core invariants |
+Choose the reading path tailored to your specific role and objective:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                          Comfy Colab Kit Docs                          │
+└───────┬────────────────────────────────┬───────────────────────────────┘
+        │                                │
+ 👤 End-User / Operator           🛠️ Core Developer             🤖 AI Agent Operator
+  ├─ ARCHITECTURE.md (Concept)     ├─ ARCHITECTURE.md (Deep dive)├─ AGENT_SKILL.md (Skill spec)
+  ├─ DEPLOY_VPS.md (Quick deploy)  ├─ PROFILES.md (Model schemas) ├─ API.md (REST & SSE endpoints)
+  ├─ AGENT.md (Full credential run)├─ AUTO_STOP.md (Rules engine) ├─ AGENT.md (VPS automation)
+  └─ WAKE_PAGE.md (UI features)    └─ SECURITY.md (Threat model)  └─ llms.txt (Context index)
+```
+
+- **If you are deploying for the first time**: Start with [`DEPLOY_VPS.md`](DEPLOY_VPS.md) for the fast Docker Compose setup, or consult [`AGENT.md`](AGENT.md) for a complete credentials procurement walkthrough.
+- **If you are adding or customizing models**: Read [`PROFILES.md`](PROFILES.md) to understand YAML schemas, model aliasing, and workflow policies.
+- **If you are building an AI agent**: Read [`AGENT_SKILL.md`](AGENT_SKILL.md) and [`API.md`](API.md) to integrate automated wake, prompt queuing, and shutdown routines.
+- **If you want to configure cost protection**: Read [`AUTO_STOP.md`](AUTO_STOP.md) for idle detection, session limits, and Compute Unit (CU) ledger tracking.
+
+---
+
+## 🗺️ Documentation Directory
+
+| Document | Primary Focus | Target Audience |
 | :--- | :--- | :--- |
-| Change the boot sequence / add a state | [`ARCHITECTURE.md`](ARCHITECTURE.md) | All transitions go through `apps/gate/state.py` `TRANSITIONS`; Colab stages map via `STAGE_TO_STATE`; `wake()` stays idempotent under `Session.lock`; state is persisted after every transition. |
-| Add or change a profile / workflow | [`PROFILES.md`](PROFILES.md) | Never author workflows; vendor only Apache-2.0/MIT files unchanged with `upstream_sha256`; models are URL-only; run `scripts/validate-profile.py`. |
-| Pass flags / settings / env to ComfyUI | [`PROFILES.md#comfyui-passthrough`](PROFILES.md#comfyui-passthrough) | `--listen`, `--port`, `--output-directory`, `--disable-auto-launch`, `--extra-model-paths-config` are reserved; no secrets in profiles. |
-| Change when the VM stops | [`AUTO_STOP.md`](AUTO_STOP.md) | Pure rules in `apps/gate/stopper.py`; idle never fires while the ComfyUI queue is busy; config only from `.env`. |
-| Wake page / overlay UI | [`WAKE_PAGE.md`](WAKE_PAGE.md) | The Gate is a lifecycle manager; once `ready`, traffic proxies to the genuine ComfyUI Web App. Overlay toggles App ⇄ Graph. |
-| Auth / Access / owners | [`SECURITY.md`](SECURITY.md), [`CLOUDFLARE.md`](CLOUDFLARE.md) | Verify `Cf-Access-Jwt-Assertion` (RS256, aud, iss) on every request; strip user Access headers before proxying. |
-| Deploy / upgrade / setup | [`DEPLOY_VPS.md`](DEPLOY_VPS.md), [`AGENT.md`](AGENT.md) | Secrets are files under `secrets/` (0600), referenced by `*_FILE`; never in `.env` or the image. |
-| Drive the gate from an agent | [`AGENT_SKILL.md`](AGENT_SKILL.md), [`API.md`](API.md) | Bearer agent token; poll `/_gate/status` or stream `/_gate/events`; call standard ComfyUI API when ready; stop when done. |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Dual-phase gateway vs proxy, 10-state machine, Colab bootstrap, shared global session | Developers & Architects |
+| [`DEPLOY_VPS.md`](DEPLOY_VPS.md) | Docker Compose + Caddy production deployment, secrets layout, and upgrades | System Operators |
+| [`AGENT.md`](AGENT.md) | End-to-end VPS deployment runbook and complete credential procurement guide | Operators & Coding Agents |
+| [`AGENT_SKILL.md`](AGENT_SKILL.md) | Autonomous agent skill protocol (`comfy_colab_gate`), prompt queuing, and GPU lifecycle | AI Agent Developers |
+| [`API.md`](API.md) | HTTP REST endpoints, Server-Sent Events (SSE) telemetry, and ComfyUI proxy routes | Developers & AI Agents |
+| [`PROFILES.md`](PROFILES.md) | Profile YAML specifications, upstream workflow licensing, model aliasing, and App mode | Workflow Engineers |
+| [`AUTO_STOP.md`](AUTO_STOP.md) | Pure auto-stop rules, wake admission guards, CU budgeting, and Colab watchdog | Operators & Budget Owners |
+| [`CLOUDFLARE.md`](CLOUDFLARE.md) | Dual-hostname layout, Cloudflare Access JWT validation, and Named Tunnels | Network & Security Engineers |
+| [`SECURITY.md`](SECURITY.md) | Threat model, zero-secret repository guarantee, memory-only credentials, and scanning | Security Engineers |
+| [`WAKE_PAGE.md`](WAKE_PAGE.md) | Zero-FOUC design, WebGL Aurora visual stack, real-time SSE progress, and injected overlay | Frontend Developers |
 
-## Rules for this folder
+---
 
-- Docs describe shipped behaviour only — no plans, research notes or experiments.
-- When code changes behaviour, update the matching doc in the same commit.
-- No secrets, tokens, real account ids or demo links in any doc.
+## ⚡ Task-Oriented Fast Path for Coding Agents
+
+| Goal | Primary Reference | Core Invariants & Rules |
+| :--- | :--- | :--- |
+| **Modify State Machine or Boot** | [`ARCHITECTURE.md`](ARCHITECTURE.md) | All transitions must pass through `apps/gate/state.py:TRANSITIONS`. Colab stdout markers map via `STAGE_TO_STATE`. `wake()` remains strictly idempotent under `Session.lock`. State persists after every transition. |
+| **Add or Modify a Model Profile** | [`PROFILES.md`](PROFILES.md) | Never author original workflows in this repo. Vendor only Apache-2.0 or MIT workflows unchanged with `upstream_sha256`. Model weights must be URL-only. Validate via `python scripts/validate-profile.py`. |
+| **Pass Custom Flags to ComfyUI** | [`PROFILES.md#comfyui-passthrough`](PROFILES.md#comfyui-passthrough) | Reserved flags (`--listen`, `--port`, `--output-directory`, etc.) are managed by the runtime and cannot be overridden. No credentials allowed in profiles. |
+| **Adjust Shutdown or Cost Guards** | [`AUTO_STOP.md`](AUTO_STOP.md) | Auto-stop logic in `apps/gate/stopper.py` must remain pure functions. Idle timer never trips while ComfyUI prompt queue is busy. All knobs configure strictly via `.env`. |
+| **Customize Web UI or Overlay** | [`WAKE_PAGE.md`](WAKE_PAGE.md) | The Gate serves the Wake page only while booting or sleeping. When `ready`, the gateway proxies to the authentic ComfyUI Web App, injecting only the minimal floating overlay. |
+| **Authenticate & Authorize Users** | [`SECURITY.md`](SECURITY.md), [`CLOUDFLARE.md`](CLOUDFLARE.md) | Cryptographically verify `Cf-Access-Jwt-Assertion` (RS256, AUD, issuer) on every request. Strip incoming user Access headers before reverse-proxying to the backend. |
+| **Deploy or Automate Infrastructure** | [`DEPLOY_VPS.md`](DEPLOY_VPS.md), [`AGENT.md`](AGENT.md) | Secret values reside exclusively in `secrets/` with `0600` permissions. Reference them via `*_FILE` environment variables. Never commit secrets to git or Docker images. |
+
+---
+
+## 💖 Upstream Open-Source Credits & Acknowledgments
+
+Comfy Colab Kit stands on the shoulders of giants. We express our sincere gratitude to:
+- **[ComfyUI](https://github.com/comfyanonymous/ComfyUI)**: The modular, node-based diffusion graph execution engine and modern Web App interface created by @comfyanonymous and the Comfy Org.
+- **[Google Colab](https://colab.research.google.com/)**: Providing accessible cloud GPU compute and the `google-colab-cli` ecosystem.
+- **[Cloudflare](https://www.cloudflare.com/)**: Zero Trust Access security edge, Cloudflare Named Tunnels (`cloudflared`), and Cloudflare Pages.
+- **[React Bits](https://reactbits.dev)**: The stunning Aurora WebGL shaders, SpotlightCard cursor glow, and ShinyText animations created by **David Haz**.
+- **[Hugging Face](https://huggingface.co/)**: Fast model hosting and parallel weight distribution infrastructure (`hf_xet`).
+- **[uv by Astral](https://astral.sh/uv)**: Blazing fast Python environment initialization.
+- **[MOSS-Image](https://huggingface.co/MATLOWAI/MOSS-Image-SFT-DeBand-int8)**: Breakthrough diffusion models, DeBand LoRAs, and community workflows developed by OpenLMLab and MATLOWAI.

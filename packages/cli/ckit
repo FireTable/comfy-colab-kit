@@ -43,13 +43,20 @@ def call(method, path, body=None):
 
 def main():
     ap = argparse.ArgumentParser(prog="ckit")
-    ap.add_argument("cmd", choices=["status", "profiles", "wake", "switch", "stop", "extend"])
+    ap.add_argument("cmd", choices=["status", "profiles", "wake", "switch", "stop", "extend", "mcp"])
     ap.add_argument("profile_arg", nargs="?")
     ap.add_argument("--profile")
     ap.add_argument("--workflow", action="append", help="enable an optional workflow (repeatable)")
     ap.add_argument("--wait", action="store_true", help="block until ready/failed (wake)")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args()
+    if a.cmd == "mcp":
+        import os
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from cli.mcp_server import run_stdio_server
+        run_stdio_server()
+        return
     if a.cmd == "status":
         code, out = call("GET", "/_gate/status")
     elif a.cmd == "profiles":

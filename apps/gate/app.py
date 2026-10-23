@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 import urllib.request
 from pathlib import Path
 
@@ -33,7 +34,11 @@ def _find_web_dir() -> Path:
 
 
 WEB = _find_web_dir()
-PUBLIC_PATHS = ("/_gate/healthz",)
+PUBLIC_PATHS = ("/_gate/healthz", "/robots.txt")
+BOT_UA_RE = re.compile(
+    r"(bot|crawler|spider|crawling|slurp|archiver|scraper|yandex|bingbot|googlebot|baiduspider|bytespider|twitterbot|facebookexternalhit|rogerbot|linkedinbot|embedly|quora link preview|showyoubot|outbrain|pinterest|slackbot|vkShare|W3C_Validator)",
+    re.IGNORECASE,
+)
 SESSION = web.AppKey("session", Session)
 SETTINGS = web.AppKey("settings", Settings)
 PROXY = web.AppKey("proxy", Proxy)
@@ -52,6 +57,23 @@ def _fetch_json(url: str) -> dict:
 
 def err(status: int, code: str, msg: str) -> web.Response:
     return web.json_response({"error": code, "message": msg}, status=status)
+
+
+@web.middleware
+async def anti_crawler_mw(request: web.Request, handler):
+    if request.path == "/robots.txt":
+        return await handler(request)
+    ua = request.headers.get("User-Agent", "")
+    if BOT_UA_RE.search(ua):
+        return web.Response(
+            status=403,
+            text="Access forbidden for automated bots, crawlers, and scrapers.",
+            content_type="text/plain",
+            headers={"X-Robots-Tag": "noindex, nofollow, noarchive, nosnippet"},
+        )
+    resp = await handler(request)
+    resp.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive, nosnippet"
+    return resp
 
 
 @web.middleware
@@ -172,6 +194,110 @@ async def extend(request: web.Request) -> web.Response:
     return web.json_response(request.app[SESSION].status())
 
 
+async def mcp_endpoint(request: web.Request) -> web.Response:
+    """Model Context Protocol (MCP) Streamable/HTTP JSON-RPC 2.0 endpoint."""
+    if request.method == "GET":
+        return web.json_response({
+            "name": "comfy-colab-kit",
+            "version": "0.1.0",
+            "protocol": "2024-11-05",
+            "tools": ["gate_status", "gate_wake", "gate_stop"]
+        })
+    body = await _body(request)
+    req_id = body.get("id")
+    method = body.get("method")
+    params = body.get("params", {})
+    s = request.app[SESSION]
+
+    if method == "initialize":
+        return web.json_response({
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {"tools": {}},
+                "serverInfo": {"name": "comfy-colab-kit", "version": "0.1.0"}
+            }
+        })
+    elif method == "tools/list":
+        return web.json_response({
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {
+                "tools": [
+                    {
+                        "name": "gate_status",
+                        "description": "Inspect the Comfy Colab session state, active profile, and CU balance.",
+                        "inputSchema": {"type": "object", "properties": {}}
+                    },
+                    {
+                        "name": "gate_wake",
+                        "description": "Wake or join the shared Google Colab L4 GPU instance with a model profile.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "profile": {"type": "string", "description": "Profile ID, e.g. 'moss-image'"}
+                            }
+                        }
+                    },
+                    {
+                        "name": "gate_stop",
+                        "description": "Stop the Colab GPU session immediately to release Compute Units.",
+                        "inputSchema": {"type": "object", "properties": {}}
+                    }
+                ]
+            }
+        })
+    elif method == "tools/call":
+        tool_name = params.get("name")
+        ident = _ident(request)
+        if tool_name == "gate_status":
+            return web.json_response({
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {"content": [{"type": "text", "text": json.dumps(s.status(), indent=2)}]}
+            })
+        elif tool_name == "gate_wake":
+            args = params.get("arguments", {})
+            prof = args.get("profile") or request.app[SETTINGS].default_profile
+            res = await s.wake(prof, by=ident.email)
+            if res.refused:
+                return web.json_response({
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "result": {"isError": True, "content": [{"type": "text", "text": f"Wake refused: {res.refused}"}]}
+                })
+            return web.json_response({
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {"content": [{"type": "text", "text": f"Wake initiated for profile '{prof}'. State: {res.state}"}]}
+            })
+        elif tool_name == "gate_stop":
+            if not ident.is_owner and "stop" in request.app[SETTINGS].owner_only_actions:
+                return web.json_response({
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "result": {"isError": True, "content": [{"type": "text", "text": "Permission denied: stop requires owner"}]}
+                })
+            st = await s.stop("mcp agent requested stop")
+            return web.json_response({
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {"content": [{"type": "text", "text": f"Session stopped. State: {st.value}"}]}
+            })
+        return web.json_response({
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "error": {"code": -32601, "message": f"Unknown tool: {tool_name}"}
+        })
+
+    return web.json_response({
+        "jsonrpc": "2.0",
+        "id": req_id,
+        "error": {"code": -32601, "message": f"Method not supported: {method}"}
+    })
+
+
 async def events(request: web.Request) -> web.StreamResponse:
     s = request.app[SESSION]
     cid = (request.query.get("cid") or
@@ -196,8 +322,7 @@ async def events(request: web.Request) -> web.StreamResponse:
         await send("state", s.status())
         if s.progress:
             await send("progress", s.progress)
-        logs = list(s.bus.logs)
-        for line in logs[since:]:
+        for line in s.bus.logs_since(since):
             await send("log", line)
         while True:
             try:
@@ -215,6 +340,14 @@ async def events(request: web.Request) -> web.StreamResponse:
 
 async def healthz(request: web.Request) -> web.Response:
     return web.json_response({"ok": True, "state": request.app[SESSION].machine.state.value})
+
+
+async def robots_txt(request: web.Request) -> web.Response:
+    return web.Response(
+        text="User-agent: *\nDisallow: /\n",
+        content_type="text/plain",
+        headers={"Cache-Control": "public, max-age=86400", "X-Robots-Tag": "noindex, nofollow, noarchive, nosnippet"},
+    )
 
 
 async def wake_page(request: web.Request) -> web.Response:
@@ -297,7 +430,7 @@ async def background(app: web.Application) -> None:
 
 def build_app(settings: Settings, colab: ColabRunner | None = None,
               profiles: dict[str, Profile] | None = None, run_background: bool = True) -> web.Application:
-    app = web.Application(middlewares=[auth_mw], client_max_size=64 * 1024 * 1024)
+    app = web.Application(middlewares=[anti_crawler_mw, auth_mw], client_max_size=64 * 1024 * 1024)
     if profiles is None:
         profiles, errors = load_all(settings.profiles, REPO_ROOT)
     else:
@@ -314,6 +447,7 @@ def build_app(settings: Settings, colab: ColabRunner | None = None,
     app[PROXY] = Proxy(settings.backend_url, settings.cf_service_token_file, session.touch,
                        session.client_opened, session.client_closed)
     r = app.router
+    r.add_get("/robots.txt", robots_txt)
     r.add_get("/_gate/healthz", healthz)
     r.add_get("/_gate/status", status)
     r.add_get("/_gate/events", events)
@@ -323,6 +457,8 @@ def build_app(settings: Settings, colab: ColabRunner | None = None,
     r.add_post("/_gate/fetch", fetch)
     r.add_post("/_gate/stop", stop)
     r.add_post("/_gate/extend", extend)
+    r.add_route("*", "/_gate/mcp", mcp_endpoint)
+    r.add_route("*", "/mcp", mcp_endpoint)
     r.add_static("/_gate/static/", WEB, show_index=False)
     r.add_route("*", "/{tail:.*}", catch_all)
 

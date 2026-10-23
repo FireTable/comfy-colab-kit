@@ -62,6 +62,7 @@ class Broadcaster:
     def __init__(self, backlog: int = 1000, on_log: Callable[[str], None] | None = None):
         self.subscribers: set[asyncio.Queue] = set()
         self.logs: deque[str] = deque(maxlen=backlog)
+        self.total_logs: int = 0
         self.on_log = on_log
 
     def subscribe(self) -> asyncio.Queue:
@@ -72,10 +73,25 @@ class Broadcaster:
     def unsubscribe(self, q: asyncio.Queue) -> None:
         self.subscribers.discard(q)
 
+    def clear_logs(self) -> None:
+        self.logs.clear()
+        self.total_logs = 0
+
+    def logs_since(self, since: int) -> list[str]:
+        if since <= 0:
+            return list(self.logs)
+        oldest_index = max(0, self.total_logs - len(self.logs))
+        if since <= oldest_index:
+            return list(self.logs)
+        offset = since - oldest_index
+        logs_list = list(self.logs)
+        return logs_list[offset:] if offset < len(logs_list) else []
+
     def publish(self, kind: str, data: Any) -> None:
         if kind == "log":
             s = str(data)
             self.logs.append(s)
+            self.total_logs += 1
             if self.on_log:
                 try:
                     self.on_log(s)
@@ -154,7 +170,8 @@ class Session:
         if self.log_file.is_file():
             try:
                 lines = self.log_file.read_text(encoding="utf-8", errors="replace").splitlines()
-                self.bus.logs.clear()
+                self.bus.clear_logs()
+                self.bus.total_logs = len(lines)
                 maxlen = self.bus.logs.maxlen or 1000
                 for line in lines[-maxlen:]:
                     self.bus.logs.append(line)
@@ -233,7 +250,7 @@ class Session:
                 return WakeResult(False, m.state.value, m.profile, refused=why)
             if m.state == State.FAILED:
                 await self._stop_locked("restart after failure")
-            self.bus.logs.clear()
+            self.bus.clear_logs()
             self.log_file.unlink(missing_ok=True)
             m.profile, self.workflows, self.progress = pid, workflows, {}
             m.to(State.ALLOCATING, f"wake by {by or 'unknown'}")
