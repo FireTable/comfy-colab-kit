@@ -23,7 +23,7 @@ from . import stopper
 from .budget import Ledger
 from .colab import ColabError, ColabRunner
 from .config import Settings, read_secret_file
-from .plan import build_plan
+from .plan import build_fetch_plan, build_plan
 from .profiles import Profile
 from .state import BOOT_STATES, Machine, State
 
@@ -78,6 +78,10 @@ class Session:
         self.progress: dict[str, Any] = {}
         self.workflows: list[str] | None = None
         self._task: asyncio.Task | None = None
+        self._fetch_task: asyncio.Task | None = None
+        self.on_demand: list[str] = []      # installed workflows whose models are not on the VM yet
+        self.fetching: list[str] = []
+        self.fetch_error = ""
         self._last_accrual = clock()
         self.machine.listeners.append(lambda ev: self.bus.publish("state", self.status()))
 
@@ -147,6 +151,8 @@ class Session:
                    "per_hour": self.settings.auto_stop.cu_per_hour},
             "clients": self.open_clients,
             "default_view": self.settings.default_view,
+            "models": {"on_demand": list(self.on_demand), "fetching": list(self.fetching),
+                       "fetch_error": self.fetch_error},
         }
 
     def reload_profiles(self) -> dict[str, str]:
@@ -208,6 +214,42 @@ class Session:
                 await self._stop_locked(f"switch to {profile_id}")
         return await self.wake(profile_id, by=by)
 
+    async def fetch(self, workflow_ids: list[str]) -> str:
+        """Download the models of extra workflows onto the running VM (on demand). Returns '' or a refusal."""
+        m = self.machine
+        if m.state != State.READY or not m.profile:
+            return "not_ready"
+        if self._fetch_task and not self._fetch_task.done():
+            return "fetch_in_progress"
+        try:
+            plan = build_fetch_plan(self.profiles[m.profile], self.settings, list(workflow_ids))
+        except ValueError:
+            return "unknown_workflow"
+        self.fetching, self.fetch_error = list(workflow_ids), ""
+        self.bus.publish("state", self.status())
+        self._fetch_task = asyncio.create_task(self._fetch(plan))
+        return ""
+
+    async def _fetch(self, plan: dict) -> None:
+        name = self.settings.colab_session_name
+        fd = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)
+        try:
+            json.dump(plan, fd)
+            fd.close()
+            await self.colab.upload(name, fd.name, "/content/kit/fetch-plan.json")
+            code = ("import os, runpy\nos.environ['KIT_PLAN']='/content/kit/fetch-plan.json'\n"
+                    "_kit = runpy.run_path('/content/kit/colab/setup.py', run_name='__main__'); del _kit\n")
+            async for line in self.colab.exec_stream(name, code, self.settings.auto_stop.boot_timeout_min * 60):
+                self.handle_line(line)
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:  # noqa: BLE001
+            self.fetch_error = str(e)[:300]
+        finally:
+            Path(fd.name).unlink(missing_ok=True)
+            self.fetching = []
+            self.bus.publish("state", self.status())
+
     def touch(self) -> None:
         self.last_activity = self.clock()
 
@@ -242,6 +284,9 @@ class Session:
             return
         m.to(State.SLEEPING, reason)
         self.progress = {}
+        self.on_demand, self.fetching = [], []
+        if self._fetch_task and not self._fetch_task.done():
+            self._fetch_task.cancel()
         self.persist()
         self.ledger.save()
 
@@ -315,6 +360,16 @@ class Session:
             except ValueError:
                 pass
             self.bus.publish("progress", self.progress)
+        elif line.startswith(("KIT_FETCHED", "KIT_FETCH_FAILED")):
+            try:
+                d = json.loads(line.split(" ", 1)[1])
+            except (IndexError, ValueError):
+                d = {}
+            if line.startswith("KIT_FETCHED"):
+                self.on_demand = [w for w in self.on_demand if w not in (d.get("workflows") or [])]
+            else:
+                self.fetch_error = str(d.get("error", "fetch failed"))
+            self.bus.publish("state", self.status())
         elif line.startswith("KIT_READY"):
             if self.machine.state != State.READY and self.machine.can(State.READY):
                 self.machine.to(State.READY, "ComfyUI ready")
@@ -327,6 +382,7 @@ class Session:
         name = self.settings.colab_session_name
         try:
             plan = build_plan(self.profiles[pid], self.settings, self.workflows)
+            self.on_demand, self.fetching, self.fetch_error = sorted(plan.get("on_demand") or {}), [], ""
             if name not in await self.colab.sessions():
                 self.bus.publish("log", f"allocating Colab {self.settings.colab_accelerator} VM …")
                 await self.colab.new(name, self.settings.colab_accelerator)

@@ -66,6 +66,7 @@ class Workflow:
     file: str | None = None
     source: str = ""
     loras: tuple[str, ...] = ()  # extra LoRA URLs (hf://…) downloaded into models/loras/
+    prefetch: bool = False  # download this workflow's models in the background on every wake (else on demand)
 
 
 @dataclass(frozen=True)
@@ -96,6 +97,8 @@ class Profile:
     app_default: str | None
     smoke: "Smoke | None"
     raw: dict = field(repr=False, default_factory=dict)
+    #: loader filename (as written in an upstream workflow) -> model id it is remapped to at install time
+    model_aliases: dict = field(default_factory=dict)
 
     def models_for(self, workflow_ids: list[str] | None = None) -> list[Model]:
         wf_ids = workflow_ids or [w.id for w in self.workflows.values() if not w.optional]
@@ -109,6 +112,12 @@ class Profile:
     def total_size_gb(self, workflow_ids: list[str] | None = None) -> float:
         return round(sum(m.size_gb or 0 for m in self.models_for(workflow_ids)), 2)
 
+    def wake_size_gb(self) -> float:
+        """What a plain wake downloads: the default workflow's models + the smoke test's (others are on demand)."""
+        ids = {m.id for m in (self.models_for([self.app_default]) if self.app_default else [])}
+        ids |= set(self.smoke.models if self.smoke else ())
+        return round(sum(self.models[i].size_gb or 0 for i in ids), 2)
+
     def summary(self) -> dict:
         return {
             "id": self.id,
@@ -116,8 +125,10 @@ class Profile:
             "accelerator": self.accelerator,
             "comfyui_commit": self.comfyui_commit,
             "app_default": self.app_default,
-            "size_gb_default": self.total_size_gb(),
-            "workflows": [{"id": w.id, "title": w.title, "optional": w.optional, "license": w.license}
+            "size_gb_default": self.wake_size_gb(),
+            "size_gb_all_installed": self.total_size_gb(),
+            "workflows": [{"id": w.id, "title": w.title, "optional": w.optional, "license": w.license,
+                           "prefetch": w.prefetch, "size_gb": self.total_size_gb([w.id])}
                           for w in self.workflows.values()],
         }
 
@@ -211,7 +222,7 @@ def parse_profile(data: dict, path: Path) -> Profile:
         # in which case App mode shows the subgraph's own outputs.
         workflows[wid] = Workflow(wid, str(w.get("title", wid)), url, str(lic), fmt, wm, wn, inputs, outputs,
                                   tuple(w.get("overrides") or []), bool(w.get("optional", False)),
-                                  file, str(w.get("source", "")), loras)
+                                  file, str(w.get("source", "")), loras, bool(w.get("prefetch", False)))
     # a scaffold profile may have no workflows yet; then app_default is optional
     app_default = data.get("app_default") or (None if not workflows else _req(data, "app_default", pid))
     if workflows and app_default not in workflows:
@@ -247,7 +258,14 @@ def parse_profile(data: dict, path: Path) -> Profile:
     emp = comfy.get("extra_model_paths")
     if emp is not None and not isinstance(emp, dict):
         raise ProfileError(f"{pid}.comfyui.extra_model_paths must be a mapping (extra_model_paths.yaml content)")
+    aliases = data.get("model_aliases") or {}
+    if not isinstance(aliases, dict):
+        raise ProfileError(f"{pid}.model_aliases must map a filename to a model id")
+    for fname, mid in aliases.items():
+        if mid not in models:
+            raise ProfileError(f"{pid}.model_aliases: unknown model '{mid}' for '{fname}'")
     return Profile(
+        model_aliases={str(k): str(v) for k, v in aliases.items()},
         id=pid, title=str(data.get("title", pid)), path=path,
         accelerator=str(data.get("accelerator", "L4")),
         comfyui_commit=str(_req(comfy, "commit", f"{pid}.comfyui")),

@@ -105,6 +105,23 @@ async def wake(request: web.Request) -> web.Response:
                              status=200 if res.joined else 202)
 
 
+async def fetch(request: web.Request) -> web.Response:
+    """POST /_gate/fetch {"workflows": [...]}: download those workflows' models onto the running VM."""
+    ident = _ident(request)
+    try:
+        authorize(ident, "wake", request.app[SETTINGS])
+    except AuthError as e:
+        return err(e.status, e.code, e.msg)
+    body = await _body(request)
+    wids = body.get("workflows")
+    if not isinstance(wids, list) or not all(isinstance(w, str) for w in wids) or not wids:
+        return err(400, "bad_request", "body must be {\"workflows\": [\"<id>\", ...]}")
+    why = await request.app[SESSION].fetch(wids)
+    if why:
+        return err(404 if why == "unknown_workflow" else 409, why, f"fetch refused: {why}")
+    return web.json_response({"fetching": wids}, status=202)
+
+
 async def switch(request: web.Request) -> web.Response:
     ident = _ident(request)
     try:
@@ -256,6 +273,7 @@ def build_app(settings: Settings, colab: ColabRunner | None = None,
     r.add_get("/_gate/profiles", profiles_route)
     r.add_post("/_gate/wake", wake)
     r.add_post("/_gate/switch", switch)
+    r.add_post("/_gate/fetch", fetch)
     r.add_post("/_gate/stop", stop)
     r.add_post("/_gate/extend", extend)
     r.add_static("/_gate/static/", WEB, show_index=False)

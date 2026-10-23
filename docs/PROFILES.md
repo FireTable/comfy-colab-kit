@@ -13,7 +13,7 @@ Shipped profiles:
 
 | Profile | Default App workflow | Notes |
 |---|---|---|
-| [`moss-image`](../examples/profiles/moss-image/) (primary) | `matlowai-deband-int8` | DeBand int8, 4-step turbo graphs, official quality / layout, chinoll edit (optional) |
+| [`moss-image`](../examples/profiles/moss-image/) (primary) | `matlowai-presets` | SFT bf16 + DeBand LoRAs (default), 4-step turbo graphs, official quality / layout; DeBand int8 merged, split-qkv rapid, Base, chinoll edit (opt-in). One shared base / text encoder / VAE |
 | [`sd-latest`](../examples/profiles/sd-latest/) | `sd35-large` | SD 3.5 Large fp8, TurboX 8-step, SD 3.5 Medium turbo (gated, optional) |
 | [`qwen-image`](../examples/profiles/qwen-image/) | `qwen21-turbo-t2i` | Qwen-Image 2.1 Turbo / full T2I and Edit |
 
@@ -69,6 +69,7 @@ workflows:
     upstream_sha256: …
     format: json                    # json | png (workflow embedded in a PNG) | builtin
     optional: false                 # optional workflows are only installed when requested at wake
+    prefetch: false                 # true = download this workflow's models in the background on every wake
     models: [deband-int8, te-int8, vae]
     custom_nodes: []
     loras: [hf://owner/repo/style.safetensors]  # extra LoRAs downloaded to models/loras
@@ -124,3 +125,35 @@ comfyui:
 `POST /_gate/wake {"profile": "moss-image", "workflows": ["kijai-4step"]}` installs the non-optional workflows
 plus the listed optional ones (`ckit wake --profile moss-image --workflow kijai-4step`).
 Switching profile is a cold restart (`POST /_gate/switch`).
+
+
+## What a wake downloads
+
+Only the **default workflow's** models (and the smoke test's) are downloaded on wake; they are *core* and boot
+waits for them. Every other installed workflow is **on demand**: its JSON is installed, its models are fetched
+when someone asks (`POST /_gate/fetch {"workflows": [...]}`, listed in status `models.on_demand`). A workflow with
+`prefetch: true`, or one passed in the wake body (`{"workflows": [...]}`), downloads in the background after the
+core files. Background downloads pause (SIGSTOP) while ComfyUI executes a prompt and resume afterwards. Each HF
+file has a stall watchdog: no new bytes for 45 s (`KIT_STALL_S`) → that file's download is killed and restarted
+(partial chunks are kept). 429 / 5xx / connection errors retry with backoff.
+
+## Sharing weights: `model_aliases`
+
+Upstream workflow JSONs are never edited. To make several workflows share one set of weights, map the filename an
+upstream workflow loads to a model id:
+
+```yaml
+model_aliases:
+  moss_image_sft_int8_convrot.safetensors: sft-bf16   # official templates load int8 -> use the shared bf16
+  qwen3.5_9b_w4a8_gptq.safetensors: te-int8
+  flux2-vae_small.safetensors: vae
+```
+
+At install time `setup.py` rewrites every string widget equal to a key (all nodes, subgraph definitions included;
+also the smoke API prompt) to the mapped model's filename. Only use it where the workflow works with the other file
+by a pure filename change (same architecture / loader). A workflow that truly needs a different checkpoint (merged
+fine-tune, split-qkv layout, Base vs SFT) keeps its own model and should be `optional: true`.
+
+moss-image uses SFT bf16 (10.2 GB) + Qwen3.5-9B int8 (9.8 GB) + Flux2 VAE (0.3 GB): the highest precision that fits
+a 24 GB L4 together (the bf16 text encoder alone is 19.3 GB). Default wake: 24.9 GB; all non-optional workflows:
+27.3 GB; everything including opt-in: 66.9 GB.

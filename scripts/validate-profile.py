@@ -20,7 +20,7 @@ for t in targets:
     try:
         jsonschema.validate(yaml.safe_load(f.read_text()), schema)
         p = load_profile(f)
-        print(f"ok  {p.id:<16} {len(p.workflows)} workflows, default download ~{p.total_size_gb()} GB")
+        print(f"ok  {p.id:<16} {len(p.workflows)} workflows, wake download ~{p.wake_size_gb()} GB")
     except (jsonschema.ValidationError, ProfileError, OSError) as e:
         bad = 1
         print(f"ERR {f}: {getattr(e, 'message', e)}")

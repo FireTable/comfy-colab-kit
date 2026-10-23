@@ -34,6 +34,13 @@
     "$schema": {
       "type": "string"
     },
+    "model_aliases": {
+      "type": "object",
+      "description": "Loader filename used by an upstream workflow -> model id. Applied at install time (all nodes, subgraphs included) so workflows share one set of weights without editing their JSON.",
+      "additionalProperties": {
+        "$ref": "#/$defs/id"
+      }
+    },
     "id": {
       "$ref": "#/$defs/id"
     },
@@ -218,6 +225,10 @@
           },
           "optional": {
             "type": "boolean"
+          },
+          "prefetch": {
+            "type": "boolean",
+            "description": "Download this workflow's models in the background on every wake. Default false: they are fetched on demand (POST /_gate/fetch)."
           },
           "models": {
             "type": "array",

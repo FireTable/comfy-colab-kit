@@ -108,6 +108,23 @@ paths:
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {description: unknown profile}
         "409": {description: refused by quiet hours / budget / balance}
+  /_gate/fetch:
+    post:
+      summary: Download extra workflows' models onto the running VM (on demand)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [workflows]
+              properties:
+                workflows: {type: array, items: {type: string}}
+      responses:
+        "202": {description: fetch started}
+        "400": {description: bad body}
+        "404": {description: unknown workflow}
+        "409": {description: not_ready or fetch_in_progress}
   /_gate/switch:
     post:
       summary: Switch profile (owner-only by default; v1 = cold switch)

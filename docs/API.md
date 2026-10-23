@@ -11,6 +11,7 @@ All routes except `/_gate/healthz` and `/_gate/static/*` require a Cloudflare Ac
 | `GET /_gate/events` | SSE stream: `state`, `progress`, `log`, `warn` | `200 text/event-stream` |
 | `GET /_gate/profiles` | profiles, default, load errors | `200` |
 | `POST /_gate/wake` | `{"profile"?: id, "workflows"?: [ids]}` start or join | `202` started, `200 {"joined": true}`, `404 unknown_profile`, `409 <refusal>`, `403` |
+| `POST /_gate/fetch` | `{"workflows": [id, ...]}` download those workflows' models onto the running VM (on demand; idempotent, existing files are skipped). Progress in `progress.download`, result in `models.on_demand` / `models.fetch_error` | `202`, `400`, `404` unknown workflow, `409` `not_ready` / `fetch_in_progress`, `403` |
 | `POST /_gate/switch` | `{"profile": id}` cold switch (stop → wake) | `202`, `404`, `409`, `403` |
 | `POST /_gate/stop` | stop the VM | `200 {"state": …}`, `403` |
 | `POST /_gate/extend` | add `EXTEND_HOURS` | `200` status, `409 extend_limit`, `403` |

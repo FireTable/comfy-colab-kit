@@ -44,7 +44,8 @@ def test_three_example_profiles():
 
 def test_moss_profile_contents():
     p = load_profile(ROOT / "examples/profiles/moss-image")
-    assert p.app_default == "matlowai-deband-int8"  # T1 fast + quality default
+    assert p.app_default == "matlowai-presets"  # SFT bf16 + DeBand LoRAs: best quality on the shared base
+    assert p.workflows["matlowai-deband-int8"].optional  # needs its own merged checkpoints -> opt-in
     assert {"akhaliq-4step", "rapid-moss-4step", "official-t2i", "official-layout", "matlowai-presets"} <= set(p.workflows)
     for wid in ("kijai-4step", "chinoll-edit-single", "chinoll-edit-multi", "matlowai-presets-rapid"):
         assert p.workflows[wid].optional, wid
@@ -115,11 +116,14 @@ def test_plan_contains_comfy_passthrough_and_dedups_models():
     assert all(m["url"].startswith("https://huggingface.co/") for m in plan["models"])
     assert not any(w["id"] == "kijai-4step" for w in plan["workflows"])  # optional by default
     core = {m["id"] for m in plan["models"] if m["core"]}
-    assert {"deband-int8", "te-int8", "vae"} <= core
+    assert {"sft-bf16", "te-int8", "vae", "deband-l37-41"} <= core
+    assert all(m["core"] for m in plan["models"])  # nothing non-core is downloaded unless asked for
+    assert "akhaliq-4step" in plan["on_demand"] and "akhaliq-4step-v2" in plan["on_demand"]["akhaliq-4step"]
     assert "chinoll-edit-patch" not in {m["id"] for m in plan["models"]}  # optional workflow not selected
     assert [n["id"] for n in plan["custom_nodes"]] == ["rapid-moss"]
+    assert plan["model_aliases"]["qwen3.5_9b_w4a8_gptq.safetensors"] == "qwen3.5_9b_int8_convrot.safetensors"
     plan2 = build_plan(p, s, ["kijai-4step"])
-    assert {w["id"] for w in plan2["workflows"]} == {"kijai-4step", "matlowai-deband-int8"}
+    assert {w["id"] for w in plan2["workflows"]} == {"kijai-4step", "matlowai-presets"}
 
 
 def test_workflow_file_and_loras(tmp_path):
@@ -159,3 +163,38 @@ def test_vendored_workflows_match_upstream_hash():
                 data = (path.parent / w["file"]).read_bytes()
                 assert hashlib.sha256(data).hexdigest() == w["upstream_sha256"], w["id"]
                 assert w["license"].lower().startswith(("apache-2.0", "mit")), w["id"]
+
+
+def test_moss_shares_one_base_and_text_encoder():
+    p = load_profile(ROOT / "examples/profiles/moss-image")
+    tes = {m for w in p.workflows.values() for m in w.models if p.models[m].dest.startswith("text_encoders/")}
+    vaes = {m for w in p.workflows.values() for m in w.models if p.models[m].dest.startswith("vae/")}
+    assert tes == {"te-int8"} and vaes == {"vae"}
+    bases = {m for w in p.workflows.values() if not w.optional for m in w.models
+             if p.models[m].dest.startswith("diffusion_models/")}
+    assert bases == {"sft-bf16"}
+
+
+def test_prefetch_and_requested_workflows_download_in_background():
+    import dataclasses
+    p = load_profile(ROOT / "examples/profiles/moss-image")
+    s = Settings.from_env({"AUTH_DISABLED": "true"})
+    wf = dict(p.workflows)
+    wf["akhaliq-4step"] = dataclasses.replace(wf["akhaliq-4step"], prefetch=True)
+    plan = build_plan(dataclasses.replace(p, workflows=wf), s)
+    m = {x["id"]: x for x in plan["models"]}
+    assert m["akhaliq-4step-v2"]["core"] is False and m["sft-bf16"]["core"] is True
+    assert "akhaliq-4step" not in plan["on_demand"]
+
+
+def test_fetch_plan_only_lists_requested_models():
+    from gate.plan import build_fetch_plan
+    p = load_profile(ROOT / "examples/profiles/moss-image")
+    s = Settings.from_env({"AUTH_DISABLED": "true"})
+    plan = build_fetch_plan(p, s, ["akhaliq-4step"])
+    assert plan["fetch_only"] and plan["smoke"] is None
+    assert {x["id"] for x in plan["models"]} == {"sft-bf16", "te-int8", "vae", "akhaliq-4step-v2"}
+    assert not any(x["core"] for x in plan["models"])
+    assert [w["id"] for w in plan["workflows"]] == ["akhaliq-4step"]
+    with pytest.raises(ValueError):
+        build_fetch_plan(p, s, ["nope"])
