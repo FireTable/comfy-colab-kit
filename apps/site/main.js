@@ -203,6 +203,10 @@ const I18N = {
     "quickstart.s3Desc": "Visit your custom domain. One click wakes the Colab L4 GPU, syncs the model, and proxies ComfyUI.",
     "quickstart.copy": "Copy",
     "quickstart.copied": "Copied!",
+    "quickstart.aiPromptBtn": "🤖 Copy AI Deploy Prompt",
+    "quickstart.aiPromptCopied": "Copied to clipboard!",
+    "quickstart.aiPromptHint": "Paste into Claude Code, Cursor, or OpenClaw to deploy automatically.",
+    "quickstart.manualLink": "Read Full Manual",
     "quickstart.btn": "Read Full VPS Deploy Guide",
     "quickstart.agentBtn": "AI Agent & MCP Guide",
     "quickstart.github": "Star on GitHub",
@@ -361,6 +365,10 @@ const I18N = {
     "quickstart.s3Desc": "在手机或电脑打开个人专属域名，点击 Wake 即可自动拉起 Colab L4 显卡并在同一域名使用 ComfyUI。",
     "quickstart.copy": "复制",
     "quickstart.copied": "已复制!",
+    "quickstart.aiPromptBtn": "🤖 复制 AI 部署指令",
+    "quickstart.aiPromptCopied": "已复制部署指令!",
+    "quickstart.aiPromptHint": "发送给 Claude Code、Cursor、OpenClaw 等 AI 即可全自动部署。",
+    "quickstart.manualLink": "查看完整文档",
     "quickstart.btn": "查看完整 VPS 部署指南",
     "quickstart.agentBtn": "AI Agent 与 MCP 对接指南",
     "quickstart.github": "前往 GitHub 点赞",
@@ -466,25 +474,67 @@ if (langBtn && langPopover) {
   });
 }
 
-// Terminal Quickstart Copy Button
+// Terminal Quickstart Script Copy Button
 const copyBtn = document.getElementById("copy-quickstart-btn");
 if (copyBtn) {
   copyBtn.addEventListener("click", async () => {
     const code = `# 1. Clone the repository\ngit clone https://github.com/FireTable/comfy-colab-kit.git\ncd comfy-colab-kit\n\n# 2. Configure your environment and secrets\ncp .env.example .env\n\n# 3. Start the gateway daemon via Docker Compose\ndocker compose -f deploy/docker-compose.yml up -d --build`;
     try {
       await navigator.clipboard.writeText(code);
-      const textSpan = copyBtn.querySelector(".copy-text");
-      const orig = textSpan ? textSpan.textContent : "Copy";
-      const dict = I18N[window.currentLang || "en"] || I18N.en;
-      if (textSpan) textSpan.textContent = dict["quickstart.copied"] || "Copied!";
-      copyBtn.classList.add("copied");
-      setTimeout(() => {
-        if (textSpan) textSpan.textContent = dict["quickstart.copy"] || orig;
-        copyBtn.classList.remove("copied");
-      }, 2000);
     } catch {
-      // Fallback
+      const textarea = document.createElement("textarea");
+      textarea.value = code;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      try { document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(textarea);
     }
+    const textSpan = copyBtn.querySelector(".copy-text") || copyBtn;
+    const orig = textSpan ? textSpan.textContent : "Copy";
+    const dict = I18N[window.currentLang || "en"] || I18N.en;
+    if (textSpan) textSpan.textContent = dict["quickstart.copied"] || "Copied!";
+    copyBtn.classList.add("copied");
+    setTimeout(() => {
+      const currentDict = I18N[window.currentLang || "en"] || I18N.en;
+      if (textSpan) textSpan.textContent = currentDict["quickstart.copy"] || orig;
+      copyBtn.classList.remove("copied");
+    }, 2000);
+  });
+}
+
+// AI Agent Deploy Prompt Copy Button
+const aiPromptBtn = document.getElementById("copy-ai-prompt-btn");
+if (aiPromptBtn) {
+  let feedbackTimer = null;
+  aiPromptBtn.addEventListener("click", async () => {
+    const promptText = "Please read https://github.com/FireTable/comfy-colab-kit and follow docs/DEPLOY_VPS.md to help me deploy comfy-colab-kit on my VPS.";
+    try {
+      await navigator.clipboard.writeText(promptText);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = promptText;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      try { document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(textarea);
+    }
+
+    const textSpan = aiPromptBtn.querySelector(".prompt-btn-text") || aiPromptBtn;
+    const dict = I18N[window.currentLang || "en"] || I18N.en;
+
+    clearTimeout(feedbackTimer);
+    textSpan.textContent = dict["quickstart.aiPromptCopied"] || "Copied to clipboard!";
+    aiPromptBtn.classList.add("copied");
+
+    feedbackTimer = setTimeout(() => {
+      const currentDict = I18N[window.currentLang || "en"] || I18N.en;
+      textSpan.textContent = currentDict["quickstart.aiPromptBtn"] || "🤖 Copy AI Deploy Prompt";
+      aiPromptBtn.classList.remove("copied");
+    }, 2000);
   });
 }
 
@@ -497,8 +547,8 @@ if (copyBtn) {
     { pct: 100, key: "how.demoStage3" },
   ];
   let cur = 0;
-  let timer = null;
-  let paused = false;
+  let animTimer = null;
+  let hasAutoPlayed = false;
 
   const fnodes = [0, 1, 2, 3].map(i => document.getElementById(`fnode-${i}`));
   const farrows = [0, 1, 2].map(i => document.getElementById(`farrow-${i}`));
@@ -561,58 +611,61 @@ if (copyBtn) {
     }
   }
 
-  function next() {
-    if (paused) return;
-    const nextIdx = (cur + 1) % STAGES.length;
-    setStage(nextIdx);
-    const delay = nextIdx === 3 ? 3800 : 2600;
-    timer = setTimeout(next, delay);
+  function startFastProgression() {
+    if (hasAutoPlayed) return;
+    hasAutoPlayed = true;
+
+    let targetIdx = 0;
+    setStage(0);
+
+    function step() {
+      if (targetIdx < STAGES.length - 1) {
+        targetIdx++;
+        setStage(targetIdx);
+        if (targetIdx < STAGES.length - 1) {
+          animTimer = setTimeout(step, 600);
+        }
+        // At targetIdx === 3 (100% Ready), stay there. Do NOT loop or repeat!
+      }
+    }
+    animTimer = setTimeout(step, 600);
   }
 
   // Interactive Clicks: Click step item or diagram node to inspect that stage
-  stepItems.forEach((el, i) => {
-    el.addEventListener("click", () => {
-      clearTimeout(timer);
-      setStage(i);
-      paused = true;
-      setTimeout(() => { paused = false; next(); }, 5000);
+  const registerManualClick = (elements) => {
+    elements.forEach((el, i) => {
+      if (!el) return;
+      el.addEventListener("click", () => {
+        clearTimeout(animTimer);
+        hasAutoPlayed = true; // User manually interacted, stay at clicked stage
+        setStage(i);
+      });
     });
-  });
+  };
 
-  fnodes.forEach((el, i) => {
-    if (!el) return;
-    el.addEventListener("click", () => {
-      clearTimeout(timer);
-      setStage(i);
-      paused = true;
-      setTimeout(() => { paused = false; next(); }, 5000);
-    });
-  });
+  registerManualClick(stepItems);
+  registerManualClick(fnodes);
+  registerManualClick(fnodesV);
 
-  fnodesV.forEach((el, i) => {
-    el.addEventListener("click", () => {
-      clearTimeout(timer);
-      setStage(i);
-      paused = true;
-      setTimeout(() => { paused = false; next(); }, 5000);
-    });
-  });
+  // Initialize at Stage 0
+  setStage(0);
 
-  // Pause on hover
+  // IntersectionObserver on #how: when scrolled into view, quickly step through to 100%
   const archSection = document.getElementById("how");
-  if (archSection) {
-    archSection.addEventListener("mouseenter", () => { paused = true; });
-    archSection.addEventListener("mouseleave", () => {
-      if (paused) {
-        paused = false;
-        clearTimeout(timer);
-        timer = setTimeout(next, 2000);
-      }
-    });
+  if (archSection && "IntersectionObserver" in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting && !hasAutoPlayed) {
+          startFastProgression();
+          observer.disconnect();
+        }
+      });
+    }, { threshold: 0.25 });
+    observer.observe(archSection);
+  } else {
+    // Fallback if IntersectionObserver is not supported
+    setTimeout(startFastProgression, 1000);
   }
 
-  // Initialize
-  setStage(0);
-  timer = setTimeout(next, 2600);
   window.updateArchStageLang = () => setStage(cur);
 })();

@@ -85,7 +85,7 @@
   } catch (e) {}
 })();
 </script>
-<link rel="stylesheet" href="styles.css?v=3cfe4c50">
+<link rel="stylesheet" href="styles.css?v=69d5a821">
 </head>
 <body>
 <canvas id="bg" aria-hidden="true"></canvas>
@@ -203,18 +203,27 @@
         <p data-i18n="quickstart.s3Desc">Visit your custom domain. One click wakes the Colab L4 GPU, syncs the model, and proxies ComfyUI.</p>
       </div>
     </div>
-    <div class="code-wrapper">
-      <div class="code-header">
-        <span class="code-dot red"></span>
-        <span class="code-dot yellow"></span>
-        <span class="code-dot green"></span>
-        <span class="code-title">Terminal</span>
-        <button class="copy-btn" id="copy-quickstart-btn" aria-label="Copy terminal commands" title="Copy to clipboard">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-          <span class="copy-text" data-i18n="quickstart.copy">Copy</span>
-        </button>
+    <div class="terminal-frame card">
+      <div class="terminal-header">
+        <div class="terminal-left">
+          <div class="terminal-dots" aria-hidden="true">
+            <span class="code-dot red"></span>
+            <span class="code-dot yellow"></span>
+            <span class="code-dot green"></span>
+          </div>
+          <span class="terminal-tab">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            <span>vps-deploy.sh</span>
+          </span>
+        </div>
+        <div class="terminal-right">
+          <button class="copy-btn" id="copy-quickstart-btn" aria-label="Copy terminal commands" title="Copy script to clipboard">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            <span class="copy-text" data-i18n="quickstart.copy">Copy</span>
+          </button>
+        </div>
       </div>
-      <pre><code><span class="cmd-comment"># 1. Clone the repository</span>
+      <pre class="terminal-content"><code><span class="cmd-comment"># 1. Clone the repository</span>
 git clone https://github.com/FireTable/comfy-colab-kit.git
 cd comfy-colab-kit
 
@@ -225,15 +234,20 @@ cp .env.example .env
 docker compose -f deploy/docker-compose.yml up -d --build
 
 <span class="cmd-comment"># 4. Open your domain (e.g. https://comfy.yourdomain.com) and click Wake!</span></code></pre>
-    </div>
-    <div class="quickstart-actions">
-      <a class="btn btn-primary" href="https://github.com/FireTable/comfy-colab-kit/blob/main/docs/DEPLOY_VPS.md" target="_blank" rel="noopener">
-        <span data-i18n="quickstart.btn">Read Full VPS Deploy Guide</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </a>
-      <a class="btn btn-secondary" href="https://github.com/FireTable/comfy-colab-kit/blob/main/docs/AGENT_SKILL.md" target="_blank" rel="noopener">
-        <span data-i18n="quickstart.agentBtn">AI Agent &amp; MCP Guide</span>
-      </a>
+      <div class="terminal-footer">
+        <div class="terminal-footer-main">
+          <button class="btn btn-primary btn-copy-prompt" id="copy-ai-prompt-btn" type="button" aria-label="Copy AI Deploy Prompt">
+            <span class="prompt-btn-text" data-i18n="quickstart.aiPromptBtn">🤖 Copy AI Deploy Prompt</span>
+          </button>
+          <span class="terminal-hint" data-i18n="quickstart.aiPromptHint">Paste into Claude Code, Cursor, or OpenClaw to deploy automatically.</span>
+        </div>
+        <div class="terminal-footer-sub">
+          <a class="terminal-doc-link" href="https://github.com/FireTable/comfy-colab-kit/blob/main/docs/DEPLOY_VPS.md" target="_blank" rel="noopener">
+            <span data-i18n="quickstart.manualLink">Read Full Manual</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -255,8 +269,8 @@ docker compose -f deploy/docker-compose.yml up -d --build
               <stop offset="1" stop-color="#F9AB00"/>
             </linearGradient>
             <linearGradient id="arr-ready" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0" stop-color="#F9AB00"/>
-              <stop offset="1" stop-color="#22C55E"/>
+              <stop offset="0" stop-color="#E8710A"/>
+              <stop offset="1" stop-color="#F9AB00"/>
             </linearGradient>
           </defs>
           <g font-family="Inter,system-ui,sans-serif" text-anchor="middle">
