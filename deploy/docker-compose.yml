@@ -14,9 +14,8 @@ services:
       - ../data:/data                  # state (session.json, cu_ledger.json) + colab CLI login; owner 10001, mode 700
       # content is bind-mounted read-only, NOT baked: `git pull` applies it, no rebuild/restart
       # (profiles are re-read on every wake). Only gate/ code changes need `up -d --build`.
-      - ../examples:/app/examples:ro         # example profiles + workflows
-      - ../profiles:/app/profiles:ro         # your own profiles (reference as profiles/<id> in PROFILES)
-      - ../colab:/app/colab:ro               # colab/setup.py, shipped to the VM on each wake
+      - ../profiles:/app/profiles:ro         # profiles (built-in examples + user custom)
+      - ../packages/colab:/app/packages/colab:ro  # colab/setup.py, shipped to the VM on each wake
     secrets: [cf_service.json, colab_tunnel_token, agent_token, hf_token]
     networks: [caddy]
     expose: ["8080"]               # no host ports; reached only via the Caddy network

@@ -7,7 +7,8 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-spec = importlib.util.spec_from_file_location("kit_setup", ROOT / "colab/setup.py")
+colab_setup = ROOT / "packages/colab/setup.py" if (ROOT / "packages/colab/setup.py").is_file() else ROOT / "colab/setup.py"
+spec = importlib.util.spec_from_file_location("kit_setup", colab_setup)
 setup = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(setup)
 
@@ -58,7 +59,10 @@ def test_comfy_cmd_uses_profile_args(monkeypatch):
 
 def test_smoke_prompt_unwraps_request_body():
     import importlib.util, pathlib
-    spec = importlib.util.spec_from_file_location("kit_setup", pathlib.Path(__file__).parent.parent / "colab/setup.py")
+    p = pathlib.Path(__file__).parent.parent / "packages/colab/setup.py"
+    if not p.is_file():
+        p = pathlib.Path(__file__).parent.parent / "colab/setup.py"
+    spec = importlib.util.spec_from_file_location("kit_setup", p)
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
     g = {"1": {"class_type": "X", "inputs": {}}}

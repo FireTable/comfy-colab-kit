@@ -119,7 +119,7 @@ class Settings:
     colab_token_dir: str = ""
     colab_accelerator: str = "L4"
     colab_session_name: str = "comfy"
-    profiles: tuple[str, ...] = ("examples/profiles/moss-image", "examples/profiles/sd-latest", "examples/profiles/qwen-image")
+    profiles: tuple[str, ...] = ("profiles/examples/moss-image", "profiles/examples/sd-latest", "profiles/examples/qwen-image")
     default_profile: str = "moss-image"
     default_view: str = "app"
     fast_start: bool = True

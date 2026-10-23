@@ -7,17 +7,17 @@ read [docs/AGENT_SKILL.md](docs/AGENT_SKILL.md) instead.
 
 ## 🧭 Monorepo Module Map
 
-The repository is structured as an engineering monorepo with root compatibility symlinks:
+The repository is structured as a clean engineering monorepo:
 
 | Path | Primary Module | Role | Notes |
 |---|---|---|---|
-| `apps/gate/` (`gate/`) | Gateway App | aiohttp gateway, auth middleware, background loop, state machine | `build_app(settings, colab, profiles, run_background)` is the test seam |
-| `apps/gate/gate/web/` | Web UI | Wake page (`index.html`), `bg.js`, `overlay.js` (App ⇄ Graph via `Comfy.ToggleLinear`) | Zero-RTT SSR-like injection, no build step |
-| `apps/site/` (`site/`) | Landing App | Promo marketing & architecture documentation showcase | Pure static HTML/CSS/JS (Cloudflare Pages) |
-| `packages/colab/` (`colab/`) | VM Runtime | Runs in Colab kernel; prints `KIT_STAGE/KIT_PROGRESS/KIT_READY/KIT_FAILED` | stdlib + huggingface_hub only |
-| `packages/cli/` (`cli/`) | CLI Tool | `ckit` command line utility for operators and agents | stdlib CLI |
-| `packages/schemas/` (`schemas/`) | Schema Package | JSON schema (`profile.schema.json`) | Validates all profiles |
-| `profiles/examples/` (`examples/`) | Community Profiles | `moss-image` (primary), `sd-latest`, `qwen-image` | Community workflows only |
+| `apps/gate/` | Gateway App | aiohttp gateway, auth middleware, background loop, state machine | `build_app(settings, colab, profiles, run_background)` is the test seam |
+| `apps/gate/web/` | Web UI | Wake page (`index.html`), `bg.js`, `overlay.js` (App ⇄ Graph via `Comfy.ToggleLinear`) | Zero-RTT SSR-like injection, no build step |
+| `apps/site/` | Landing App | Promo marketing & architecture documentation showcase | Pure static HTML/CSS/JS (Cloudflare Pages) |
+| `packages/colab/` | VM Runtime | Runs in Colab kernel; prints `KIT_STAGE/KIT_PROGRESS/KIT_READY/KIT_FAILED` | stdlib + huggingface_hub only |
+| `packages/cli/` | CLI Tool | `ckit` command line utility for operators and agents | Python stdlib CLI |
+| `packages/schemas/` | Schema Package | JSON schema (`profile.schema.json`) | Validates all profiles |
+| `profiles/examples/` | Community Profiles | `moss-image` (primary), `sd-latest`, `qwen-image` | Community workflows only |
 | `profiles/custom/` | User Profiles | User-defined custom model profiles mount | Re-read dynamically on wake |
 | `deploy/` | Deployment | Dockerfile, compose, Caddyfile snippet | Container run as uid 10001 |
 | `docs/` | Documentation | Product & architecture guides, including `docs/AGENT.md` | English only, no secrets |

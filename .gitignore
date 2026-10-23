@@ -24,5 +24,6 @@ build/
 dist/
 .DS_Store
 .deploy-notes.md
+.handoff.md
 grok/
 scratch/

@@ -17,5 +17,5 @@ comfy-gate = "gate.app:main"
 asyncio_mode = "auto"
 testpaths = ["tests"]
 
-[tool.setuptools]
-packages = ["gate"]
+[tool.setuptools.package-dir]
+gate = "apps/gate"

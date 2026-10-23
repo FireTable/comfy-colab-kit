@@ -15,8 +15,9 @@ ROOT = Path(__file__).resolve().parent.parent
 
 def make(tmp_path, colab=None, **env):
     s = Settings.from_env({"AUTH_DISABLED": "true", "STATE_DIR": str(tmp_path), "DEFAULT_PROFILE": "tiny", **env})
+    moss_path = ROOT / "profiles/examples/moss-image" if (ROOT / "profiles/examples/moss-image").is_dir() else ROOT / "examples/profiles/moss-image"
     prof = {p.id: p for p in (load_profile(ROOT / "tests/fixtures/profiles/tiny"),
-                              load_profile(ROOT / "examples/profiles/moss-image"))}
+                              load_profile(moss_path))}
     return Session(s, prof, colab or FakeColab())
 
 

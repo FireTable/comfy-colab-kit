@@ -3,11 +3,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 RUN useradd -u 10001 -m gate && pip install --no-cache-dir "google-colab-cli"
 WORKDIR /app
 COPY pyproject.toml README.md ./
-COPY apps/gate/gate ./gate
-COPY packages/colab ./colab
-COPY profiles/examples ./examples
-COPY packages/schemas ./schemas
-COPY apps ./apps
+COPY apps/gate ./apps/gate
 COPY packages ./packages
 COPY profiles ./profiles
 RUN pip install --no-cache-dir .

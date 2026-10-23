@@ -369,8 +369,9 @@ class Session:
 
     def _kit_tarball(self, plan: dict) -> str:
         fd = tempfile.NamedTemporaryFile(suffix=".tgz", delete=False)
+        colab_dir = REPO_ROOT / "packages/colab" if (REPO_ROOT / "packages/colab").is_dir() else REPO_ROOT / "colab"
         with tarfile.open(fileobj=fd, mode="w:gz") as tar:
-            tar.add(REPO_ROOT / "colab", arcname="colab",
+            tar.add(colab_dir, arcname="colab",
                     filter=lambda ti: None if "__pycache__" in ti.name else ti)
             data = json.dumps(plan).encode()
             info = tarfile.TarInfo("plan.json")

@@ -101,21 +101,20 @@ Comfy Colab Kit is structured as an engineering monorepo separating server appli
 ```
 comfy-colab-kit/
 ├── apps/
-│   ├── gate/                 # [Application] Gateway & Reverse Proxy
-│   │   ├── gate/             # Python backend (aiohttp, auth, state machine, budget)
-│   │   │   └── web/          # Wake page UI (index.html, bg.js, overlay.js)
-│   │   └── openapi.yaml      # OpenAPI 3.1 specification
+│   ├── gate/                 # [Application] Gateway & Reverse Proxy (backend Python + web UI)
+│   │   ├── app.py            # aiohttp entrypoint, routes, middleware, auto-stop loop
+│   │   ├── session.py        # Central single-instance Session orchestrator
+│   │   ├── proxy.py          # Reverse proxy with SSE/WS streaming & overlay injection
+│   │   ├── openapi.yaml      # OpenAPI 3.1 specification
+│   │   └── web/              # Wake page static UI (index.html, bg.js, logo.svg)
 │   └── site/                 # [Application] Showcase / Landing Site
 │       ├── index.html        # Showcase documentation & promo page
 │       ├── styles.css        # Aligned theme styles
 │       └── main.js           # Client interactions
 ├── packages/
-│   ├── colab/                # [Package] Colab VM agent & runtime
-│   │   └── setup.py          # Setup & execution runner inside Colab kernel
-│   ├── cli/                  # [Package] Host & developer CLI tool
-│   │   └── ckit              # Standalone Python stdlib CLI client
-│   └── schemas/              # [Package] JSON Schema definitions
-│       └── profile.schema.json
+│   ├── colab/                # [Package] Colab VM agent & runtime (setup.py)
+│   ├── cli/                  # [Package] Host & developer CLI tool (ckit)
+│   └── schemas/              # [Package] JSON Schema definitions (profile.schema.json)
 ├── profiles/                 # Profiles & Model Configurations
 │   ├── examples/             # Built-in community profiles (moss-image, sd-latest, qwen-image)
 │   └── custom/               # Mount point for user custom profiles
@@ -130,8 +129,6 @@ comfy-colab-kit/
 ├── scripts/                  # CI, validation and secret check utilities
 └── tests/                    # Pytest test suite (108+ tests)
 ```
-
-Root-level compatibility symlinks (`gate/`, `site/`, `colab/`, `cli/`, `schemas/`, `examples/`) are maintained for 100% backwards compatibility with existing container volumes, local tools, and paths.
 
 ## 🛠️ Development
 

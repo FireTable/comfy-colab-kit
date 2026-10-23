@@ -11,16 +11,18 @@ from gate.plan import build_plan
 from gate.profiles import ProfileError, hf_to_https, load_all, load_profile, parse_profile
 
 ROOT = Path(__file__).resolve().parent.parent
-EXAMPLES = sorted((ROOT / "examples/profiles").glob("*/profile.yaml"))
+EXAMPLES_DIR = ROOT / "profiles/examples" if (ROOT / "profiles/examples").is_dir() else ROOT / "examples/profiles"
+EXAMPLES = sorted(EXAMPLES_DIR.glob("*/profile.yaml"))
 ALL = EXAMPLES + sorted((ROOT / "tests/fixtures/profiles").glob("*/profile.yaml"))
-SCHEMA = json.loads((ROOT / "schemas/profile.schema.json").read_text())
+SCHEMA_FILE = ROOT / "packages/schemas/profile.schema.json" if (ROOT / "packages/schemas/profile.schema.json").is_file() else ROOT / "schemas/profile.schema.json"
+SCHEMA = json.loads(SCHEMA_FILE.read_text())
 
 
 FIXTURES = ROOT / "tests/fixtures/profiles"
 
 
 def raw(name="moss-image"):
-    base = FIXTURES if (FIXTURES / name).is_dir() else ROOT / "examples/profiles"
+    base = FIXTURES if (FIXTURES / name).is_dir() else EXAMPLES_DIR
     return yaml.safe_load((base / name / "profile.yaml").read_text())
 
 
@@ -43,7 +45,7 @@ def test_three_example_profiles():
 
 
 def test_moss_profile_contents():
-    p = load_profile(ROOT / "examples/profiles/moss-image")
+    p = load_profile(EXAMPLES_DIR / "moss-image")
     assert p.app_default == "matlowai-presets"  # SFT bf16 + DeBand LoRAs: best quality on the shared base
     assert p.workflows["matlowai-deband-int8"].optional  # needs its own merged checkpoints -> opt-in
     assert {"akhaliq-4step", "rapid-moss-4step", "official-t2i", "official-layout", "matlowai-presets"} <= set(p.workflows)
@@ -85,7 +87,7 @@ def test_invalid_profiles(mutate, msg):
     d = copy.deepcopy(raw())
     mutate(d)
     with pytest.raises(ProfileError, match=msg):
-        parse_profile(d, ROOT / "examples/profiles/moss-image")
+        parse_profile(d, EXAMPLES_DIR / "moss-image")
 
 
 def test_schema_rejects_secret_keys_too():
@@ -100,12 +102,12 @@ def test_schema_rejects_secret_keys_too():
 
 
 def test_load_all_collects_errors(tmp_path):
-    ok, errors = load_all(["tests/fixtures/profiles/tiny", "examples/profiles/qwen-image", str(tmp_path / "missing")], ROOT)
+    ok, errors = load_all(["tests/fixtures/profiles/tiny", "profiles/examples/qwen-image", str(tmp_path / "missing")], ROOT)
     assert {"tiny", "qwen-image"} <= set(ok) and len(errors) == 1
 
 
 def test_plan_contains_comfy_passthrough_and_dedups_models():
-    p = load_profile(ROOT / "examples/profiles/moss-image")
+    p = load_profile(EXAMPLES_DIR / "moss-image")
     s = Settings.from_env({"AUTH_DISABLED": "true", "DEFAULT_VIEW": "graph"})
     plan = build_plan(p, s)
     assert plan["comfyui"]["args"] == list(p.comfyui_args)
@@ -166,7 +168,7 @@ def test_vendored_workflows_match_upstream_hash():
 
 
 def test_moss_shares_one_base_and_text_encoder():
-    p = load_profile(ROOT / "examples/profiles/moss-image")
+    p = load_profile(EXAMPLES_DIR / "moss-image")
     tes = {m for w in p.workflows.values() for m in w.models if p.models[m].dest.startswith("text_encoders/")}
     vaes = {m for w in p.workflows.values() for m in w.models if p.models[m].dest.startswith("vae/")}
     assert tes == {"te-int8"} and vaes == {"vae"}
@@ -177,7 +179,7 @@ def test_moss_shares_one_base_and_text_encoder():
 
 def test_prefetch_and_requested_workflows_download_in_background():
     import dataclasses
-    p = load_profile(ROOT / "examples/profiles/moss-image")
+    p = load_profile(EXAMPLES_DIR / "moss-image")
     s = Settings.from_env({"AUTH_DISABLED": "true"})
     wf = dict(p.workflows)
     wf["akhaliq-4step"] = dataclasses.replace(wf["akhaliq-4step"], prefetch=True)
@@ -189,7 +191,7 @@ def test_prefetch_and_requested_workflows_download_in_background():
 
 def test_fetch_plan_only_lists_requested_models():
     from gate.plan import build_fetch_plan
-    p = load_profile(ROOT / "examples/profiles/moss-image")
+    p = load_profile(EXAMPLES_DIR / "moss-image")
     s = Settings.from_env({"AUTH_DISABLED": "true"})
     plan = build_fetch_plan(p, s, ["akhaliq-4step"])
     assert plan["fetch_only"] and plan["smoke"] is None

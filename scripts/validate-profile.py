@@ -9,11 +9,14 @@ import jsonschema
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "apps"))
 sys.path.insert(0, str(ROOT))
 from gate.profiles import ProfileError, load_profile  # noqa: E402
 
-schema = json.loads((ROOT / "schemas/profile.schema.json").read_text())
-targets = [Path(a) for a in sys.argv[1:]] or sorted((ROOT / "examples/profiles").iterdir())
+schema_path = ROOT / "packages/schemas/profile.schema.json" if (ROOT / "packages/schemas/profile.schema.json").is_file() else ROOT / "schemas/profile.schema.json"
+schema = json.loads(schema_path.read_text())
+default_dir = ROOT / "profiles/examples" if (ROOT / "profiles/examples").is_dir() else ROOT / "examples/profiles"
+targets = [Path(a) for a in sys.argv[1:]] or sorted(default_dir.iterdir())
 bad = 0
 for t in targets:
     f = t / "profile.yaml" if t.is_dir() else t

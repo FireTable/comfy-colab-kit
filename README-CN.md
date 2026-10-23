@@ -95,21 +95,20 @@ Comfy Colab Kit 采用工程化 Monorepo 组织架构，清晰分离服务应用
 ```
 comfy-colab-kit/
 ├── apps/
-│   ├── gate/                 # [应用] 网关与反向代理服务
-│   │   ├── gate/             # 后端 Python 代码（aiohttp、状态机、CU 预算、反代）
-│   │   │   └── web/          # 唤醒页 UI（index.html、bg.js、overlay.js）
-│   │   └── openapi.yaml      # OpenAPI 3.1 接口定义
-│   └── site/                 # [应用] 产品官网与架构展示静态站点
+│   ├── gate/                 # [应用] 网关与反向代理服务（后端 Python + Web 界面）
+│   │   ├── app.py            # aiohttp 启动入口、路由注册、认证中间件、后台循环
+│   │   ├── session.py        # 全局唯一共享会话控制器（唤醒锁、SSE 广播、状态落盘）
+│   │   ├── proxy.py          # 反向代理（带 WS/SSE 流式支持与 App 模式浮层注入）
+│   │   ├── openapi.yaml      # OpenAPI 3.1 接口契约
+│   │   └── web/              # 唤醒页静态资源（index.html、bg.js、logo.svg）
+│   └── site/                 # [应用] 官网展示与技术架构宣传静态站点
 │       ├── index.html        # 宣传站入口
 │       ├── styles.css        # 一致性暗黑/明亮主题样式
 │       └── main.js           # 前端交互与动效
 ├── packages/
-│   ├── colab/                # [运行时包] 远端 Google Colab 内核代理脚本
-│   │   └── setup.py          # 容器打包上传并在 Colab VM 执行的环境装配脚本
-│   ├── cli/                  # [开发工具包] 宿主机与智能体运维命令行
-│   │   └── ckit              # Python 标准库独立 CLI 工具
-│   └── schemas/              # [规范包] 预设 JSON Schema 约束定义
-│       └── profile.schema.json
+│   ├── colab/                # [运行时包] 远端 Google Colab 内核代理脚本（setup.py）
+│   ├── cli/                  # [开发工具包] 宿主机与智能体运维命令行（ckit）
+│   └── schemas/              # [规范包] 预设 JSON Schema 约束定义（profile.schema.json）
 ├── profiles/                 # 模型预设与工作流管理
 │   ├── examples/             # 内置社区预设（moss-image、sd-latest、qwen-image）
 │   └── custom/               # 用户挂载自定义预设目录
@@ -124,8 +123,6 @@ comfy-colab-kit/
 ├── scripts/                  # 验证、校验与敏感信息审计脚本
 └── tests/                    # 完整自动化单元与集成测试套件（108+ 测试）
 ```
-
-根目录下维护有软链接（`gate/`、`site/`、`colab/`、`cli/`、`schemas/`、`examples/`），确保对已有环境、部署脚本及挂载完全向后兼容。
 
 ## 📄 许可证
 

@@ -282,6 +282,11 @@ def load_profile(ref: str | Path, root: Path | None = None) -> Profile:
     if root and not p.is_absolute():
         p = root / p
     f = p / "profile.yaml" if p.is_dir() else p
+    if not f.is_file() and root and "examples/profiles" in str(ref):
+        alt = root / str(ref).replace("examples/profiles", "profiles/examples")
+        alt_f = alt / "profile.yaml" if alt.is_dir() else alt
+        if alt_f.is_file():
+            f = alt_f
     if not f.is_file():
         raise ProfileError(f"profile not found: {f}")
     return parse_profile(yaml.safe_load(f.read_text()), f.parent)
