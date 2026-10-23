@@ -18,6 +18,15 @@ comfyui:
     PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
 frontend:
   package: comfyui-frontend-package==1.57.1
+# One shared base, text encoder and VAE for every workflow (best quality that fits a 24 GB L4 together:
+# SFT bf16 10.2 GB + Qwen3.5-9B int8 9.8 GB + VAE 0.3 GB). Upstream workflow JSONs stay unmodified; at install time
+# setup.py rewrites any loader widget naming a key below to the file of the mapped model (subgraphs included).
+model_aliases:
+  moss_image_sft_int8_convrot.safetensors: sft-bf16
+  qwen3.5_9b_w4a8_gptq.safetensors: te-int8
+  qwen3.5_9b_bf16.safetensors: te-int8
+  flux2-vae_small.safetensors: vae
+  moss_image_base_int8_convrot.safetensors: base-bf16
 models:
 - id: deband-int8
   dest: diffusion_models/moss_image_sft_deband_int8_convrot.safetensors
@@ -58,30 +67,12 @@ models:
   license: apache-2.0
   sha256: f96738d8116d78b7316b57c663d8c98591ddafab7488f48e3099b7655e34ab6f
   size_gb: 10.16
-- id: sft-int8
-  dest: diffusion_models/moss_image_sft_int8_convrot.safetensors
-  url: hf://Comfy-Org/MOSS-Image/diffusion_models/moss_image_sft_int8_convrot.safetensors
+- id: base-bf16
+  dest: diffusion_models/moss_image_base_bf16.safetensors
+  url: hf://Comfy-Org/MOSS-Image/diffusion_models/moss_image_base_bf16.safetensors
   license: apache-2.0
-  sha256: b4d1475bc7eeffd7b809e82ea13a1fba1fb85c4e18365af3813722faa5c0fe4f
-  size_gb: 5.41
-- id: base-int8
-  dest: diffusion_models/moss_image_base_int8_convrot.safetensors
-  url: hf://Comfy-Org/MOSS-Image/diffusion_models/moss_image_base_int8_convrot.safetensors
-  license: apache-2.0
-  sha256: f601c1e1161915fb3fea003da0c1782e374dd960fbb3978bc0e4e3fa1f2d8e6f
-  size_gb: 5.41
-- id: te-w4a8
-  dest: text_encoders/qwen3.5_9b_w4a8_gptq.safetensors
-  url: hf://Comfy-Org/MOSS-Image/text_encoders/qwen3.5_9b_w4a8_gptq.safetensors
-  license: apache-2.0
-  sha256: 4cc6a1543ad2061806da46f35f90cadb4801dcba246c44782cf42ec0feb6407c
-  size_gb: 7.34
-- id: vae-small
-  dest: vae/flux2-vae_small.safetensors
-  url: hf://Comfy-Org/MOSS-Image/vae/flux2-vae_small.safetensors
-  license: apache-2.0
-  sha256: d8d52ba036475f5fb07c8b435e176d3d97ebfa82f0d1a1c317f9cc1e25bd013b
-  size_gb: 0.25
+  sha256: cacd158728a1fb9e57c408a922b54752ec71fceb566b3821269927964e62b41f
+  size_gb: 10.16
 - id: akhaliq-4step-v2
   dest: loras/moss_image_sft_4step_v2.0.safetensors
   url: hf://akhaliq/MOSS-Image-SFT-4-steps/moss_image_sft_4step_v2.0.safetensors
@@ -180,7 +171,8 @@ custom_nodes:
   license: GPL-3.0
 workflows:
 - id: matlowai-deband-int8
-  title: Default · DeBand int8 presets (25 / Fast 10 steps)
+  title: DeBand int8 merged checkpoints (25 / Fast 10 steps)
+  optional: true
   source: https://huggingface.co/MATLOWAI/MOSS-Image-SFT-DeBand-int8
   license: Apache-2.0
   file: workflows/matlowai_deband_int8.json
@@ -266,9 +258,9 @@ workflows:
   upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_moss_image_t2i.json
   upstream_sha256: 91d76c158a1e427c09904c6222978065c1ed965c8b3f40ae323e649808af2198
   models:
-  - sft-int8
-  - te-w4a8
-  - vae-small
+  - sft-bf16
+  - te-int8
+  - vae
   app: &id001
     inputs:
     - - 18
@@ -285,9 +277,9 @@ workflows:
   upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_moss_image_t2i_bboxes.json
   upstream_sha256: 225aa1c2831bc24083971099d1d6e756f6930e4e7a225268ee95b9ec808fad2c
   models:
-  - sft-int8
-  - te-w4a8
-  - vae-small
+  - sft-bf16
+  - te-int8
+  - vae
   app:
     inputs:
     - - 18
@@ -295,7 +287,7 @@ workflows:
     outputs:
     - 9
 - id: matlowai-presets
-  title: Presets · banding-fix LoRAs + DMD/DMAD fast modes
+  title: Default · DeBand banding-fix LoRAs on SFT bf16 (+ DMD/DMAD fast modes)
   source: https://huggingface.co/MATLOWAI/MOSS-Image-SFT-DeBand
   license: Apache-2.0
   file: workflows/matlowai_banding_fix_presets.json
@@ -400,9 +392,9 @@ workflows:
   upstream_sha256: 79f897bcc9d8ae049f731f633110b6b919042198575cf7794ed9e023055c540a
   optional: true
   models:
-  - base-int8
-  - te-w4a8
-  - vae-small
+  - base-bf16
+  - te-int8
+  - vae
   app: *id001
 - id: chinoll-edit-single
   title: Edit · single reference (chinoll)
@@ -412,9 +404,9 @@ workflows:
   upstream_sha256: ff99301be6e59f6417cec65d67a3907f06a25bc3095e936efb199f1b303fffec
   optional: true
   models:
-  - sft-int8
+  - sft-bf16
   - te-int8
-  - vae-small
+  - vae
   - chinoll-edit-patch
   custom_nodes:
   - moss-image-edit
@@ -441,9 +433,9 @@ workflows:
   upstream_sha256: 898e8450e38fa2eab8d379192ffe5391622c3d8a33b4866f845fe4a5f82b778a
   optional: true
   models:
-  - sft-int8
+  - sft-bf16
   - te-int8
-  - vae-small
+  - vae
   - chinoll-edit-patch
   custom_nodes:
   - moss-image-edit
@@ -464,12 +456,16 @@ workflows:
       - text
     outputs:
     - 16
-app_default: matlowai-deband-int8
+app_default: matlowai-presets
 smoke:
-  api_url: https://huggingface.co/MATLOWAI/MOSS-Image-SFT-DeBand-int8/resolve/main/workflows/moss_deband_int8_api.json
+  api_url: https://huggingface.co/MATLOWAI/MOSS-Image-SFT-DeBand/resolve/main/workflows/moss_banding_fix_presets_api.json
   license: apache-2.0
   models:
-  - deband-int8
+  - sft-bf16
   - te-int8
   - vae
+  - deband-l37-41
+  - deband-l32-36
+  - lodestones-8step-as-lora
+  - darask0-4step-as-lora
   timeout_s: 600
