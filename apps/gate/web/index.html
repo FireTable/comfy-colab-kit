@@ -12,8 +12,13 @@
 :root{--bg:#0E0A12;--card:rgba(33,25,39,.72);--popover:rgba(26,20,31,.95);--fg:#F4F1F6;--muted:#a49cab;--line:rgba(255,255,255,.09);--line2:rgba(255,255,255,.16);
  --y:#F9AB00;--o:#E8710A;--n:#F2FF59;--ok:#3ddc84;--bad:#ff6b4a;--a0:#E8710A;--a1:#F9AB00;--a2:#7B4BA8;--glow:rgba(242,255,89,.16);
  --mono:ui-monospace,SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace}
-:root[data-theme=light]{--bg:#F6F4F0;--card:rgba(255,255,255,.84);--popover:rgba(255,255,255,.98);--fg:#211927;--muted:#6b6472;--line:rgba(33,25,39,.10);--line2:rgba(33,25,39,.18);
- --a0:#F9AB00;--a1:#F2FF59;--a2:#E8710A;--glow:rgba(232,113,10,.12);--ok:#1f9d55;--bad:#D9480F}
+:root[data-theme=light]{--bg:#F6F4F0;--card:rgba(255,255,255,.86);--popover:rgba(255,255,255,.98);--fg:#211927;--muted:#6b6472;--line:rgba(33,25,39,.10);--line2:rgba(33,25,39,.18);
+ --y:#F9AB00;--o:#E8710A;--n:#E8710A;--ok:#1f9d55;--bad:#D9480F;--a0:#F9AB00;--a1:#F2FF59;--a2:#E8710A;--glow:rgba(232,113,10,.12)}
+:root[data-theme=light] .card{box-shadow:0 16px 40px -12px rgba(33,25,39,.12)}
+:root[data-theme=light] .menu-popover,:root[data-theme=light] .sel-popover{background:#FFFFFF;border-color:rgba(33,25,39,.16);box-shadow:0 16px 36px -8px rgba(33,25,39,.18)}
+:root[data-theme=light] .meta div{background:rgba(33,25,39,.04);border-color:rgba(33,25,39,.10)}
+:root[data-theme=light] details{background:rgba(33,25,39,.03);border-color:rgba(33,25,39,.12)}
+:root[data-theme=light] pre{color:#211927}
 *{box-sizing:border-box}[hidden]{display:none!important}html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 Inter,system-ui,-apple-system,"Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif;
  min-height:100dvh;display:flex;flex-direction:column;overflow-x:hidden}
@@ -67,7 +72,7 @@ h1{font-size:24px;font-weight:700;letter-spacing:-.01em;margin:14px 0 4px;backgr
  background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 4s linear infinite;min-height:36px}
 :root[data-theme=light] h1{background-image:linear-gradient(110deg,var(--fg) 35%,var(--o) 50%,var(--fg) 65%)}
 @keyframes shine{0%{background-position:100% 0}100%{background-position:-150% 0}}
-.muted{color:var(--muted)}.sub{font-size:13px;max-width:340px;min-height:20px}
+.muted{color:var(--muted)}.sub{font-size:13px;max-width:380px;min-height:20px;margin:0 auto;text-wrap:balance;word-break:keep-all;overflow-wrap:break-word;line-height:1.5}
 .stages{list-style:none;padding:0;margin:18px 0 4px;position:relative}
 .stages li{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:7px 0;color:var(--muted);font-size:13.5px}
 .stages li .k{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line2);display:grid;place-items:center;font-size:10px}
@@ -109,10 +114,13 @@ label{display:block;margin:18px 0 6px;font:600 11px var(--mono);letter-spacing:.
 .star::before,.star::after{content:"";position:absolute;width:300%;height:50%;border-radius:50%;opacity:.8;background:radial-gradient(circle,var(--n),transparent 12%);z-index:0}
 .star::before{bottom:-12px;right:-250%;animation:sb 5s linear infinite alternate}.star::after{top:-12px;left:-250%;animation:st 5s linear infinite alternate}
 @keyframes sb{0%{transform:translate(0)}100%{transform:translate(-100%);opacity:0}}@keyframes st{0%{transform:translate(0)}100%{transform:translate(100%);opacity:0}}
-.star span{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:14px;font-size:16px;font-weight:700;color:#211927;
+.star > span{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:14px;font-size:16px;font-weight:700;color:#211927;
  background:linear-gradient(90deg,var(--y),var(--n));box-shadow:0 8px 30px -8px var(--y);transition:transform .15s,filter .15s}
-.star:hover span{filter:brightness(1.06)}.star:active span{transform:scale(.985)}
-.star[disabled]{cursor:default}.star[disabled] span{background:rgba(127,127,127,.18);color:var(--muted);box-shadow:none}.star[disabled]::before,.star[disabled]::after{display:none}
+.star:hover > span{filter:brightness(1.06)}.star:active > span{transform:scale(.985)}
+.star[disabled]{cursor:default}.star[disabled] > span{background:rgba(127,127,127,.18);color:var(--muted);box-shadow:none}.star[disabled]::before,.star[disabled]::after{display:none}
+#wicon{display:inline-flex;align-items:center;justify-content:center;line-height:0}
+#wtext{display:inline}
+.skel-text{display:inline-block;height:12px;border-radius:4px;background:linear-gradient(90deg,rgba(127,127,127,.12) 25%,rgba(127,127,127,.24) 50%,rgba(127,127,127,.12) 75%);background-size:200% 100%;animation:shimmer 1.8s infinite}
 .btn-icon{width:18px;height:18px;flex-shrink:0}
 .spinner{animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -192,8 +200,8 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
     <div class="custom-select" id="custom-select">
       <button type="button" class="sel-trigger" id="prof-trigger" aria-haspopup="listbox" aria-expanded="false">
         <div class="sel-info">
-          <span class="sel-title" id="sel-title">Loading…</span>
-          <span class="sel-desc" id="sel-desc">…</span>
+          <span class="sel-title" id="sel-title"><span class="skel-text" style="width:110px"></span></span>
+          <span class="sel-desc" id="sel-desc"><span class="skel-text" style="width:160px;height:11px;margin-top:4px"></span></span>
         </div>
         <svg class="sel-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
       </button>
@@ -219,7 +227,11 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
   </button>
   <button class="ghost" id="stop" hidden>Stop · release GPU</button>
   <div class="err" id="err" role="alert"></div>
-  <div class="meta" id="meta"></div>
+  <div class="meta" id="meta">
+    <div><small><span class="skel-text" style="width:40px;height:9px"></span></small><b><span class="skel-text" style="width:36px;height:14px;margin-top:4px"></span></b></div>
+    <div><small><span class="skel-text" style="width:40px;height:9px"></span></small><b><span class="skel-text" style="width:36px;height:14px;margin-top:4px"></span></b></div>
+    <div><small><span class="skel-text" style="width:40px;height:9px"></span></small><b><span class="skel-text" style="width:46px;height:14px;margin-top:4px"></span></b></div>
+  </div>
   <details id="logs">
     <summary>
       <svg class="con-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
@@ -263,8 +275,8 @@ const I18N={
  zh:{
   title:"Comfy Colab Kit",
   sleeping_title:"ComfyUI 休眠中",
-  sleeping_sub:"GPU 已释放 — 当前无算力消耗。点击唤醒开始共享会话。",
-  sleeping_last_stop:"上次停机：{reason}。GPU 已释放 — 无算力消耗。",
+  sleeping_sub:"GPU 已释放，当前无算力消耗。点击唤醒开始共享会话。",
+  sleeping_last_stop:"上次停机：{reason}。GPU 已释放，无算力消耗。",
   waking_title:"正在唤醒…",
   ready_title:"已就绪 — 正在打开 ComfyUI",
   ready_sub:"正在跳转至 App 模式…",
@@ -408,6 +420,17 @@ const SVG_ZAP=`<svg class="btn-icon" width="18" height="18" viewBox="0 0 24 24" 
 const SVG_ROTATE=`<svg class="btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>`;
 const SVG_SPIN=`<svg class="btn-icon spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/></svg>`;
 
+function formatReason(r){
+ if(!r)return"";
+ if(lang==="zh"){
+  if(r==="stopped by agent")return"空闲自动释放";
+  if(r==="stopped by user")return"手动关机";
+  if(r.startsWith("idle timeout"))return"超时休眠";
+  if(r.startsWith("budget exceeded"))return"算力超额";
+ }
+ return r;
+}
+
 function render(){
  if(!S)return;
  const st=S.state,waking=BOOT.includes(st)||st==="switching",now=Date.now()/1000;
@@ -420,7 +443,7 @@ function render(){
  $("vcount").textContent=t("online",{count:S.clients||1});
  $("title").textContent=st==="sleeping"?t("sleeping_title"):st==="ready"?t("ready_title"):st==="failed"?t("failed_title"):st==="stopping"?t("stopping_title"):st==="switching"?t("switching_title"):t("waking_title");
  const started=S.session_started||S.since;
- $("sub").textContent=st==="sleeping"?(S.reason?t("sleeping_last_stop",{reason:S.reason}):t("sleeping_sub")):st==="failed"?(S.reason||""):waking?t("elapsed",{time:fmt(now-started)}):st==="ready"?t("ready_sub"):"";
+ $("sub").textContent=st==="sleeping"?(S.reason?t("sleeping_last_stop",{reason:formatReason(S.reason)}):t("sleeping_sub")):st==="failed"?(S.reason||""):waking?t("elapsed",{time:fmt(now-started)}):st==="ready"?t("ready_sub"):"";
  $("con-title").textContent=t("console_title");
  $("footer-txt").textContent=t("footer");
 
@@ -478,7 +501,7 @@ async function loadProfiles(){
    if(!selectedProfileId)selectedProfileId=j.default||(profiles[0]&&profiles[0].id)||"";
   }
   renderCustomSelect();
- }catch(e){$("err").textContent=e.message}
+ }catch(e){console.warn("loadProfiles:",e)}
 }
 
 $("wake").onclick=async()=>{
@@ -501,6 +524,7 @@ function connect(){
  es.onerror=()=>{$("sub").textContent=t("reconnecting")}}
 
 // Initial paint (SSR zero-flicker or fallback)
+renderCustomSelect();
 render();
 loadProfiles();
 connect();
