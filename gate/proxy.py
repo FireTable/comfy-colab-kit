@@ -125,7 +125,9 @@ class Proxy:
         url = self.backend.replace("https://", "wss://").replace("http://", "ws://") + req.rel_url.path_qs
         self.on_ws_open()
         try:
-            async with c.ws_connect(url, headers=self._headers(req), heartbeat=30, max_msg_size=0) as ws_back:
+            # aiohttp builds its own handshake; forwarding the client's Sec-WebSocket-* headers duplicates them
+            hdrs = {k: v for k, v in self._headers(req).items() if not k.lower().startswith("sec-websocket")}
+            async with c.ws_connect(url, headers=hdrs, heartbeat=30, max_msg_size=0) as ws_back:
                 async def pump(src, dst, is_client):
                     async for msg in src:
                         if is_client:
