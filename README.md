@@ -41,8 +41,22 @@ everyone watching sees the same staged progress and live logs; when ComfyUI is u
 | **2 · Switchable profiles** | Pick MOSS-Image, SD1.5, … before waking | `profile.yaml` + JSON Schema; zero secrets, models by public URL |
 | **3 · Auto-stop** | Overlay shows time left; sleeps on idle / max session / quiet hours / CU budget | every rule in `.env` |
 
+## 💡 Why Comfy Colab Kit? (The Paradigm Shift)
+
+Traditional Colab forces you to sit in front of a computer, manually run notebook cells, and baby-sit browser tabs that disconnect when your laptop sleeps. Comfy Colab Kit completely decouples compute execution from human attendance:
+
+| Dimension | ❌ Traditional Colab Notebooks | ⚡ Comfy Colab Kit |
+|---|---|---|
+| **Trigger Method** | Sit at PC, open browser, manually execute cells | **Anywhere & Autonomous Agents**: 1-click wake on mobile, tablet, or headless AI agent (REST / MCP) |
+| **Session Reliability** | Dies if laptop sleeps, tab closes, or Wi-Fi blips | **Decoupled Cloud Gateway**: VPS gateway persists state, auto-reconnects, survives local disconnects |
+| **Access & Security** | Ephemeral random `*.trycloudflare.com` URLs with zero auth | **Single Custom Domain + Cloudflare Access**: Enterprise Zero-Trust SSO / OTP, service tokens for agents |
+| **Collaboration** | Teammates accidentally spin up duplicate VMs, burning CU | **Global Idempotent Shared Session**: All visitors join the running instance with live streaming logs |
+| **Budget Safety** | Leaving notebooks running overnight drains entire CU quotas | **Smart Auto-Shutdown**: Automatic spin-down on idle (e.g. 20m), max session time, or CU hard budget |
+| **Automation & MCP** | Inaccessible to headless AI coding agents | **AI Agent Native**: OpenAPI spec, `cli/ckit --json`, upcoming `/mcp` server for Claude / OpenClaw |
+
 ## ✨ Features
 
+- **Remote & Mobile Wake** — Wake ComfyUI on Colab L4 from your smartphone, tablet, or terminal. No desktop browser or manual cell execution required.
 - **One shared session** — wake is idempotent; a second visitor (or agent) joins the in-flight boot instead of
   starting another VM. State survives gate restarts (`STATE_DIR/session.json`).
 - **Live progress for everyone** — Server-Sent Events broadcast state, download GB / speed and setup logs.
@@ -53,7 +67,7 @@ everyone watching sees the same staged progress and live logs; when ComfyUI is u
   core models land (`FAST_START`).
 - **App mode first** — workflows get ComfyUI App-mode metadata; the injected overlay toggles App ⇄ Graph.
 - **ComfyUI passthrough** — per-profile CLI args, frontend settings, env vars and `extra_model_paths`.
-- **Agent friendly** — OpenAPI spec, `cli/ckit --json`, `docs/AGENT_SKILL.md`, `llms.txt`.
+- **Autonomous Agent friendly** — OpenAPI spec, `cli/ckit --json`, `docs/AGENT_SKILL.md`, `llms.txt`, and upcoming `/mcp` server.
 
 ## 🚀 Quick start (VPS + Cloudflare)
 

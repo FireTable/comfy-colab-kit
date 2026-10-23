@@ -12,13 +12,23 @@
 :root{--bg:#0E0A12;--card:rgba(33,25,39,.72);--popover:rgba(26,20,31,.95);--fg:#F4F1F6;--muted:#a49cab;--line:rgba(255,255,255,.09);--line2:rgba(255,255,255,.16);
  --y:#F9AB00;--o:#E8710A;--n:#F2FF59;--ok:#3ddc84;--bad:#ff6b4a;--a0:#E8710A;--a1:#F9AB00;--a2:#7B4BA8;--glow:rgba(242,255,89,.16);
  --mono:ui-monospace,SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace}
-:root[data-theme=light]{--bg:#F6F4F0;--card:rgba(255,255,255,.86);--popover:rgba(255,255,255,.98);--fg:#211927;--muted:#6b6472;--line:rgba(33,25,39,.10);--line2:rgba(33,25,39,.18);
- --y:#F9AB00;--o:#E8710A;--n:#E8710A;--ok:#1f9d55;--bad:#D9480F;--a0:#F9AB00;--a1:#F2FF59;--a2:#E8710A;--glow:rgba(232,113,10,.12)}
-:root[data-theme=light] .card{box-shadow:0 16px 40px -12px rgba(33,25,39,.12)}
-:root[data-theme=light] .menu-popover,:root[data-theme=light] .sel-popover{background:#FFFFFF;border-color:rgba(33,25,39,.16);box-shadow:0 16px 36px -8px rgba(33,25,39,.18)}
-:root[data-theme=light] .meta div{background:rgba(33,25,39,.04);border-color:rgba(33,25,39,.10)}
-:root[data-theme=light] details{background:rgba(33,25,39,.03);border-color:rgba(33,25,39,.12)}
-:root[data-theme=light] pre{color:#211927}
+:root[data-theme=light]{--bg:#F8FAFC;--card:rgba(255,255,255,.94);--popover:#FFFFFF;--fg:#0F172A;--muted:#52525B;--line:rgba(15,23,42,.08);--line2:rgba(15,23,42,.14);
+ --y:#D97706;--o:#C2410C;--n:#EA580C;--ok:#16a34a;--bad:#dc2626;--a0:#FED7AA;--a1:#FDE68A;--a2:#DDD6FE;--glow:rgba(217,119,6,.12)}
+:root[data-theme=light] .card{background:#FFFFFF;border-color:rgba(15,23,42,.12);box-shadow:0 12px 36px -12px rgba(15,23,42,.08),inset 0 1px 0 #FFFFFF}
+:root[data-theme=light] .menu-popover,:root[data-theme=light] .sel-popover{background:#FFFFFF;border-color:rgba(15,23,42,.14);box-shadow:0 16px 36px -8px rgba(15,23,42,.16)}
+:root[data-theme=light] .meta div{background:rgba(15,23,42,.03);border-color:rgba(15,23,42,.08)}
+:root[data-theme=light] details{background:rgba(15,23,42,.02);border-color:rgba(15,23,42,.08)}
+:root[data-theme=light] pre{color:#0F172A}
+:root[data-theme=light] .icon{background:#FFFFFF;border-color:rgba(15,23,42,.12);box-shadow:0 1px 2px rgba(15,23,42,.04)}
+:root[data-theme=light] .icon:hover{border-color:var(--y);color:var(--y);background:#FFFDF9}
+:root[data-theme=light] .star > span{background:linear-gradient(135deg,#EA580C 0%,#D97706 100%);color:#FFFFFF;font-weight:600;box-shadow:0 8px 24px -6px rgba(234,88,12,.45)}
+:root[data-theme=light] .star:hover > span{filter:brightness(1.05);box-shadow:0 12px 28px -4px rgba(234,88,12,.55)}
+:root[data-theme=light] .star[disabled] > span{background:rgba(15,23,42,.08);color:var(--muted);box-shadow:none}
+:root[data-theme=light] .ghost{border-color:rgba(15,23,42,.14);background:#FFFFFF}
+:root[data-theme=light] .ghost:hover{border-color:var(--bad);background:#FFF5F5}
+:root[data-theme=light] .sel-trigger{background:rgba(15,23,42,.03);border-color:rgba(15,23,42,.12)}
+:root[data-theme=light] .sel-trigger:hover,:root[data-theme=light] .sel-trigger:focus-visible{border-color:var(--y);background:rgba(217,119,6,.06)}
+:root[data-theme=light] h1{background-image:linear-gradient(110deg,#0F172A 30%,#D97706 55%,#0F172A 80%)}
 *{box-sizing:border-box}[hidden]{display:none!important}html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 Inter,system-ui,-apple-system,"Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif;
  min-height:100dvh;display:flex;flex-direction:column;overflow-x:hidden}
@@ -55,7 +65,8 @@ main{position:relative;z-index:1;flex:1;display:grid;place-items:center;padding:
  backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);box-shadow:0 20px 60px -20px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06);
  transition:opacity .25s,transform .25s;--mx:50%;--my:0%}
 .card-glow{position:absolute;inset:0;border-radius:22px;overflow:hidden;pointer-events:none}
-.card-glow::before{content:"";position:absolute;inset:0;background:radial-gradient(420px circle at var(--mx) var(--my),var(--glow),transparent 60%);opacity:.9}
+.card-glow::before{content:"";position:absolute;inset:0;background:radial-gradient(420px circle at var(--mx) var(--my),var(--glow),transparent 60%);opacity:0;transition:opacity .4s ease}
+.card:hover .card-glow::before{opacity:.85}
 .card>*{position:relative}
 .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .badge{display:inline-flex;align-items:center;gap:8px;font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:99px;border:1px solid var(--line2);background:rgba(127,127,127,.08)}
