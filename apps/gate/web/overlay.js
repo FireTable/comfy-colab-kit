@@ -2,9 +2,10 @@
 // Bottom-right pill: remaining time | App / Graph toggle | sleep. Also opens the profile's
 // default workflow (in App mode when DEFAULT_VIEW=app) on first load of a session.
 (() => {
-  const css = `#kit-pill{position:fixed;right:12px;bottom:12px;z-index:99999;display:flex;gap:6px;align-items:center;
-  background:#211927;color:#F4F1F6;border:1px solid #33293b;border-radius:99px;padding:6px 8px;font:12px system-ui;box-shadow:0 4px 18px #0006}
-  #kit-pill button{background:#33293b;color:#F4F1F6;border:0;border-radius:99px;min-height:32px;padding:0 10px;cursor:pointer;font:inherit}
+  const css = `#kit-pill{position:fixed;right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom));z-index:99999;display:flex;gap:6px;align-items:center;
+  max-width:calc(100vw - 24px);background:#211927;color:#F4F1F6;border:1px solid #33293b;border-radius:99px;padding:6px 8px;font:12px system-ui;box-shadow:0 4px 18px #0006}
+  #kit-pill #kit-left{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #kit-pill button{background:#33293b;color:#F4F1F6;border:0;border-radius:99px;min-height:32px;padding:0 10px;cursor:pointer;font:inherit;flex-shrink:0}
   #kit-pill button.on{background:linear-gradient(90deg,#F9AB00,#F2FF59);color:#211927;font-weight:700}
   #kit-pill .warn{color:#F9AB00}`;
   const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);

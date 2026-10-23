@@ -103,9 +103,13 @@ a:hover { color: var(--n); }
 :root[data-theme=light] a:hover { color: #b45309; }
 
 h1, h2, h3, h4 { line-height: 1.15; letter-spacing: -.02em; font-weight: 700; }
+h1, h2 { text-wrap: balance; }
 h2 { font-size: clamp(28px, 4vw, 42px); margin: 0 0 12px; }
 h3 { font-size: 19px; margin: 0 0 8px; }
 p { margin: 0; }
+
+/* Anchor targets must clear the sticky header */
+section[id], footer.site-footer { scroll-margin-top: calc(var(--header-h, 64px) + 10px); }
 
 .section-header { margin-bottom: 32px; }
 .section-header h2 { margin-top: 10px; }
@@ -189,10 +193,12 @@ section > .inner { max-width: 1120px; margin: 0 auto; }
   letter-spacing: -.01em;
   white-space: nowrap;
   flex-shrink: 0;
+  min-width: 0;
   transition: opacity .15s;
 }
 .brand:hover { opacity: .88; color: var(--fg); }
 .brand img { width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0; }
+.brand-text { overflow: hidden; text-overflow: ellipsis; }
 
 /* Centered Floating Pill Navigation */
 .nav-pill {
@@ -460,7 +466,7 @@ section > .inner { max-width: 1120px; margin: 0 auto; }
 /* Refined Premium Cards & Spotlight Effect */
 .grid-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: 18px;
 }
 
@@ -621,7 +627,7 @@ section > .inner { max-width: 1120px; margin: 0 auto; }
 }
 
 /* Mobile Vertical Flow */
-.node-card { text-align: center; }
+.node-card { text-align: center; min-width: 0; }
 .node-card small { display: block; color: var(--muted); font: 12px var(--mono); margin-top: 4px; }
 .arrow-down { text-align: center; color: var(--y); font-size: 20px; line-height: 1; padding: 2px 0; }
 .node-card.fnode-v {
@@ -651,7 +657,7 @@ ol.steps { margin: 0 0 28px; padding: 0; list-style: none; counter-reset: step; 
 ol.steps li {
   counter-increment: step;
   display: grid;
-  grid-template-columns: 36px 1fr;
+  grid-template-columns: 36px minmax(0, 1fr);
   gap: 14px;
   align-items: start;
   font-size: 15.5px;
@@ -968,7 +974,7 @@ ol.steps li.is-ready.is-active::before {
 /* Quick Start Section & Cards */
 .quickstart-steps-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
   gap: 18px;
   margin-bottom: 24px;
 }
@@ -1323,8 +1329,44 @@ details.card .answer {
 }
 
 /* Responsive Breakpoints */
+
+/* Below 1140px the pill nav drops to its own row as a horizontally scrollable tab strip,
+   so phones keep in-page navigation instead of losing it entirely. */
 @media (max-width: 1140px) {
-  .nav-pill { display: none; }
+  .nav-container {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .nav-pill {
+    display: flex;
+    order: 3;
+    width: 100%;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .nav-pill::-webkit-scrollbar { display: none; }
+  .nav-pill a {
+    padding: 3px 10px;
+    font-size: 12.5px;
+  }
+  /* Light theme sets its own pill background at higher specificity — reset it here too. */
+  :root[data-theme=light] .nav-pill {
+    background: none;
+    border-color: transparent;
+  }
+  /* Right-edge fade hints that the strip scrolls. */
+  .nav-pill {
+    mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 28px), transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 28px), transparent 100%);
+  }
 }
 
 @media (max-width: 820px) {
@@ -1350,6 +1392,16 @@ details.card .answer {
 
 @media (max-width: 520px) {
   .footer-grid { grid-template-columns: 1fr; }
+}
+
+/* The header must never push the action buttons off-screen on narrow phones. */
+@media (max-width: 480px) {
+  .lang-btn { padding: 0 8px; }
+  .lang-btn #lang-label { display: none; }
+}
+
+@media (max-width: 400px) {
+  .brand-text { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

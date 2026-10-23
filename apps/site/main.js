@@ -362,7 +362,7 @@ const I18N = {
     "quickstart.s2Title": "启动网关 Docker 容器",
     "quickstart.s2Desc": "在您的 VPS 或服务器上使用 Docker Compose 一键启动网关守护进程，Caddy 自动申请 HTTPS 证书与代理。",
     "quickstart.s3Title": "访问域名并唤醒生图",
-    "quickstart.s3Desc": "在手机或电脑打开个人专属域名，点击 Wake 即可自动拉起 Colab L4 显卡并在同一域名使用 ComfyUI。",
+    "quickstart.s3Desc": "在手机或电脑打开个人专属域名，点击「唤醒」即可自动拉起 Colab L4 显卡并在同一域名使用 ComfyUI。",
     "quickstart.copy": "复制",
     "quickstart.copied": "已复制!",
     "quickstart.aiPromptBtn": "🤖 复制 AI 部署指令",
@@ -675,6 +675,16 @@ if (aiPromptBtn) {
 // ============================================================================
 (() => {
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Publish the real header height so native anchor jumps (reduced-motion path)
+  // also clear the sticky header instead of hiding the target behind it.
+  const setHeaderVar = () => {
+    const h = document.querySelector(".site-header");
+    document.documentElement.style.setProperty("--header-h", (h ? h.offsetHeight : 64) + "px");
+  };
+  setHeaderVar();
+  addEventListener("resize", setHeaderVar);
+
   if (prefersReducedMotion) return;
 
   // 1. Initialize Lenis Smooth Scroll with Rich Damping
@@ -740,24 +750,24 @@ if (aiPromptBtn) {
     });
   });
 
-  // Intercept floating pill navigation and other anchor links
-  document.querySelectorAll('nav.nav-pill a[href^="#"], a.hero-btn[href^="#"]').forEach((anchor) => {
-    anchor.addEventListener("click", (e) => {
-      const href = anchor.getAttribute("href");
-      if (!href || href === "#") return;
-      const target = document.querySelector(href);
-      if (target) {
-        e.preventDefault();
-        const headerOffset = getHeaderOffset();
-        if (lenis) {
-          lenis.scrollTo(target, { offset: -headerOffset, duration: 1.2 });
-        } else {
-          const top = target.getBoundingClientRect().top + window.scrollY - headerOffset;
-          window.scrollTo({ top, behavior: "smooth" });
-        }
-        history.pushState(null, "", href);
-      }
-    });
+  // Intercept every in-page anchor (pill nav, hero buttons, footer links) so the sticky
+  // header never covers the section it jumps to.
+  document.addEventListener("click", (e) => {
+    const anchor = e.target?.closest?.('a[href^="#"]');
+    if (!anchor || anchor.classList.contains("brand")) return;
+    const href = anchor.getAttribute("href");
+    if (!href || href === "#") return;
+    const target = document.querySelector(href);
+    if (!target) return;
+    e.preventDefault();
+    const headerOffset = getHeaderOffset();
+    if (lenis) {
+      lenis.scrollTo(target, { offset: -headerOffset, duration: 1.2 });
+    } else {
+      const top = target.getBoundingClientRect().top + window.scrollY - headerOffset;
+      window.scrollTo({ top, behavior: "smooth" });
+    }
+    history.pushState(null, "", href);
   });
 
   // 4. Wheel Smart Snapping Controller ("滚轮滚动一下最好刚好到下一个锚点")
