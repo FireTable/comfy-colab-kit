@@ -12,6 +12,7 @@ import logging
 from typing import Callable
 
 import aiohttp
+import yarl
 from aiohttp import web
 
 from .config import read_secret_file
@@ -102,7 +103,9 @@ class Proxy:
         if req.headers.get("Upgrade", "").lower() == "websocket":
             return await self._ws(req)
         c = await self.client()
-        url = self.backend + req.rel_url.path_qs
+        # raw_path keeps percent-encoding: the frontend loads /api/userdata/workflows%2Fx.json and ComfyUI's
+        # route only matches when %2F stays encoded (rel_url.path_qs would decode it to a 404)
+        url = yarl.URL(self.backend + req.raw_path, encoded=True)
         body = await req.read() if req.can_read_body else None
         async with c.request(req.method, url, headers=self._headers(req), data=body, allow_redirects=False) as r:
             ctype = r.headers.get("Content-Type", "")
@@ -122,7 +125,8 @@ class Proxy:
         ws_client = web.WebSocketResponse(heartbeat=30, max_msg_size=0)
         await ws_client.prepare(req)
         c = await self.client()
-        url = self.backend.replace("https://", "wss://").replace("http://", "ws://") + req.rel_url.path_qs
+        url = yarl.URL(self.backend.replace("https://", "wss://").replace("http://", "ws://") + req.raw_path,
+                       encoded=True)
         self.on_ws_open()
         try:
             # aiohttp builds its own handshake; forwarding the client's Sec-WebSocket-* headers duplicates them

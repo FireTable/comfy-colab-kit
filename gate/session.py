@@ -298,7 +298,8 @@ class Session:
             "tar -xzf /content/kit.tgz -C /content/kit'], check=True)\n"
             f"os.environ.update(json.loads({json.dumps(json.dumps(secrets))}))\n"
             "os.environ['KIT_PLAN']='/content/kit/plan.json'\n"
-            "runpy.run_path('/content/kit/colab/setup.py', run_name='__main__')\n"
+            # assign the result: a bare expression would make IPython pretty-print setup.py's globals
+            "_kit = runpy.run_path('/content/kit/colab/setup.py', run_name='__main__'); del _kit\n"
         )
 
     def handle_line(self, line: str) -> None:
