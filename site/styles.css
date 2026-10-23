@@ -1,6 +1,9 @@
 :root{--bg:#0E0A12;--card:rgba(33,25,39,.72);--fg:#F4F1F6;--muted:#a49cab;--line:rgba(255,255,255,.09);--line2:rgba(255,255,255,.16);
  --y:#F9AB00;--o:#E8710A;--n:#F2FF59;--ok:#3ddc84;--bad:#ff6b4a;--a0:#E8710A;--a1:#F9AB00;--a2:#7B4BA8;--glow:rgba(242,255,89,.16);
  --mono:ui-monospace,SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace}
+:root[data-theme=light]{--bg:#F6F4F0;--card:rgba(255,255,255,.84);--fg:#211927;--muted:#6b6472;--line:rgba(33,25,39,.10);--line2:rgba(33,25,39,.18);
+ --a0:#F9AB00;--a1:#F2FF59;--a2:#E8710A;--glow:rgba(232,113,10,.12);--ok:#1f9d55;--bad:#D9480F}
+:root[data-theme=light] .btn-primary{color:#211927}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 Inter,system-ui,-apple-system,Roboto,sans-serif;overflow-x:hidden}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -78,10 +81,12 @@ ol.steps li::before{content:counter(step);font:700 14px var(--mono);width:36px;h
 
 .wake-demo{margin-top:8px}
 .prow{display:flex;justify-content:space-between;font:12px var(--mono);color:var(--muted);margin-bottom:8px}
-.bar{height:8px;background:rgba(127,127,127,.15);border-radius:9px;overflow:hidden;position:relative}
+.bar{height:8px;background:rgba(127,127,127,.18);border-radius:9px;overflow:hidden;position:relative}
 .bar i{display:block;height:100%;width:62%;background:linear-gradient(90deg,var(--o),var(--y),var(--n));border-radius:9px;position:relative;box-shadow:0 0 14px var(--y)}
-.bar i::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:sweep 1.6s infinite;transform:translateX(-100%)}
-@keyframes sweep{to{transform:translateX(100%)}}
+
+.icon-btn{background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:10px;height:36px;padding:0 10px;cursor:pointer;font:600 13px var(--mono);backdrop-filter:blur(8px);display:inline-flex;align-items:center;justify-content:center;gap:4px;transition:all .15s}
+.icon-btn:hover{border-color:var(--y);color:var(--y)}
+.nav-actions{display:flex;align-items:center;gap:8px}
 
 .tag{display:inline-block;font:600 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;border:1px solid var(--line2);color:var(--n);margin-bottom:10px}
 .roadmap{margin-top:16px}

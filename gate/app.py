@@ -161,6 +161,11 @@ async def extend(request: web.Request) -> web.Response:
 
 async def events(request: web.Request) -> web.StreamResponse:
     s = request.app[SESSION]
+    cid = (request.query.get("cid") or
+           request.headers.get("CF-Connecting-IP") or
+           request.headers.get("X-Forwarded-For") or
+           request.remote or
+           str(id(request))).strip()
     resp = web.StreamResponse(headers={"Content-Type": "text/event-stream", "Cache-Control": "no-cache",
                                        "X-Accel-Buffering": "no"})
     await resp.prepare(request)
@@ -169,7 +174,7 @@ async def events(request: web.Request) -> web.StreamResponse:
         await resp.write(f"event: {kind}\ndata: {json.dumps(data)}\n\n".encode())
 
     q = s.bus.subscribe()
-    s.client_opened()
+    s.client_opened(cid)
     try:
         await send("state", s.status())
         if s.progress:
@@ -186,7 +191,7 @@ async def events(request: web.Request) -> web.StreamResponse:
         pass
     finally:
         s.bus.unsubscribe(q)
-        s.client_closed()
+        s.client_closed(cid)
     return resp
 
 
@@ -196,6 +201,24 @@ async def healthz(request: web.Request) -> web.Response:
 
 async def wake_page(request: web.Request) -> web.Response:
     html = (WEB / "index.html").read_text()
+    s = request.app[SESSION]
+    ident = _ident(request)
+    settings = request.app[SETTINGS]
+    status_data = {
+        **s.status(),
+        "you": {"email": ident.email, "owner": ident.is_owner},
+        "owner_only": list(settings.owner_only_actions),
+    }
+    profiles_data = {
+        "profiles": [p.summary() for p in request.app[PROFILES].values()],
+        "default": settings.default_profile,
+    }
+    init_json = json.dumps({"status": status_data, "profiles": profiles_data}).replace("</script>", "<\\/script>")
+    tag = f'<script id="init-data">window.__INIT__ = {init_json};</script>'
+    if "</head>" in html:
+        html = html.replace("</head>", f"{tag}\n</head>", 1)
+    else:
+        html = tag + html
     return web.Response(text=html, content_type="text/html", headers={"Cache-Control": "no-store"})
 
 

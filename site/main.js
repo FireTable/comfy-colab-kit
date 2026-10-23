@@ -45,3 +45,16 @@ document.querySelectorAll(".card").forEach((card) => {
     card.style.setProperty("--my", e.clientY - r.top + "px");
   });
 });
+
+const root = document.documentElement;
+const theme = localStorage.getItem("kit.theme") || "dark";
+root.dataset.theme = theme;
+const themeBtn = document.getElementById("theme-btn");
+if (themeBtn) {
+  themeBtn.onclick = () => {
+    const next = root.dataset.theme === "dark" ? "light" : "dark";
+    root.dataset.theme = next;
+    localStorage.setItem("kit.theme", next);
+    if (window.kitBg) window.kitBg.set({});
+  };
+}

@@ -95,3 +95,38 @@ async def test_events_sse_replays_logs_and_progress(tmp_path):
         assert b"bytes_done" in body
     finally:
         await c.close()
+
+
+async def test_wake_page_inlines_initial_data(tmp_path):
+    c, app = await client(tmp_path)
+    try:
+        r = await c.get("/")
+        assert r.status == 200
+        text = await r.text()
+        assert "window.__INIT__" in text
+        assert '"profiles":' in text
+        assert '"status":' in text
+    finally:
+        await c.close()
+
+
+async def test_client_deduplication_by_cid(tmp_path):
+    c, app = await client(tmp_path)
+    sess = app[SESSION]
+    try:
+        r1 = await c.get("/_gate/events?cid=tab-1")
+        assert sess.open_clients == 1
+        r2 = await c.get("/_gate/events?cid=tab-1")
+        assert sess.open_clients == 1
+
+        r3 = await c.get("/_gate/events?cid=tab-2")
+        assert sess.open_clients == 2
+
+        r1.close()
+        assert sess.open_clients == 2
+        r2.close()
+        import asyncio
+        await asyncio.sleep(0.05)
+        assert sess.open_clients == 1
+    finally:
+        await c.close()

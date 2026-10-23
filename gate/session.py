@@ -80,6 +80,7 @@ class Session:
         self.bus = Broadcaster(backlog=1000, on_log=self._append_log)
         self.ledger = Ledger.load(Path(settings.state_dir) / "cu_ledger.json")
         self.last_activity = clock()
+        self.client_conns: dict[str, int] = {}
         self.open_clients = 0
         self.clients_zero_since: float | None = None
         self.queue_busy = False
@@ -285,14 +286,23 @@ class Session:
     def touch(self) -> None:
         self.last_activity = self.clock()
 
-    def client_opened(self) -> None:
-        self.open_clients += 1
+    def client_opened(self, cid: str = "") -> None:
+        key = (cid or "").strip() or "default"
+        self.client_conns[key] = self.client_conns.get(key, 0) + 1
+        self.open_clients = len(self.client_conns)
         self.clients_zero_since = None
+        self.bus.publish("state", self.status())
 
-    def client_closed(self) -> None:
-        self.open_clients = max(0, self.open_clients - 1)
+    def client_closed(self, cid: str = "") -> None:
+        key = (cid or "").strip() or "default"
+        if key in self.client_conns:
+            self.client_conns[key] -= 1
+            if self.client_conns[key] <= 0:
+                self.client_conns.pop(key, None)
+        self.open_clients = len(self.client_conns)
         if self.open_clients == 0:
             self.clients_zero_since = self.clock()
+        self.bus.publish("state", self.status())
 
     # ── internals ─────────────────────────────────────────────────────────
     async def _stop_locked(self, reason: str) -> None:
