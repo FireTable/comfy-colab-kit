@@ -99,3 +99,31 @@ All motion respects `prefers-reduced-motion`.
 ### Responsive
 
 On narrow screens the card fills the width with smaller padding, and controls stay large enough to tap.
+
+## State fields for download progress
+
+`GET /_gate/status` and every SSE `state` / `progress` event carry `progress.download` (absent until the download
+stage starts). Byte counts are measured on the VM (finished files + bytes written by in-flight downloads), so the
+bar moves smoothly instead of jumping per file.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `progress.download.bytes_done` | int | bytes on disk for all planned files |
+| `progress.download.bytes_total` | int | planned bytes (sum of `size_gb` in the profile) |
+| `progress.download.core_bytes_done` | int | same, core files only (what boot waits for) |
+| `progress.download.core_bytes_total` | int | core planned bytes |
+| `progress.download.bytes_per_s` | int | smoothed rate (EMA over 5 s samples) |
+| `progress.download.eta_s` | int \| null | `(bytes_total - bytes_done) / bytes_per_s`; null while the rate is ~0 |
+| `progress.download.files_done` / `files_total` | int | file counts |
+| `progress.download.core_done` | bool | all core files present (ComfyUI can start) |
+| `progress.download.paused` | bool | background downloads paused because a prompt is executing |
+| `progress.download.restarts` | int | files restarted by the stall watchdog (no bytes for 45 s) |
+| `progress.download.done_gb` / `total_gb` | float | legacy, file-granular |
+| `models.on_demand` | string[] | installed workflows whose models are not on the VM yet |
+| `models.fetching` | string[] | workflows being fetched now (`POST /_gate/fetch`) |
+| `models.fetch_error` | string | last on-demand fetch error, `""` if none |
+
+While booting, show `core_bytes_done / core_bytes_total` (that is what gates readiness). After `ready`, an
+on-demand fetch (`models.fetching` non-empty) reuses `progress.download.*` for its own files.
+A workflow listed in `models.on_demand` should offer "Download models (N GB)" → `POST /_gate/fetch
+{"workflows": [id]}`; sizes come from `GET /_gate/profiles` (`workflows[].size_gb`).
