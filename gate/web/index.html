@@ -1,89 +1,162 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Comfy Colab Kit</title>
 <link rel="icon" href="/_gate/static/logo.svg">
-<meta name="theme-color" content="#16111C">
+<meta name="theme-color" content="#0E0A12">
+<!-- Visual effects adapted from React Bits (https://reactbits.dev, MIT, (c) David Haz):
+     Aurora (bg.js), ShinyText, StarBorder, SpotlightCard — ported to vanilla CSS/JS. -->
 <style>
-:root{--bg:#FAFAF7;--card:#fff;--fg:#211927;--muted:#6b6472;--line:#e7e3ea;--y:#F9AB00;--o:#E8710A;--n:#F2FF59;--bad:#D9480F;--mono:ui-monospace,SFMono-Regular,Menlo,monospace}
-@media (prefers-color-scheme:dark){:root{--bg:#16111C;--card:#211927;--fg:#F4F1F6;--muted:#a49cab;--line:#33293b}}
-:root[data-theme=light]{--bg:#FAFAF7;--card:#fff;--fg:#211927;--muted:#6b6472;--line:#e7e3ea}
-:root[data-theme=dark]{--bg:#16111C;--card:#211927;--fg:#F4F1F6;--muted:#a49cab;--line:#33293b}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,-apple-system,"Noto Sans CJK SC",Roboto,sans-serif}
-header{display:flex;align-items:center;gap:10px;padding:14px 18px}header img{width:32px;height:32px;border-radius:8px}
-header b{font-size:16px}header .sp{flex:1}header button{background:none;border:1px solid var(--line);color:var(--fg);border-radius:10px;min-height:36px;padding:0 10px}
-main{max-width:480px;margin:0 auto;padding:8px 16px 40px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;transition:opacity .2s}
-h1{font-size:22px;font-weight:600;margin:10px 0 4px}.muted{color:var(--muted)}
-.badge{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:13px;padding:4px 10px;border-radius:99px;background:var(--line)}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}.waking .dot{background:var(--y);animation:b 1.6s infinite}.ready .dot{background:#2f9e44}.failed .dot{background:var(--bad)}
-@keyframes b{50%{opacity:.25}}@media (prefers-reduced-motion:reduce){.dot{animation:none!important}.bar i{transition:none!important}}
-.stages{list-style:none;padding:0;margin:16px 0}.stages li{display:flex;gap:10px;align-items:center;padding:6px 0;color:var(--muted)}
-.stages li.cur{color:var(--fg);font-weight:600}.stages li.done{color:var(--fg)}.stages li::before{content:"○";width:16px}.stages li.done::before{content:"✓"}.stages li.cur::before{content:"●";color:var(--o)}
-.bar{height:6px;background:var(--line);border-radius:9px;overflow:hidden;margin:4px 0 0 26px}.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--y),var(--n));transition:width .3s ease}
-label{display:block;margin:16px 0 6px;font-weight:600}
-select{width:100%;min-height:48px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg);padding:0 12px;font-size:15px}
-.primary{width:100%;min-height:52px;margin-top:18px;border:0;border-radius:14px;font-size:16px;font-weight:700;color:#211927;background:linear-gradient(90deg,var(--y),var(--n));cursor:pointer}
-.primary[disabled]{opacity:.6;cursor:default}.ghost{width:100%;min-height:48px;margin-top:10px;border-radius:14px;border:1px solid var(--line);background:none;color:var(--fg)}
-details{margin-top:14px}summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
-pre{font:11px/1.45 var(--mono);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px;max-height:300px;overflow:auto;white-space:pre-wrap;word-break:break-all;margin:0}
-.err{color:var(--bad);margin-top:10px;min-height:1em}.meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;margin-top:10px}
+:root{--bg:#0E0A12;--card:rgba(33,25,39,.72);--fg:#F4F1F6;--muted:#a49cab;--line:rgba(255,255,255,.09);--line2:rgba(255,255,255,.16);
+ --y:#F9AB00;--o:#E8710A;--n:#F2FF59;--ok:#3ddc84;--bad:#ff6b4a;--a0:#E8710A;--a1:#F9AB00;--a2:#7B4BA8;--glow:rgba(242,255,89,.16);
+ --mono:ui-monospace,SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace}
+:root[data-theme=light]{--bg:#F6F4F0;--card:rgba(255,255,255,.78);--fg:#211927;--muted:#6b6472;--line:rgba(33,25,39,.10);--line2:rgba(33,25,39,.18);
+ --a0:#F9AB00;--a1:#F2FF59;--a2:#E8710A;--glow:rgba(232,113,10,.12);--ok:#1f9d55;--bad:#D9480F}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 Inter,system-ui,-apple-system,"Noto Sans CJK SC",Roboto,sans-serif;
+ min-height:100dvh;display:flex;flex-direction:column;overflow-x:hidden}
+#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;transform:scaleY(-1)}
+.grid{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+ background-size:44px 44px;mask-image:radial-gradient(ellipse at 50% 45%,#000 10%,transparent 70%);-webkit-mask-image:radial-gradient(ellipse at 50% 45%,#000 10%,transparent 70%);opacity:.55}
+header{position:relative;z-index:2;display:flex;align-items:center;gap:10px;padding:14px max(18px,env(safe-area-inset-left))}
+header img{width:30px;height:30px;border-radius:8px}header b{font-size:15px;letter-spacing:.2px}header .sp{flex:1}
+.chip{font:12px var(--mono);color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:2px 9px}
+.icon{background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:10px;width:38px;height:38px;cursor:pointer;font-size:16px;backdrop-filter:blur(8px)}
+main{position:relative;z-index:1;flex:1;display:grid;place-items:center;padding:12px 16px calc(28px + env(safe-area-inset-bottom))}
+/* SpotlightCard */
+.card{position:relative;width:100%;max-width:460px;background:var(--card);border:1px solid var(--line2);border-radius:22px;padding:26px 24px 20px;
+ backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);box-shadow:0 20px 60px -20px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06);
+ overflow:hidden;transition:opacity .25s,transform .25s;--mx:50%;--my:0%}
+.card::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(420px circle at var(--mx) var(--my),var(--glow),transparent 60%);opacity:.9}
+.card>*{position:relative}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.badge{display:inline-flex;align-items:center;gap:8px;font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:99px;border:1px solid var(--line2);background:rgba(127,127,127,.08)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);box-shadow:0 0 0 0 currentColor}
+.waking .dot{background:var(--y);animation:pulse 1.6s infinite;color:var(--y)}.ready .dot{background:var(--ok)}.failed .dot{background:var(--bad)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(249,171,0,.6)}70%{box-shadow:0 0 0 8px rgba(249,171,0,0)}100%{box-shadow:0 0 0 0 rgba(249,171,0,0)}}
+.viewers{font:12px var(--mono);color:var(--muted)}
+.hero{display:flex;flex-direction:column;align-items:center;text-align:center;margin:18px 0 6px}
+.hero img{width:64px;height:64px;border-radius:16px;box-shadow:0 0 40px -6px var(--o)}
+/* ShinyText */
+h1{font-size:24px;font-weight:700;letter-spacing:-.01em;margin:14px 0 4px;background:linear-gradient(110deg,var(--fg) 35%,var(--n) 50%,var(--fg) 65%);
+ background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 4s linear infinite}
+:root[data-theme=light] h1{background-image:linear-gradient(110deg,var(--fg) 35%,var(--o) 50%,var(--fg) 65%)}
+@keyframes shine{0%{background-position:100% 0}100%{background-position:-150% 0}}
+.muted{color:var(--muted)}.sub{font-size:13px;max-width:340px}
+.stages{list-style:none;padding:0;margin:18px 0 4px;position:relative}
+.stages li{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:7px 0;color:var(--muted);font-size:13.5px}
+.stages li .k{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line2);display:grid;place-items:center;font-size:10px}
+.stages li.done{color:var(--fg)}.stages li.done .k{background:var(--ok);border-color:var(--ok);color:#0E0A12}
+.stages li.cur{color:var(--fg);font-weight:600}.stages li.cur .k{border-color:var(--y);box-shadow:0 0 12px var(--y)}
+.stages li.cur .k::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--y);animation:pulse 1.6s infinite}
+.stages li .t{font:11px var(--mono);color:var(--muted)}
+.prog{margin:10px 0 2px}.prow{display:flex;justify-content:space-between;font:12px var(--mono);color:var(--muted);margin-bottom:6px}
+.bar{height:8px;background:rgba(127,127,127,.15);border-radius:9px;overflow:hidden;position:relative}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--o),var(--y),var(--n));border-radius:9px;transition:width .5s ease;position:relative;box-shadow:0 0 14px var(--y)}
+.bar i::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:sweep 1.6s infinite;transform:translateX(-100%)}
+@keyframes sweep{to{transform:translateX(100%)}}
+.sm{font:11.5px var(--mono);color:var(--muted);margin-top:6px}
+label{display:block;margin:18px 0 6px;font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+select{width:100%;min-height:48px;border-radius:12px;border:1px solid var(--line2);background:rgba(127,127,127,.08);color:var(--fg);padding:0 12px;font-size:15px;appearance:none;
+ background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 18px) 21px,calc(100% - 13px) 21px;background-size:5px 5px;background-repeat:no-repeat}
+select option{background:var(--bg);color:var(--fg)}
+/* StarBorder button */
+.star{position:relative;display:block;width:100%;margin-top:18px;padding:1.5px;border-radius:15px;overflow:hidden;border:0;background:transparent;cursor:pointer}
+.star::before,.star::after{content:"";position:absolute;width:300%;height:50%;border-radius:50%;opacity:.8;background:radial-gradient(circle,var(--n),transparent 12%);z-index:0}
+.star::before{bottom:-12px;right:-250%;animation:sb 5s linear infinite alternate}.star::after{top:-12px;left:-250%;animation:st 5s linear infinite alternate}
+@keyframes sb{0%{transform:translate(0)}100%{transform:translate(-100%);opacity:0}}@keyframes st{0%{transform:translate(0)}100%{transform:translate(100%);opacity:0}}
+.star span{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:14px;font-size:16px;font-weight:700;color:#211927;
+ background:linear-gradient(90deg,var(--y),var(--n));box-shadow:0 8px 30px -8px var(--y);transition:transform .15s,filter .15s}
+.star:hover span{filter:brightness(1.06)}.star:active span{transform:scale(.985)}
+.star[disabled]{cursor:default}.star[disabled] span{background:rgba(127,127,127,.18);color:var(--muted);box-shadow:none}.star[disabled]::before,.star[disabled]::after{display:none}
+.ghost{width:100%;min-height:46px;margin-top:10px;border-radius:14px;border:1px solid var(--line2);background:none;color:var(--fg);cursor:pointer;font-size:14px}
+.ghost:hover{border-color:var(--bad);color:var(--bad)}
+.err{color:var(--bad);margin-top:10px;font-size:13px}.err:empty{display:none}
+.meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:18px}
+.meta div{border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:rgba(127,127,127,.05)}
+.meta small{display:block;font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}.meta b{font:600 14px var(--mono)}
+details{margin-top:14px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.18)}
+:root[data-theme=light] details{background:rgba(255,255,255,.5)}
+summary{cursor:pointer;min-height:42px;display:flex;align-items:center;gap:8px;padding:0 12px;font:12px var(--mono);color:var(--muted);list-style:none}
+summary::-webkit-details-marker{display:none}summary::before{content:"▸";transition:transform .15s}details[open] summary::before{transform:rotate(90deg)}
+summary .n{margin-left:auto}
+pre{font:11px/1.5 var(--mono);color:var(--fg);opacity:.88;padding:4px 12px 12px;max-height:260px;overflow:auto;white-space:pre-wrap;word-break:break-all;margin:0}
+footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color:var(--muted);padding:0 0 14px;opacity:.7}
+.out{opacity:0;transform:scale(.98)}
+@media (max-width:480px){.card{padding:22px 18px 16px;border-radius:20px}h1{font-size:21px}.hero img{width:54px;height:54px}.meta b{font-size:13px}main{place-items:start center;padding-top:4vh}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
-<header><img src="/_gate/static/logo.svg" alt=""><b>Comfy Colab Kit</b><span class="muted" id="hprof"></span><span class="sp"></span>
-<button id="theme" aria-label="Toggle theme">◐</button></header>
+<canvas id="bg" aria-hidden="true"></canvas><div class="grid" aria-hidden="true"></div>
+<header><img src="/_gate/static/logo.svg" alt=""><b>Comfy Colab Kit</b><span class="chip" id="hprof" hidden></span><span class="sp"></span>
+<button class="icon" id="theme" aria-label="Toggle theme" title="Toggle theme">◐</button></header>
 <main>
 <section class="card" id="card" aria-live="polite">
-  <span class="badge" id="badge"><span class="dot"></span><span id="btext">…</span></span>
-  <h1 id="title">Connecting…</h1>
-  <div class="muted" id="sub"></div>
+  <div class="top"><span class="badge" id="badge"><span class="dot"></span><span id="btext">…</span></span><span class="viewers" id="viewers"></span></div>
+  <div class="hero"><img src="/_gate/static/logo.svg" alt=""><h1 id="title">Connecting…</h1><div class="muted sub" id="sub"></div></div>
   <ol class="stages" id="stages" hidden></ol>
+  <div class="prog" id="prog" hidden><div class="prow"><span id="plabel">Overall</span><span id="eta"></span></div><div class="bar"><i id="pbar"></i></div><div class="sm" id="pdl"></div></div>
   <div id="pick">
     <label for="profile">Profile</label>
     <select id="profile"></select>
-    <div class="muted" id="pinfo" style="margin-top:6px;font-size:12px"></div>
+    <div class="sm" id="pinfo"></div>
   </div>
-  <button class="primary" id="wake">Wake</button>
-  <button class="ghost" id="stop" hidden>Stop (release GPU)</button>
+  <button class="star" id="wake"><span id="wtext">⚡ Wake</span></button>
+  <button class="ghost" id="stop" hidden>Stop · release GPU</button>
   <div class="err" id="err" role="alert"></div>
-  <div class="meta muted" id="meta"></div>
-  <details><summary>Logs</summary><pre id="log"></pre></details>
+  <div class="meta" id="meta"></div>
+  <details id="logs"><summary>console<span class="n" id="lcount"></span></summary><pre id="log"></pre></details>
 </section>
 </main>
+<footer>shared session · GPU sleeps when idle</footer>
+<script src="/_gate/static/bg.js" defer></script>
 <script>
 const $=id=>document.getElementById(id);
-const STAGES=[["allocating","Allocate GPU"],["installing","Install"],["downloading","Download models"],["booting","Start ComfyUI"],["smoke_testing","Smoke test"]];
-const BOOT=STAGES.map(s=>s[0]);let S=null,profiles=[],t0=null;
-const theme=localStorage.getItem("kit.theme");if(theme)document.documentElement.dataset.theme=theme;
-$("theme").onclick=()=>{const d=document.documentElement,n=d.dataset.theme==="dark"?"light":"dark";d.dataset.theme=n;localStorage.setItem("kit.theme",n)};
+const STAGES=[["allocating","Allocate GPU",20],["installing","Install runtime",60],["downloading","Download models",0],["booting","Start ComfyUI",40],["smoke_testing","Smoke test",15]];
+const BOOT=STAGES.map(s=>s[0]);let S=null,profiles=[],lines=0,stageT={},lastSt=null;
+const root=document.documentElement,theme=localStorage.getItem("kit.theme");root.dataset.theme=theme||"dark";
+$("theme").onclick=()=>{const n=root.dataset.theme==="dark"?"light":"dark";root.dataset.theme=n;localStorage.setItem("kit.theme",n);window.kitBg&&kitBg.set({})};
+const card=$("card");card.addEventListener("pointermove",e=>{const r=card.getBoundingClientRect();card.style.setProperty("--mx",e.clientX-r.left+"px");card.style.setProperty("--my",e.clientY-r.top+"px")});
 async function api(p,o){const r=await fetch(p,Object.assign({headers:{"Content-Type":"application/json"}},o));const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||r.status);return j}
-function fmt(s){s=Math.max(0,Math.round(s));return s>=3600?`${Math.floor(s/3600)}h ${Math.floor(s%3600/60)}m`:`${Math.floor(s/60)}m ${s%60}s`}
-function render(){if(!S)return;const st=S.state,waking=BOOT.includes(st)||st==="switching";
- const card=$("card");card.className="card "+(st==="ready"?"ready":st==="failed"?"failed":waking||st==="stopping"?"waking":"");
- $("badge").className="badge "+card.className.replace("card","");
+function fmt(s){s=Math.max(0,Math.round(s));return s>=3600?`${Math.floor(s/3600)}h ${Math.floor(s%3600/60)}m`:s>=60?`${Math.floor(s/60)}m ${s%60}s`:`${s}s`}
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function render(){if(!S)return;const st=S.state,waking=BOOT.includes(st)||st==="switching",now=Date.now()/1000;
+ if(st!==lastSt){stageT[st]=now;lastSt=st;window.kitBg&&kitBg.set({amp:waking?1.6:1})}
+ const cls=st==="ready"?"ready":st==="failed"?"failed":waking||st==="stopping"?"waking":"";
+ $("badge").className="badge "+cls;
  $("btext").textContent={sleeping:"Sleeping",ready:"Ready",failed:"Failed",stopping:"Stopping",switching:"Switching"}[st]||"Waking";
- $("hprof").textContent=S.profile?"· "+S.profile:"";
- $("title").textContent=st==="sleeping"?"ComfyUI is asleep":st==="ready"?"Ready — opening ComfyUI…":st==="failed"?"Start failed":st==="stopping"?"Releasing GPU…":"Waking up…";
- $("sub").textContent=st==="sleeping"?(S.reason?`Last stop: ${S.reason}. GPU released, no compute units are used.`:"GPU released, no compute units are used."):st==="failed"?S.reason:waking?`Started ${fmt(Date.now()/1000-(S.session_started||S.since))} ago${S.reason?" · "+S.reason:""}`:"";
- const ol=$("stages");ol.hidden=!waking;ol.innerHTML="";const ci=BOOT.indexOf(st);
- STAGES.forEach(([k,l],i)=>{const li=document.createElement("li");li.textContent=l;if(i<ci)li.className="done";if(i===ci)li.className="cur";ol.appendChild(li);
-  if(k==="downloading"&&S.progress&&S.progress.download&&(i===ci||i===ci-1||ci>i)){const d=S.progress.download,b=document.createElement("div");b.className="bar";b.innerHTML=`<i style="width:${d.total_gb?Math.min(100,100*d.done_gb/d.total_gb):0}%"></i>`;
-   const m=document.createElement("div");m.className="muted";m.style.cssText="font-size:12px;margin-left:26px";m.textContent=`${d.done_gb} / ${d.total_gb} GB · ${d.files_done}/${d.files_total} files${d.gbps?` · ${(d.gbps*1000).toFixed(0)} MB/s`:""}`;ol.appendChild(b);ol.appendChild(m)}});
+ $("hprof").hidden=!S.profile;$("hprof").textContent=S.profile||"";
+ $("viewers").textContent=`● ${S.clients} watching`;
+ $("title").textContent=st==="sleeping"?"ComfyUI is sleeping":st==="ready"?"Ready — opening ComfyUI":st==="failed"?"Start failed":st==="stopping"?"Releasing GPU…":st==="switching"?"Switching profile…":"Waking up…";
+ const started=S.session_started||S.since;
+ $("sub").textContent=st==="sleeping"?(S.reason?`Last stop: ${S.reason}. GPU released — no compute units in use.`:"GPU released — no compute units in use. Wake it to start a shared session."):st==="failed"?(S.reason||""):waking?`Elapsed ${fmt(now-started)}${S.reason?" · "+S.reason:""}`:st==="ready"?"Redirecting to App mode…":"";
+ const ol=$("stages");ol.hidden=!waking;ol.innerHTML="";const ci=BOOT.indexOf(st);const d=S.progress&&S.progress.download;
+ STAGES.forEach(([k,l],i)=>{const li=document.createElement("li");li.className=i<ci?"done":i===ci?"cur":"";
+  let t="";if(i===ci&&stageT[k])t=fmt(now-stageT[k]);if(k==="downloading"&&d&&d.total_gb)t=(i===ci?t+" · ":"")+`${Math.round(100*d.done_gb/d.total_gb)}%`;
+  li.innerHTML=`<span class="k">${i<ci?"✓":""}</span><span>${l}</span><span class="t">${t}</span>`;ol.appendChild(li)});
+ // overall progress + ETA (stage weights; download weight from size)
+ $("prog").hidden=!waking;if(waking&&ci>=0){const dlw=d&&d.total_gb?Math.max(30,d.total_gb*8):120;const W=STAGES.map(s=>s[0]==="downloading"?dlw:s[2]);
+  const tot=W.reduce((a,b)=>a+b,0);let frac=0;if(k_dl())frac=d.total_gb?Math.min(1,d.done_gb/d.total_gb):0;else frac=Math.min(.9,(now-(stageT[st]||now))/W[ci]);
+  const done=W.slice(0,ci).reduce((a,b)=>a+b,0)+W[ci]*frac;const pct=Math.min(99,100*done/tot);$("pbar").style.width=pct.toFixed(1)+"%";
+  let eta;if(k_dl()&&d.gbps>0)eta=(d.total_gb-d.done_gb)/d.gbps+W.slice(ci+1).reduce((a,b)=>a+b,0);else eta=Math.max(0,tot-done);
+  $("plabel").textContent=`${pct.toFixed(0)}%`;$("eta").textContent=`ETA ~${fmt(eta)}`;
+  $("pdl").textContent=d&&d.total_gb?`${d.done_gb} / ${d.total_gb} GB · ${d.files_done}/${d.files_total} files${d.gbps?` · ${(d.gbps*1000).toFixed(0)} MB/s`:""}`:""}
+ function k_dl(){return st==="downloading"&&d}
  $("pick").hidden=!(st==="sleeping"||st==="failed");
- const w=$("wake");w.hidden=st==="ready";w.disabled=!(st==="sleeping"||st==="failed");w.textContent=st==="failed"?"Retry":(st==="sleeping"?"Wake":"Starting…");
+ const w=$("wake");w.hidden=st==="ready";w.disabled=!(st==="sleeping"||st==="failed");$("wtext").textContent=st==="failed"?"↻ Retry":(st==="sleeping"?"⚡ Wake":"Starting…");
  $("stop").hidden=!(S.you&&S.you.owner&&st!=="sleeping"&&st!=="stopping");
- $("meta").innerHTML=`<span>CU today ${S.cu.today.toFixed(2)}</span><span>month ${S.cu.month.toFixed(1)}</span>${S.cu.balance!=null?`<span>balance ${S.cu.balance.toFixed(1)}</span>`:""}<span>${S.clients} viewer(s)</span>`;
- if(st==="ready"){card.style.opacity=0;setTimeout(()=>location.reload(),200)}}
-function log(l){const p=$("log");p.textContent+=l+"\n";if(p.textContent.length>60000)p.textContent=p.textContent.slice(-40000);p.scrollTop=p.scrollHeight}
+ const cu=S.cu||{};$("meta").innerHTML=`<div><small>CU today</small><b>${(cu.today||0).toFixed(2)}</b></div><div><small>month</small><b>${(cu.month||0).toFixed(1)}</b></div><div><small>balance</small><b>${cu.balance!=null?cu.balance.toFixed(1):"—"}</b></div>`;
+ if(st==="ready"&&!render.go){render.go=1;setTimeout(()=>card.classList.add("out"),900);setTimeout(()=>location.reload(),1200)}}
+function log(l){const p=$("log");p.textContent+=l+"\n";lines++;$("lcount").textContent=lines+" lines";if(p.textContent.length>60000)p.textContent=p.textContent.slice(-40000);p.scrollTop=p.scrollHeight}
 async function loadProfiles(){try{const j=await api("/_gate/profiles");profiles=j.profiles;const sel=$("profile");sel.innerHTML="";
  for(const p of profiles){const o=document.createElement("option");o.value=p.id;o.textContent=p.title;if(p.id===j.default)o.selected=true;sel.appendChild(o)}info()}catch(e){$("err").textContent=e.message}}
-function info(){const p=profiles.find(x=>x.id===$("profile").value);if(p)$("pinfo").textContent=`${p.workflows.filter(w=>!w.optional).length} workflows · ~${p.size_gb_default} GB download · ${p.accelerator}`}
+function info(){const p=profiles.find(x=>x.id===$("profile").value);if(p)$("pinfo").textContent=`${p.workflows.filter(w=>!w.optional).length} workflows · ~${p.size_gb_default} GB · ${p.accelerator}`}
 $("profile").onchange=info;
-$("wake").onclick=async()=>{$("err").textContent="";$("wake").disabled=true;$("wake").textContent="Starting…";
- try{await api("/_gate/wake",{method:"POST",body:JSON.stringify({profile:$("profile").value})})}catch(e){$("err").textContent=e.message;$("wake").disabled=false;$("wake").textContent="Wake"}};
+$("wake").onclick=async()=>{$("err").textContent="";$("wake").disabled=true;$("wtext").textContent="Starting…";
+ try{await api("/_gate/wake",{method:"POST",body:JSON.stringify({profile:$("profile").value})})}catch(e){$("err").textContent=e.message;$("wake").disabled=false;$("wtext").textContent="⚡ Wake"}};
 $("stop").onclick=async()=>{if(!confirm("Stop and release the GPU?"))return;try{await api("/_gate/stop",{method:"POST"})}catch(e){$("err").textContent=e.message}};
 function connect(){const es=new EventSource("/_gate/events");
  es.addEventListener("state",e=>{S=JSON.parse(e.data);render()});
