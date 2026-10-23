@@ -5,7 +5,7 @@
  --a0:#F9AB00;--a1:#F2FF59;--a2:#E8710A;--glow:rgba(232,113,10,.12);--ok:#1f9d55;--bad:#D9480F}
 :root[data-theme=light] .btn-primary{color:#211927}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 Inter,system-ui,-apple-system,Roboto,sans-serif;overflow-x:hidden}
-*{box-sizing:border-box}
+*{box-sizing:border-box}[hidden]{display:none!important}
 html{scroll-behavior:smooth}
 img{max-width:100%;display:block}
 a{color:var(--n);text-decoration-thickness:1px;text-underline-offset:3px}

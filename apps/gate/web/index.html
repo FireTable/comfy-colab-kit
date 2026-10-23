@@ -14,7 +14,7 @@
  --mono:ui-monospace,SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace}
 :root[data-theme=light]{--bg:#F6F4F0;--card:rgba(255,255,255,.84);--popover:rgba(255,255,255,.98);--fg:#211927;--muted:#6b6472;--line:rgba(33,25,39,.10);--line2:rgba(33,25,39,.18);
  --a0:#F9AB00;--a1:#F2FF59;--a2:#E8710A;--glow:rgba(232,113,10,.12);--ok:#1f9d55;--bad:#D9480F}
-*{box-sizing:border-box}html,body{height:100%}
+*{box-sizing:border-box}[hidden]{display:none!important}html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 Inter,system-ui,-apple-system,"Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif;
  min-height:100dvh;display:flex;flex-direction:column;overflow-x:hidden}
 #bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;transform:scaleY(-1)}
@@ -27,7 +27,7 @@ header img{width:30px;height:30px;border-radius:8px}header b{font-size:15px;lett
 .icon:hover{border-color:var(--y);color:var(--y)}
 /* Language Dropdown Menu */
 .lang-dropdown{position:relative}
-.lang-btn{font:600 12.5px var(--mono);padding:0 9px}
+.lang-btn{font:600 12.5px var(--mono);padding:0 9px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;flex-shrink:0}
 .globe-icon{color:var(--muted);flex-shrink:0}
 .chevron-sm{width:12px;height:12px;color:var(--muted);transition:transform .2s;flex-shrink:0}
 .lang-open .chevron-sm{transform:rotate(180deg)}
@@ -132,7 +132,7 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
 /* Skeleton loading */
 .skeleton{background:linear-gradient(90deg,rgba(127,127,127,.08) 25%,rgba(127,127,127,.18) 50%,rgba(127,127,127,.08) 75%);background-size:200% 100%;animation:shimmer 1.8s infinite;border-radius:8px}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-@media (max-width:480px){.card{padding:22px 18px 16px;border-radius:20px}h1{font-size:21px}.hero img{width:54px;height:54px}.meta b{font-size:13px}main{place-items:start center;padding-top:4vh}}
+@media (max-width:480px){.chip{display:none}header{gap:8px;padding:12px 14px}header b{font-size:14px}.card{padding:22px 18px 16px;border-radius:20px}h1{font-size:21px}.hero img{width:54px;height:54px}.meta b{font-size:13px}main{place-items:start center;padding-top:4vh}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -352,7 +352,7 @@ function toggleSelect(force){
 profTrigger.onclick=(e)=>{e.stopPropagation();toggleSelect()};
 profBackdrop.onclick=()=>toggleSelect(false);
 $("pop-close").onclick=(e)=>{e.stopPropagation();toggleSelect(false)};
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){toggleSelect(false);toggleLangMenu(false)}});
+window.addEventListener("keydown",e=>{if(e.key==="Escape"){toggleSelect(false);toggleLangMenu(false)}});
 
 function renderCustomSelect(){
  if(!profiles.length)return;
