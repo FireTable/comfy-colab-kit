@@ -31,6 +31,15 @@ log = logging.getLogger("gate.session")
 
 
 def _find_repo_root() -> Path:
+    # 1. Check current working directory
+    cwd = Path.cwd().resolve()
+    for p in [cwd] + list(cwd.parents):
+        if (p / "pyproject.toml").is_file():
+            return p
+    # 2. Check /app (standard Docker container location)
+    if Path("/app/pyproject.toml").is_file():
+        return Path("/app")
+    # 3. Check source file ancestry (editable installs or local checkout)
     cur = Path(__file__).resolve()
     for p in [cur] + list(cur.parents):
         if (p / "pyproject.toml").is_file():

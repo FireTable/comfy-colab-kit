@@ -19,7 +19,20 @@ from .session import REPO_ROOT, Session
 from .state import State
 
 log = logging.getLogger("gate")
-WEB = Path(__file__).parent / "web"
+def _find_web_dir() -> Path:
+    app_web = Path("/app/apps/gate/web")
+    if app_web.is_dir() and (app_web / "index.html").is_file():
+        return app_web
+    repo_web = REPO_ROOT / "apps" / "gate" / "web"
+    if repo_web.is_dir() and (repo_web / "index.html").is_file():
+        return repo_web
+    pkg_web = Path(__file__).parent / "web"
+    if pkg_web.is_dir() and (pkg_web / "index.html").is_file():
+        return pkg_web
+    return Path(__file__).parent / "web"
+
+
+WEB = _find_web_dir()
 PUBLIC_PATHS = ("/_gate/healthz",)
 SESSION = web.AppKey("session", Session)
 SETTINGS = web.AppKey("settings", Settings)
@@ -166,6 +179,10 @@ async def events(request: web.Request) -> web.StreamResponse:
            request.headers.get("X-Forwarded-For") or
            request.remote or
            str(id(request))).strip()
+    try:
+        since = int(request.query.get("since", 0))
+    except (ValueError, TypeError):
+        since = 0
     resp = web.StreamResponse(headers={"Content-Type": "text/event-stream", "Cache-Control": "no-cache",
                                        "X-Accel-Buffering": "no"})
     await resp.prepare(request)
@@ -179,7 +196,8 @@ async def events(request: web.Request) -> web.StreamResponse:
         await send("state", s.status())
         if s.progress:
             await send("progress", s.progress)
-        for line in list(s.bus.logs):
+        logs = list(s.bus.logs)
+        for line in logs[since:]:
             await send("log", line)
         while True:
             try:
@@ -213,7 +231,11 @@ async def wake_page(request: web.Request) -> web.Response:
         "profiles": [p.summary() for p in request.app[PROFILES].values()],
         "default": settings.default_profile,
     }
-    init_json = json.dumps({"status": status_data, "profiles": profiles_data}).replace("</script>", "<\\/script>")
+    init_json = json.dumps({
+        "status": status_data,
+        "profiles": profiles_data,
+        "logs": list(s.bus.logs),
+    }).replace("</script>", "<\\/script>")
     tag = f'<script id="init-data">window.__INIT__ = {init_json};</script>'
     if "</head>" in html:
         html = html.replace("</head>", f"{tag}\n</head>", 1)

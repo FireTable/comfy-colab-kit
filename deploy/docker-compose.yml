@@ -16,6 +16,7 @@ services:
       # (profiles are re-read on every wake). Only gate/ code changes need `up -d --build`.
       - ../profiles:/app/profiles:ro         # profiles (built-in examples + user custom)
       - ../packages/colab:/app/packages/colab:ro  # colab/setup.py, shipped to the VM on each wake
+      - ../apps/gate/web:/app/apps/gate/web:ro    # static web assets (index.html, bg.js, etc.)
     secrets: [cf_service.json, colab_tunnel_token, agent_token, hf_token]
     networks: [caddy]
     expose: ["8080"]               # no host ports; reached only via the Caddy network

@@ -317,6 +317,13 @@ if(window.__INIT__){
   profiles=window.__INIT__.profiles.profiles;
   selectedProfileId=S.profile||window.__INIT__.profiles.default||(profiles[0]&&profiles[0].id)||"";
  }
+ if(window.__INIT__.logs&&Array.isArray(window.__INIT__.logs)&&window.__INIT__.logs.length){
+  const p=$("log");
+  p.textContent=window.__INIT__.logs.join("\n")+"\n";
+  lines=window.__INIT__.logs.length;
+  $("lcount").textContent=t("lines",{count:lines});
+  p.scrollTop=p.scrollHeight;
+ }
 }
 
 const root=document.documentElement,theme=localStorage.getItem("kit.theme")||"dark";root.dataset.theme=theme;
@@ -517,7 +524,7 @@ $("stop").onclick=async()=>{
 };
 
 function connect(){
- const es=new EventSource("/_gate/events?cid="+encodeURIComponent(cid));
+ const es=new EventSource("/_gate/events?cid="+encodeURIComponent(cid)+"&since="+lines);
  es.addEventListener("state",e=>{const j=JSON.parse(e.data);S=Object.assign({you:S&&S.you,owner_only:S&&S.owner_only},j);render()});
  es.addEventListener("progress",e=>{if(S){S.progress=JSON.parse(e.data);render()}});
  es.addEventListener("log",e=>log(JSON.parse(e.data)));
