@@ -101,13 +101,12 @@
 
     <!-- Centered Floating Pill Menu -->
     <nav class="nav-pill" aria-label="Main Navigation">
-      <a href="#problem" data-i18n="nav.problem">Problem</a>
+      <a href="#quickstart" data-i18n="nav.quickstart">Quick Start</a>
       <a href="#how" data-i18n="nav.how">How It Works</a>
       <a href="#comparison" data-i18n="nav.comp">Comparison</a>
       <a href="#features" data-i18n="nav.features">Features</a>
       <a href="#profiles" data-i18n="nav.profiles">Profiles</a>
       <a href="#numbers" data-i18n="nav.numbers">Benchmarks</a>
-      <a href="#quickstart" data-i18n="nav.quickstart">Quick Start</a>
       <a href="#faq" data-i18n="nav.faq">FAQ</a>
     </nav>
 
@@ -179,32 +178,63 @@
   </div>
 </section>
 
-<!-- The Problem Section -->
-<section id="problem">
+<!-- Quick Start Section -->
+<section id="quickstart">
   <div class="inner">
     <div class="section-header">
-      <span class="badge" data-i18n="problem.badge">Pain Points</span>
-      <h2><span data-i18n="problem.titlePrefix">The</span> <span class="shiny" data-i18n="problem.titleShiny">Problem</span></h2>
-      <p class="lead" data-i18n="problem.lead">Dedicated cloud GPUs drain your budget 24/7, while raw Colab notebooks force you to sit at a PC and baby-sit fragile browser tabs.</p>
+      <span class="badge" data-i18n="quickstart.badge">Deployment</span>
+      <h2><span data-i18n="quickstart.titlePrefix">Quick</span> <span class="shiny" data-i18n="quickstart.titleShiny">Start</span></h2>
+      <p class="lead" data-i18n="quickstart.lead">Deploy the lightweight gateway on your VPS behind Cloudflare Access, then wake Colab from your browser or AI agent in 3 minutes.</p>
     </div>
-    <div class="grid-cards">
-      <article class="card">
-        <div class="card-tag"><span>💸</span> <span data-i18n="problem.c1Tag">Idle Waste</span></div>
-        <h3 data-i18n="problem.c1Title">Cloud GPUs bill continuously</h3>
-        <p data-i18n="problem.c1Desc">A rented cloud GPU bills around the clock, even when hours pass without generating a single image.</p>
-      </article>
-      <article class="card">
-        <div class="card-tag"><span>🔌</span> <span data-i18n="problem.c2Tag">Tethered to PC</span></div>
-        <h3 data-i18n="problem.c2Title">Colab notebooks are fragile</h3>
-        <p data-i18n="problem.c2Desc">Notebooks time out, public URLs change randomly, laptop sleep kills the session, and manual dependency setups waste time.</p>
-      </article>
-      <article class="card">
-        <div class="card-tag"><span>👥</span> <span data-i18n="problem.c3Tag">Collaboration &amp; Agents</span></div>
-        <h3 data-i18n="problem.c3Title">Sharing &amp; automation are messy</h3>
-        <p data-i18n="problem.c3Desc">Teammates accidentally spin up duplicate VMs, and headless AI agents have no clean way to trigger or orchestrate generation.</p>
-      </article>
+    <div class="quickstart-steps-grid">
+      <div class="card qs-card">
+        <div class="qs-badge">Step 1</div>
+        <h3 data-i18n="quickstart.s1Title">Clone &amp; Configure</h3>
+        <p data-i18n="quickstart.s1Desc">Clone the repository and copy .env.example to set your Cloudflare Access audience and Google Colab session name.</p>
+      </div>
+      <div class="card qs-card">
+        <div class="qs-badge">Step 2</div>
+        <h3 data-i18n="quickstart.s2Title">Run Gateway Container</h3>
+        <p data-i18n="quickstart.s2Desc">Launch via Docker Compose on your VPS or server. Caddy handles automatic HTTPS and WebSocket streaming.</p>
+      </div>
+      <div class="card qs-card">
+        <div class="qs-badge">Step 3</div>
+        <h3 data-i18n="quickstart.s3Title">Wake &amp; Generate</h3>
+        <p data-i18n="quickstart.s3Desc">Visit your custom domain. One click wakes the Colab L4 GPU, syncs the model, and proxies ComfyUI.</p>
+      </div>
     </div>
-    <p class="closing" data-i18n="problem.closing">Comfy Colab Kit gives Colab a single, stable front door that sleeps when idle and wakes in one click from anywhere.</p>
+    <div class="code-wrapper">
+      <div class="code-header">
+        <span class="code-dot red"></span>
+        <span class="code-dot yellow"></span>
+        <span class="code-dot green"></span>
+        <span class="code-title">Terminal</span>
+        <button class="copy-btn" id="copy-quickstart-btn" aria-label="Copy terminal commands" title="Copy to clipboard">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span class="copy-text" data-i18n="quickstart.copy">Copy</span>
+        </button>
+      </div>
+      <pre><code><span class="cmd-comment"># 1. Clone the repository</span>
+git clone https://github.com/FireTable/comfy-colab-kit.git
+cd comfy-colab-kit
+
+<span class="cmd-comment"># 2. Configure your environment and secrets</span>
+cp .env.example .env
+
+<span class="cmd-comment"># 3. Start the gateway daemon via Docker Compose</span>
+docker compose -f deploy/docker-compose.yml up -d --build
+
+<span class="cmd-comment"># 4. Open your domain (e.g. https://comfy.yourdomain.com) and click Wake!</span></code></pre>
+    </div>
+    <div class="quickstart-actions">
+      <a class="btn btn-primary" href="https://github.com/FireTable/comfy-colab-kit/blob/main/docs/DEPLOY_VPS.md" target="_blank" rel="noopener">
+        <span data-i18n="quickstart.btn">Read Full VPS Deploy Guide</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+      <a class="btn btn-secondary" href="https://github.com/FireTable/comfy-colab-kit/blob/main/docs/AGENT_SKILL.md" target="_blank" rel="noopener">
+        <span data-i18n="quickstart.agentBtn">AI Agent &amp; MCP Guide</span>
+      </a>
+    </div>
   </div>
 </section>
 
@@ -216,7 +246,7 @@
       <h2><span data-i18n="how.titlePrefix">How It</span> <span class="shiny" data-i18n="how.titleShiny">Works</span></h2>
       <p class="lead" data-i18n="how.lead">A lean, zero-trust bridge connecting your personal devices and AI agents with on-demand Colab hardware.</p>
     </div>
-    <div class="flow">
+    <div class="flow" id="arch-flow">
       <div class="flow-h">
         <svg viewBox="0 0 1000 180" role="img" aria-label="Architecture Flow">
           <defs>
@@ -224,51 +254,85 @@
               <stop offset="0" stop-color="#E8710A"/>
               <stop offset="1" stop-color="#F9AB00"/>
             </linearGradient>
+            <linearGradient id="arr-ready" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#F9AB00"/>
+              <stop offset="1" stop-color="#22C55E"/>
+            </linearGradient>
           </defs>
           <g font-family="Inter,system-ui,sans-serif" text-anchor="middle">
-            <rect x="8" y="40" width="180" height="100" rx="22" fill="var(--card)" stroke="var(--line2)"/>
-            <text x="98" y="88" fill="var(--fg)" font-size="16" font-weight="700" data-i18n="flow.browserTitle">Browser / Agent</text>
-            <text x="98" y="112" fill="var(--muted)" font-size="12" font-family="ui-monospace,Menlo,monospace" data-i18n="flow.browserDesc">mobile, web or API</text>
-            <line x1="196" y1="90" x2="232" y2="90" stroke="url(#arr)" stroke-width="2.5"/>
-            <polygon points="232,84 246,90 232,96" fill="var(--y)"/>
+            <!-- Node 0: Browser / Agent -->
+            <g class="fnode" id="fnode-0" data-step="0" role="button" tabindex="0">
+              <rect class="fnode-rect" x="8" y="40" width="180" height="100" rx="22"/>
+              <text class="fnode-title" x="98" y="88" fill="var(--fg)" font-size="16" font-weight="700" data-i18n="flow.browserTitle">Browser / Agent</text>
+              <text class="fnode-sub" x="98" y="112" fill="var(--muted)" font-size="12" font-family="ui-monospace,Menlo,monospace" data-i18n="flow.browserDesc">mobile, web or API</text>
+            </g>
 
-            <rect x="254" y="40" width="200" height="100" rx="22" fill="var(--card)" stroke="var(--line2)"/>
-            <text x="354" y="88" fill="var(--fg)" font-size="16" font-weight="700">Cloudflare Access</text>
-            <text x="354" y="112" fill="var(--muted)" font-size="12" font-family="ui-monospace,Menlo,monospace" data-i18n="flow.cfDesc">zero-trust auth</text>
-            <line x1="462" y1="90" x2="498" y2="90" stroke="url(#arr)" stroke-width="2.5"/>
-            <polygon points="498,84 512,90 498,96" fill="var(--y)"/>
+            <!-- Arrow 0 -->
+            <g class="farrow" id="farrow-0">
+              <line class="farrow-line" x1="196" y1="90" x2="232" y2="90"/>
+              <polygon class="farrow-head" points="232,84 246,90 232,96"/>
+            </g>
 
-            <rect x="520" y="40" width="190" height="100" rx="22" fill="var(--card)" stroke="var(--line2)"/>
-            <text x="615" y="88" fill="var(--fg)" font-size="16" font-weight="700" data-i18n="flow.gateTitle">VPS Gate</text>
-            <text x="615" y="112" fill="var(--muted)" font-size="12" font-family="ui-monospace,Menlo,monospace" data-i18n="flow.gateDesc">Caddy + comfy-gate</text>
-            <line x1="718" y1="90" x2="754" y2="90" stroke="url(#arr)" stroke-width="2.5"/>
-            <polygon points="754,84 768,90 754,96" fill="var(--y)"/>
+            <!-- Node 1: Cloudflare Access -->
+            <g class="fnode" id="fnode-1" data-step="1" role="button" tabindex="0">
+              <rect class="fnode-rect" x="254" y="40" width="200" height="100" rx="22"/>
+              <text class="fnode-title" x="354" y="88" fill="var(--fg)" font-size="16" font-weight="700">Cloudflare Access</text>
+              <text class="fnode-sub" x="354" y="112" fill="var(--muted)" font-size="12" font-family="ui-monospace,Menlo,monospace" data-i18n="flow.cfDesc">zero-trust auth</text>
+            </g>
 
-            <rect x="776" y="40" width="216" height="100" rx="22" fill="var(--card)" stroke="var(--n)" stroke-width="2"/>
-            <text x="884" y="88" fill="var(--fg)" font-size="16" font-weight="700">Google Colab L4</text>
-            <text x="884" y="112" fill="var(--muted)" font-size="12" font-family="ui-monospace,Menlo,monospace" data-i18n="flow.colabDesc">ComfyUI runtime</text>
+            <!-- Arrow 1 -->
+            <g class="farrow" id="farrow-1">
+              <line class="farrow-line" x1="462" y1="90" x2="498" y2="90"/>
+              <polygon class="farrow-head" points="498,84 512,90 498,96"/>
+            </g>
+
+            <!-- Node 2: VPS Gate -->
+            <g class="fnode" id="fnode-2" data-step="2" role="button" tabindex="0">
+              <rect class="fnode-rect" x="520" y="40" width="190" height="100" rx="22"/>
+              <text class="fnode-title" x="615" y="88" fill="var(--fg)" font-size="16" font-weight="700" data-i18n="flow.gateTitle">VPS Gate</text>
+              <text class="fnode-sub" x="615" y="112" fill="var(--muted)" font-size="12" font-family="ui-monospace,Menlo,monospace" data-i18n="flow.gateDesc">Caddy + comfy-gate</text>
+            </g>
+
+            <!-- Arrow 2 -->
+            <g class="farrow" id="farrow-2">
+              <line class="farrow-line" x1="718" y1="90" x2="754" y2="90"/>
+              <polygon class="farrow-head" points="754,84 768,90 754,96"/>
+            </g>
+
+            <!-- Node 3: Google Colab L4 -->
+            <g class="fnode" id="fnode-3" data-step="3" role="button" tabindex="0">
+              <rect class="fnode-rect" x="776" y="40" width="216" height="100" rx="22"/>
+              <text class="fnode-title" x="884" y="88" fill="var(--fg)" font-size="16" font-weight="700">Google Colab L4</text>
+              <text class="fnode-sub" x="884" y="112" fill="var(--muted)" font-size="12" font-family="ui-monospace,Menlo,monospace" data-i18n="flow.colabDesc">ComfyUI runtime</text>
+            </g>
           </g>
         </svg>
       </div>
       <div class="flow-v">
-        <article class="card node-card"><h3 data-i18n="flow.browserTitle">Browser / Agent</h3><small data-i18n="flow.browserDesc">mobile, web or API</small></article>
-        <div class="arrow-down" aria-hidden="true">↓</div>
-        <article class="card node-card"><h3>Cloudflare Access</h3><small data-i18n="flow.cfDesc">zero-trust auth</small></article>
-        <div class="arrow-down" aria-hidden="true">↓</div>
-        <article class="card node-card"><h3 data-i18n="flow.gateTitle">VPS Gate</h3><small data-i18n="flow.gateDesc">Caddy + comfy-gate</small></article>
-        <div class="arrow-down" aria-hidden="true">↓</div>
-        <article class="card node-card node-hot"><h3>Google Colab L4</h3><small data-i18n="flow.colabDesc">ComfyUI runtime</small></article>
+        <article class="card node-card fnode-v" data-step="0"><h3 data-i18n="flow.browserTitle">Browser / Agent</h3><small data-i18n="flow.browserDesc">mobile, web or API</small></article>
+        <div class="arrow-down farrow-v" data-arrow="0" aria-hidden="true">↓</div>
+        <article class="card node-card fnode-v" data-step="1"><h3>Cloudflare Access</h3><small data-i18n="flow.cfDesc">zero-trust auth</small></article>
+        <div class="arrow-down farrow-v" data-arrow="1" aria-hidden="true">↓</div>
+        <article class="card node-card fnode-v" data-step="2"><h3 data-i18n="flow.gateTitle">VPS Gate</h3><small data-i18n="flow.gateDesc">Caddy + comfy-gate</small></article>
+        <div class="arrow-down farrow-v" data-arrow="2" aria-hidden="true">↓</div>
+        <article class="card node-card fnode-v" data-step="3"><h3>Google Colab L4</h3><small data-i18n="flow.colabDesc">ComfyUI runtime</small></article>
       </div>
     </div>
-    <ol class="steps">
-      <li><span data-i18n="how.s1">Open your URL or call the API. Cloudflare Access verifies identity before anything touches your infrastructure.</span></li>
-      <li><span data-i18n="how.s2">If the GPU VM is asleep, the gate presents a sleek wake card (or handles agent API requests). Click "Wake" to begin.</span></li>
-      <li><span data-i18n="how.s3">The gate automatically allocates a Colab L4, sets up ComfyUI, and syncs models. Everyone sees identical live progress.</span></li>
-      <li><span data-i18n="how.s4">Once ready, the same URL seamlessly proxies the authentic ComfyUI web application. Idle timeouts or budget caps return it safely to sleep.</span></li>
+    <ol class="steps" id="how-steps">
+      <li data-step="0"><span data-i18n="how.s1">Open your URL or call the API. Cloudflare Access verifies identity before anything touches your infrastructure.</span></li>
+      <li data-step="1"><span data-i18n="how.s2">If the GPU VM is asleep, the gate presents a sleek wake card (or handles agent API requests). Click "Wake" to begin.</span></li>
+      <li data-step="2"><span data-i18n="how.s3">The gate automatically allocates a Colab L4, sets up ComfyUI, and syncs models. Everyone sees identical live progress.</span></li>
+      <li data-step="3"><span data-i18n="how.s4">Once ready, the same URL seamlessly proxies the authentic ComfyUI web application. Idle timeouts or budget caps return it safely to sleep.</span></li>
     </ol>
-    <div class="card wake-demo">
-      <div class="prow"><span data-i18n="how.demoLabel">Waking… downloading models</span><span>62%</span></div>
-      <div class="bar" role="presentation"><i></i></div>
+    <div class="card wake-demo" id="wake-demo-card">
+      <div class="prow">
+        <span class="prow-label">
+          <span class="prow-pulse" aria-hidden="true"></span>
+          <span id="wake-demo-stage" data-i18n="how.demoStage0">1/4 Connecting… verifying identity via Cloudflare Access</span>
+        </span>
+        <span class="prow-pct" id="wake-demo-pct">15%</span>
+      </div>
+      <div class="bar" role="presentation"><i id="wake-demo-bar" style="width: 15%;"></i></div>
     </div>
   </div>
 </section>
@@ -470,59 +534,32 @@
     </div>
     <div class="grid-cards">
       <article class="card stat">
-        <b>~1.54 CU/h</b>
-        <span data-i18n="numbers.s1Label">Colab L4 compute cost per hour</span>
+        <div class="stat-value">
+          <span class="stat-prefix">~</span>
+          <span class="stat-num">1.54</span>
+          <span class="stat-unit">CU/h</span>
+        </div>
+        <span class="stat-label" data-i18n="numbers.s1Label">Colab L4 compute cost per hour</span>
       </article>
       <article class="card stat">
-        <b>28.4 s</b>
-        <span data-i18n="numbers.s2Label">One 1024² image, 25 steps</span>
+        <div class="stat-value">
+          <span class="stat-num">28.4</span>
+          <span class="stat-unit">s</span>
+        </div>
+        <span class="stat-label" data-i18n="numbers.s2Label">One 1024² image, 25 steps</span>
       </article>
       <article class="card stat">
-        <b>461–557 s</b>
-        <span data-i18n="numbers.s3Label">Cold start from sleep to ready</span>
+        <div class="stat-value">
+          <span class="stat-num">461–557</span>
+          <span class="stat-unit">s</span>
+        </div>
+        <span class="stat-label" data-i18n="numbers.s3Label">Cold start from sleep to ready</span>
       </article>
     </div>
-    <p class="footnote" data-i18n="numbers.footnote">Measured on Colab L4 with the MOSS-Image profile. Actual figures will vary depending on network and GPU quota.</p>
-  </div>
-</section>
-
-<!-- Quick Start Section -->
-<section id="quickstart">
-  <div class="inner">
-    <div class="section-header">
-      <span class="badge" data-i18n="quickstart.badge">Deployment</span>
-      <h2><span data-i18n="quickstart.titlePrefix">Quick</span> <span class="shiny" data-i18n="quickstart.titleShiny">Start</span></h2>
-      <p class="lead" data-i18n="quickstart.lead">Deploy the gate on a lightweight VPS behind Cloudflare Access, then wake Colab from your browser or AI agent. Full production walkthrough in docs/AGENT.md.</p>
-    </div>
-    <div class="quickstart-actions">
-      <a class="btn btn-primary" href="https://github.com/FireTable/comfy-colab-kit/blob/main/docs/AGENT.md" target="_blank" rel="noopener">
-        <span data-i18n="quickstart.btn">Read the Deploy Guide</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </a>
-      <a class="btn btn-secondary" href="https://github.com/FireTable/comfy-colab-kit" target="_blank" rel="noopener">
-        <svg class="github-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
-        </svg>
-        <span data-i18n="quickstart.github">Star on GitHub</span>
-      </a>
-    </div>
-    <div class="code-wrapper">
-      <div class="code-header">
-        <span class="code-dot red"></span>
-        <span class="code-dot yellow"></span>
-        <span class="code-dot green"></span>
-        <span class="code-title">Terminal</span>
-      </div>
-      <pre><code><span class="cmd-comment"># Clone the repository</span>
-git clone https://github.com/FireTable/comfy-colab-kit.git
-cd comfy-colab-kit
-
-<span class="cmd-comment"># Configure your environment secrets</span>
-cp .env.example .env
-
-<span class="cmd-comment"># Follow docs/AGENT.md to set up Caddy, Cloudflare Access and the gate</span>
-<span class="cmd-comment"># Then open your personal domain and press Wake</span></code></pre>
-    </div>
+    <p class="footnote" data-i18n="numbers.footnote">
+      <svg class="info-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <span>Measured on Colab L4 with the MOSS-Image profile. Actual figures will vary depending on network and GPU quota.</span>
+    </p>
   </div>
 </section>
 

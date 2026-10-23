@@ -118,7 +118,10 @@ const I18N = {
     "how.s2": "If the GPU VM is asleep, the gate presents a sleek wake card (or handles agent API requests). Click \"Wake\" to begin.",
     "how.s3": "The gate automatically allocates a Colab L4, sets up ComfyUI, and syncs models. Everyone watching sees identical live progress.",
     "how.s4": "Once ready, the same URL seamlessly proxies the authentic ComfyUI web application. Idle timeouts or budget caps return it safely to sleep.",
-    "how.demoLabel": "Waking… downloading models",
+    "how.demoStage0": "1/4 Connecting… Cloudflare Access verifies zero-trust identity",
+    "how.demoStage1": "2/4 Gate checked… GPU asleep, dispatching wake command",
+    "how.demoStage2": "3/4 Waking Colab L4… downloading models & booting ComfyUI",
+    "how.demoStage3": "4/4 Ready! Proxied authentic ComfyUI application at root URL",
     "comp.badge": "The Paradigm Shift",
     "comp.titlePrefix": "Why",
     "comp.titleShiny": "Comfy Colab Kit",
@@ -191,8 +194,17 @@ const I18N = {
     "quickstart.badge": "Deployment",
     "quickstart.titlePrefix": "Quick",
     "quickstart.titleShiny": "Start",
-    "quickstart.lead": "Deploy the gate on a lightweight VPS behind Cloudflare Access, then wake Colab from your browser or AI agent. Full production walkthrough in docs/AGENT.md.",
-    "quickstart.btn": "Read the Deploy Guide",
+    "quickstart.lead": "Deploy the lightweight gateway on your VPS behind Cloudflare Access, then wake Colab from your browser or AI agent in 3 minutes.",
+    "quickstart.s1Title": "Clone & Configure",
+    "quickstart.s1Desc": "Clone the repository and copy .env.example to set your Cloudflare Access audience and Google Colab session name.",
+    "quickstart.s2Title": "Run Gateway Container",
+    "quickstart.s2Desc": "Launch via Docker Compose on your VPS or server. Caddy handles automatic HTTPS and WebSocket streaming.",
+    "quickstart.s3Title": "Wake & Generate",
+    "quickstart.s3Desc": "Visit your custom domain. One click wakes the Colab L4 GPU, syncs the model, and proxies ComfyUI.",
+    "quickstart.copy": "Copy",
+    "quickstart.copied": "Copied!",
+    "quickstart.btn": "Read Full VPS Deploy Guide",
+    "quickstart.agentBtn": "AI Agent & MCP Guide",
     "quickstart.github": "Star on GitHub",
     "faq.badge": "Help & Answers",
     "faq.titleShiny": "FAQ",
@@ -264,7 +276,10 @@ const I18N = {
     "how.s2": "若 GPU 处于休眠状态，网关呈现唤醒卡片（或承接 Agent 调度）；轻点「唤醒」即可启动。",
     "how.s3": "网关全自动分配 Colab L4、初始化 ComfyUI 并按需拉取模型，多端实时同步阶段进度与控制台日志。",
     "how.s4": "就绪后该域名直接无缝反代官方原版 ComfyUI Web 应用；闲置超时或预算达到上限时自动安全停机休眠。",
-    "how.demoLabel": "正在唤醒… 正在同步模型",
+    "how.demoStage0": "1/4 正在连接… Cloudflare Access 零信任身份安全核验",
+    "how.demoStage1": "2/4 网关鉴权就绪… 显卡实例处于休眠，下发唤醒指令",
+    "how.demoStage2": "3/4 Colab L4 唤醒中… 自动配置依赖、拉取模型并启动 ComfyUI",
+    "how.demoStage3": "4/4 完全就绪！原生 ComfyUI 全功能界面实时代理出图 (100%)",
     "comp.badge": "工作流革命",
     "comp.titlePrefix": "为什么选择",
     "comp.titleShiny": "Comfy Colab Kit",
@@ -337,8 +352,17 @@ const I18N = {
     "quickstart.badge": "部署指南",
     "quickstart.titlePrefix": "快速",
     "quickstart.titleShiny": "部署上手",
-    "quickstart.lead": "在一台轻量 VPS 上部署反代网关并接入 Cloudflare Access，即可在手机或电脑随时唤醒 Colab。完整生产级指南详见 docs/AGENT.md。",
-    "quickstart.btn": "查看完整部署指南",
+    "quickstart.lead": "在一台轻量 VPS 上部署反代网关并接入 Cloudflare Access，即可在手机或电脑随时唤醒 Colab。3 分钟轻松就绪。",
+    "quickstart.s1Title": "克隆代码与配置环境变量",
+    "quickstart.s1Desc": "克隆代码仓库并从 .env.example 复制配置文件，填入 Cloudflare Access 密钥与 Colab 隧道配置。",
+    "quickstart.s2Title": "启动网关 Docker 容器",
+    "quickstart.s2Desc": "在您的 VPS 或服务器上使用 Docker Compose 一键启动网关守护进程，Caddy 自动申请 HTTPS 证书与代理。",
+    "quickstart.s3Title": "访问域名并唤醒生图",
+    "quickstart.s3Desc": "在手机或电脑打开个人专属域名，点击 Wake 即可自动拉起 Colab L4 显卡并在同一域名使用 ComfyUI。",
+    "quickstart.copy": "复制",
+    "quickstart.copied": "已复制!",
+    "quickstart.btn": "查看完整 VPS 部署指南",
+    "quickstart.agentBtn": "AI Agent 与 MCP 对接指南",
     "quickstart.github": "前往 GitHub 点赞",
     "faq.badge": "疑问解答",
     "faq.titleShiny": "常见问题解答",
@@ -365,6 +389,7 @@ const I18N = {
 };
 
 function applyLanguage(lang) {
+  window.currentLang = lang;
   const dict = I18N[lang] || I18N.en;
   root.lang = lang;
   localStorage.setItem("kit.lang", lang);
@@ -392,6 +417,8 @@ function applyLanguage(lang) {
   document.querySelectorAll("#lang-popover .menu-item").forEach((item) => {
     item.classList.toggle("active", item.getAttribute("data-lang") === lang);
   });
+
+  window.updateArchStageLang?.();
 }
 
 // Initial language detection
@@ -438,3 +465,154 @@ if (langBtn && langPopover) {
     }
   });
 }
+
+// Terminal Quickstart Copy Button
+const copyBtn = document.getElementById("copy-quickstart-btn");
+if (copyBtn) {
+  copyBtn.addEventListener("click", async () => {
+    const code = `# 1. Clone the repository\ngit clone https://github.com/FireTable/comfy-colab-kit.git\ncd comfy-colab-kit\n\n# 2. Configure your environment and secrets\ncp .env.example .env\n\n# 3. Start the gateway daemon via Docker Compose\ndocker compose -f deploy/docker-compose.yml up -d --build`;
+    try {
+      await navigator.clipboard.writeText(code);
+      const textSpan = copyBtn.querySelector(".copy-text");
+      const orig = textSpan ? textSpan.textContent : "Copy";
+      const dict = I18N[window.currentLang || "en"] || I18N.en;
+      if (textSpan) textSpan.textContent = dict["quickstart.copied"] || "Copied!";
+      copyBtn.classList.add("copied");
+      setTimeout(() => {
+        if (textSpan) textSpan.textContent = dict["quickstart.copy"] || orig;
+        copyBtn.classList.remove("copied");
+      }, 2000);
+    } catch {
+      // Fallback
+    }
+  });
+}
+
+// Interactive Architecture Flow Controller (Nodes lighting up sequentially to 100%)
+(() => {
+  const STAGES = [
+    { pct: 15, key: "how.demoStage0" },
+    { pct: 40, key: "how.demoStage1" },
+    { pct: 75, key: "how.demoStage2" },
+    { pct: 100, key: "how.demoStage3" },
+  ];
+  let cur = 0;
+  let timer = null;
+  let paused = false;
+
+  const fnodes = [0, 1, 2, 3].map(i => document.getElementById(`fnode-${i}`));
+  const farrows = [0, 1, 2].map(i => document.getElementById(`farrow-${i}`));
+  const fnodesV = document.querySelectorAll(".node-card.fnode-v");
+  const farrowsV = document.querySelectorAll(".arrow-down.farrow-v");
+  const stepItems = document.querySelectorAll("#how-steps li");
+  const demoCard = document.getElementById("wake-demo-card");
+  const stageEl = document.getElementById("wake-demo-stage");
+  const pctEl = document.getElementById("wake-demo-pct");
+  const barEl = document.getElementById("wake-demo-bar");
+
+  function setStage(idx) {
+    cur = idx;
+    const stage = STAGES[cur];
+    const isReady = cur === 3;
+
+    // 1. Update SVG Nodes
+    fnodes.forEach((el, i) => {
+      if (!el) return;
+      el.classList.toggle("is-active", i === cur);
+      el.classList.toggle("is-done", i < cur);
+      el.classList.toggle("is-ready", i === 3 && isReady);
+    });
+
+    // 2. Update SVG Arrows
+    farrows.forEach((el, i) => {
+      if (!el) return;
+      el.classList.toggle("is-active", i === cur && cur < 3);
+      el.classList.toggle("is-done", i < cur);
+    });
+
+    // 3. Update Mobile Vertical Nodes & Arrows
+    fnodesV.forEach((el, i) => {
+      el.classList.toggle("is-active", i === cur);
+      el.classList.toggle("is-done", i < cur);
+      el.classList.toggle("is-ready", i === 3 && isReady);
+    });
+    farrowsV.forEach((el, i) => {
+      el.classList.toggle("is-active", i === cur && cur < 3);
+      el.classList.toggle("is-done", i < cur);
+    });
+
+    // 4. Update Steps List
+    stepItems.forEach((el, i) => {
+      el.classList.toggle("is-active", i === cur);
+      el.classList.toggle("is-done", i < cur);
+      el.classList.toggle("is-ready", i === 3 && isReady);
+    });
+
+    // 5. Update Progress Bar & Percentage
+    if (demoCard) demoCard.classList.toggle("is-ready", isReady);
+    if (pctEl) pctEl.textContent = `${stage.pct}%`;
+    if (barEl) barEl.style.width = `${stage.pct}%`;
+
+    // 6. Update Stage Text with I18N
+    const dict = I18N[window.currentLang || "en"] || I18N.en;
+    if (stageEl) {
+      stageEl.setAttribute("data-i18n", stage.key);
+      stageEl.textContent = dict[stage.key] || "";
+    }
+  }
+
+  function next() {
+    if (paused) return;
+    const nextIdx = (cur + 1) % STAGES.length;
+    setStage(nextIdx);
+    const delay = nextIdx === 3 ? 3800 : 2600;
+    timer = setTimeout(next, delay);
+  }
+
+  // Interactive Clicks: Click step item or diagram node to inspect that stage
+  stepItems.forEach((el, i) => {
+    el.addEventListener("click", () => {
+      clearTimeout(timer);
+      setStage(i);
+      paused = true;
+      setTimeout(() => { paused = false; next(); }, 5000);
+    });
+  });
+
+  fnodes.forEach((el, i) => {
+    if (!el) return;
+    el.addEventListener("click", () => {
+      clearTimeout(timer);
+      setStage(i);
+      paused = true;
+      setTimeout(() => { paused = false; next(); }, 5000);
+    });
+  });
+
+  fnodesV.forEach((el, i) => {
+    el.addEventListener("click", () => {
+      clearTimeout(timer);
+      setStage(i);
+      paused = true;
+      setTimeout(() => { paused = false; next(); }, 5000);
+    });
+  });
+
+  // Pause on hover
+  const archSection = document.getElementById("how");
+  if (archSection) {
+    archSection.addEventListener("mouseenter", () => { paused = true; });
+    archSection.addEventListener("mouseleave", () => {
+      if (paused) {
+        paused = false;
+        clearTimeout(timer);
+        timer = setTimeout(next, 2000);
+      }
+    });
+  }
+
+  // Initialize
+  setStage(0);
+  timer = setTimeout(next, 2600);
+  window.updateArchStageLang = () => setStage(cur);
+})();
