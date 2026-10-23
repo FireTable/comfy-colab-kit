@@ -1,5 +1,6 @@
 # Run from the repo root:  docker compose -f deploy/docker-compose.yml up -d
 # Joins the network of your existing Caddy so Caddy can reach comfy-gate:8080.
+name: comfy-colab-kit
 services:
   comfy-gate:
     build: {context: .., dockerfile: deploy/Dockerfile}
