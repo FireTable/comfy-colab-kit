@@ -48,6 +48,20 @@ html {
   scrollbar-color: rgba(15, 23, 42, 0.15) transparent;
 }
 
+/* Lenis Smooth Scroll Integration */
+html.lenis, html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 8px;

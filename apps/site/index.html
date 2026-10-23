@@ -94,7 +94,7 @@
 <!-- Top Navigation -->
 <header class="site-header">
   <div class="nav-container">
-    <a class="brand" href="#top">
+    <a class="brand" href="/" aria-label="Comfy Colab Kit Home">
       <img src="assets/logo-e-fusion-dark.svg" alt="" width="32" height="32">
       <span class="brand-text">Comfy Colab Kit</span>
     </a>
@@ -638,7 +638,7 @@ docker compose -f deploy/docker-compose.yml up -d --build
     <div class="footer-grid">
       <!-- Col 1: Brand & Status -->
       <div class="footer-col footer-brand">
-        <a class="brand" href="#top">
+        <a class="brand" href="/" aria-label="Comfy Colab Kit Home">
           <img src="assets/logo-e-fusion-dark.svg" alt="" width="30" height="30">
           <span class="brand-text">Comfy Colab Kit</span>
         </a>
@@ -697,6 +697,7 @@ docker compose -f deploy/docker-compose.yml up -d --build
   </div>
 </footer>
 
-<script src="main.js?v=10cb38f6" defer></script>
+<script src="vendor/lenis.min.js" defer></script>
+<script src="main.js?v=2e8a15b3" defer></script>
 </body>
 </html>

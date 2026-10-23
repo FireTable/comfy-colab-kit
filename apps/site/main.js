@@ -669,3 +669,225 @@ if (aiPromptBtn) {
 
   window.updateArchStageLang = () => setStage(cur);
 })();
+
+// ============================================================================
+// Luxury Damping & Smart Anchor Gliding (Lenis Physics + Section Snapping)
+// ============================================================================
+(() => {
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (prefersReducedMotion) return;
+
+  // 1. Initialize Lenis Smooth Scroll with Rich Damping
+  let lenis = null;
+  if (typeof window.Lenis !== "undefined") {
+    lenis = new window.Lenis({
+      duration: 1.3,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: "vertical",
+      gestureOrientation: "vertical",
+      smoothWheel: true,
+      wheelMultiplier: 1.0,
+      touchMultiplier: 1.6,
+      infinite: false,
+    });
+
+    function raf(time) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+    requestAnimationFrame(raf);
+    window.__lenis = lenis;
+  }
+
+  // 2. Target Anchors for Section Gliding
+  const SECTION_SELECTORS = [
+    "#top",
+    "#quickstart",
+    "#how",
+    "#comparison",
+    "#features",
+    "#profiles",
+    "#numbers",
+    "#faq",
+    "footer.site-footer"
+  ];
+
+  const getHeaderOffset = () => {
+    const h = document.querySelector(".site-header");
+    return h ? h.offsetHeight : 56;
+  };
+
+  const getSections = () => {
+    return SECTION_SELECTORS.map((s) => document.querySelector(s)).filter(Boolean);
+  };
+
+  // 3. Smooth Anchor Click Handlers (Logo & Nav Links)
+  // Intercept logo: return directly to root page without #top in URL
+  document.querySelectorAll("a.brand").forEach((brandLink) => {
+    brandLink.addEventListener("click", (e) => {
+      const href = brandLink.getAttribute("href");
+      if (href === "/" || href === "./" || href === "#top" || href === "#") {
+        e.preventDefault();
+        if (lenis) {
+          lenis.scrollTo(0, { duration: 1.1 });
+        } else {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+        if (window.location.hash) {
+          history.pushState(null, "", window.location.pathname + window.location.search);
+        }
+      }
+    });
+  });
+
+  // Intercept floating pill navigation and other anchor links
+  document.querySelectorAll('nav.nav-pill a[href^="#"], a.hero-btn[href^="#"]').forEach((anchor) => {
+    anchor.addEventListener("click", (e) => {
+      const href = anchor.getAttribute("href");
+      if (!href || href === "#") return;
+      const target = document.querySelector(href);
+      if (target) {
+        e.preventDefault();
+        const headerOffset = getHeaderOffset();
+        if (lenis) {
+          lenis.scrollTo(target, { offset: -headerOffset, duration: 1.2 });
+        } else {
+          const top = target.getBoundingClientRect().top + window.scrollY - headerOffset;
+          window.scrollTo({ top, behavior: "smooth" });
+        }
+        history.pushState(null, "", href);
+      }
+    });
+  });
+
+  // 4. Wheel Smart Snapping Controller ("滚轮滚动一下最好刚好到下一个锚点")
+  let isSnapping = false;
+  let snapLockTimer = null;
+  let wheelAccumulator = 0;
+  let wheelResetTimer = null;
+
+  const WHEEL_THRESHOLD = 30;
+
+  window.addEventListener(
+    "wheel",
+    (e) => {
+      if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+
+      if (isSnapping) {
+        e.preventDefault();
+        return;
+      }
+
+      wheelAccumulator += e.deltaY;
+      clearTimeout(wheelResetTimer);
+      wheelResetTimer = setTimeout(() => {
+        wheelAccumulator = 0;
+      }, 180);
+
+      if (Math.abs(wheelAccumulator) < WHEEL_THRESHOLD) {
+        return;
+      }
+
+      const direction = wheelAccumulator > 0 ? 1 : -1;
+      wheelAccumulator = 0;
+
+      const currentScroll = window.scrollY;
+      const headerOffset = getHeaderOffset();
+      const viewportHeight = window.innerHeight;
+      const sections = getSections();
+
+      if (!sections.length) return;
+
+      let currentSectionIdx = 0;
+      for (let i = 0; i < sections.length; i++) {
+        const top = sections[i].offsetTop - headerOffset;
+        if (currentScroll >= top - 60) {
+          currentSectionIdx = i;
+        }
+      }
+
+      const currentSec = sections[currentSectionIdx];
+      const secTop = currentSec.offsetTop - headerOffset;
+      const secHeight = currentSec.offsetHeight;
+      const secBottom = secTop + secHeight;
+
+      let targetScroll = null;
+
+      if (direction === 1) {
+        const remainingInCurrentSec = secBottom - (currentScroll + viewportHeight);
+        if (remainingInCurrentSec > 140) {
+          targetScroll = Math.min(secBottom - viewportHeight + 40, currentScroll + viewportHeight * 0.7);
+        } else if (currentSectionIdx < sections.length - 1) {
+          const nextSec = sections[currentSectionIdx + 1];
+          targetScroll = nextSec.offsetTop - headerOffset;
+        }
+      } else {
+        if (currentScroll > secTop + 120) {
+          targetScroll = secTop;
+        } else if (currentSectionIdx > 0) {
+          const prevSec = sections[currentSectionIdx - 1];
+          targetScroll = prevSec.offsetTop - headerOffset;
+        } else {
+          targetScroll = 0;
+        }
+      }
+
+      if (targetScroll !== null && Math.abs(targetScroll - currentScroll) > 10) {
+        e.preventDefault();
+        isSnapping = true;
+
+        if (lenis) {
+          lenis.scrollTo(targetScroll, {
+            duration: 1.15,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            onComplete: () => {
+              clearTimeout(snapLockTimer);
+              snapLockTimer = setTimeout(() => {
+                isSnapping = false;
+              }, 150);
+            },
+          });
+        } else {
+          window.scrollTo({ top: targetScroll, behavior: "smooth" });
+          clearTimeout(snapLockTimer);
+          snapLockTimer = setTimeout(() => {
+            isSnapping = false;
+          }, 800);
+        }
+
+        setTimeout(() => {
+          isSnapping = false;
+        }, 1400);
+      }
+    },
+    { passive: false }
+  );
+
+  // 5. Keyboard Navigation
+  window.addEventListener("keydown", (e) => {
+    const tag = document.activeElement?.tagName?.toLowerCase();
+    if (tag === "input" || tag === "textarea" || document.activeElement?.isContentEditable) return;
+
+    if (e.key === "PageDown" || e.key === "ArrowDown") {
+      const currentScroll = window.scrollY;
+      const headerOffset = getHeaderOffset();
+      const sections = getSections();
+      const nextSec = sections.find((s) => s.offsetTop - headerOffset > currentScroll + 30);
+      if (nextSec) {
+        e.preventDefault();
+        if (lenis) lenis.scrollTo(nextSec, { offset: -headerOffset, duration: 1.1 });
+        else window.scrollTo({ top: nextSec.offsetTop - headerOffset, behavior: "smooth" });
+      }
+    } else if (e.key === "PageUp" || e.key === "ArrowUp") {
+      const currentScroll = window.scrollY;
+      const headerOffset = getHeaderOffset();
+      const sections = getSections();
+      const prevSec = [...sections].reverse().find((s) => s.offsetTop - headerOffset < currentScroll - 30);
+      if (prevSec) {
+        e.preventDefault();
+        if (lenis) lenis.scrollTo(prevSec, { offset: -headerOffset, duration: 1.1 });
+        else window.scrollTo({ top: prevSec.offsetTop - headerOffset, behavior: "smooth" });
+      }
+    }
+  });
+})();
