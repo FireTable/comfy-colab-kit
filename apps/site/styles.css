@@ -86,6 +86,11 @@ ol.steps li::before{content:counter(step);font:700 14px var(--mono);width:36px;h
 
 .icon-btn{background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:10px;height:36px;padding:0 10px;cursor:pointer;font:600 13px var(--mono);backdrop-filter:blur(8px);display:inline-flex;align-items:center;justify-content:center;gap:4px;transition:all .15s}
 .icon-btn:hover{border-color:var(--y);color:var(--y)}
+.theme-sun,.theme-moon{width:16px;height:16px;color:var(--fg);flex-shrink:0}
+:root[data-theme=dark] .theme-sun{display:block}
+:root[data-theme=dark] .theme-moon{display:none}
+:root[data-theme=light] .theme-sun{display:none}
+:root[data-theme=light] .theme-moon{display:block}
 .nav-actions{display:flex;align-items:center;gap:8px}
 
 .tag{display:inline-block;font:600 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;border:1px solid var(--line2);color:var(--n);margin-bottom:10px}

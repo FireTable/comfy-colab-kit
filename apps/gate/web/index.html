@@ -25,6 +25,11 @@ header img{width:30px;height:30px;border-radius:8px}header b{font-size:15px;lett
 .chip{font:12px var(--mono);color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:2px 9px}
 .icon{background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:10px;height:38px;padding:0 10px;cursor:pointer;font:600 13px var(--mono);backdrop-filter:blur(8px);display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
 .icon:hover{border-color:var(--y);color:var(--y)}
+.theme-sun,.theme-moon{width:16px;height:16px;color:var(--fg);flex-shrink:0}
+:root[data-theme=dark] .theme-sun{display:block}
+:root[data-theme=dark] .theme-moon{display:none}
+:root[data-theme=light] .theme-sun{display:none}
+:root[data-theme=light] .theme-moon{display:block}
 /* Language Dropdown Menu */
 .lang-dropdown{position:relative}
 .lang-btn{font:600 12.5px var(--mono);padding:0 9px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;flex-shrink:0}
@@ -32,7 +37,8 @@ header img{width:30px;height:30px;border-radius:8px}header b{font-size:15px;lett
 .chevron-sm{width:12px;height:12px;color:var(--muted);transition:transform .2s;flex-shrink:0}
 .lang-open .chevron-sm{transform:rotate(180deg)}
 .menu-popover{position:absolute;right:0;top:calc(100% + 6px);min-width:140px;background:var(--popover);border:1px solid var(--line2);border-radius:14px;padding:5px;
- backdrop-filter:blur(24px) saturate(150%);-webkit-backdrop-filter:blur(24px) saturate(150%);box-shadow:0 16px 36px -8px rgba(0,0,0,.65);z-index:70;display:flex;flex-direction:column;gap:2px}
+ backdrop-filter:blur(24px) saturate(150%);-webkit-backdrop-filter:blur(24px) saturate(150%);box-shadow:0 16px 36px -8px rgba(0,0,0,.65);z-index:70;display:none;flex-direction:column;gap:2px}
+.menu-popover.open{display:flex}
 .menu-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:8px;border:0;background:transparent;color:var(--fg);cursor:pointer;font:500 13px system-ui,-apple-system,sans-serif;width:100%;text-align:left;transition:background-color .12s}
 .menu-item:hover{background:rgba(127,127,127,.15)}
 .menu-item.active{background:rgba(249,171,0,.15);color:var(--fg);font-weight:600}
@@ -86,7 +92,8 @@ label{display:block;margin:18px 0 6px;font:600 11px var(--mono);letter-spacing:.
 .sel-chevron{width:16px;height:16px;color:var(--muted);transition:transform .2s;flex-shrink:0}
 .sel-open .sel-chevron{transform:rotate(180deg)}
 .sel-popover{position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--popover);border:1px solid var(--line2);border-radius:14px;padding:6px;
- backdrop-filter:blur(24px) saturate(150%);-webkit-backdrop-filter:blur(24px) saturate(150%);box-shadow:0 16px 40px -10px rgba(0,0,0,.65);z-index:60;display:flex;flex-direction:column;gap:2px}
+ backdrop-filter:blur(24px) saturate(150%);-webkit-backdrop-filter:blur(24px) saturate(150%);box-shadow:0 16px 40px -10px rgba(0,0,0,.65);z-index:60;display:none;flex-direction:column;gap:2px}
+.sel-popover.open{display:flex}
 .sel-popover-head{display:flex;align-items:center;justify-content:space-between;padding:4px 8px 6px;border-bottom:1px solid var(--line);margin-bottom:4px}
 .sel-popover-title{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
 .sel-close-btn{background:none;border:0;color:var(--muted);cursor:pointer;padding:2px 4px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:color .12s}
@@ -123,10 +130,9 @@ summary{cursor:pointer;min-height:42px;display:flex;align-items:center;gap:8px;p
 summary::-webkit-details-marker{display:none}
 .con-chevron{width:14px;height:14px;transition:transform .18s;color:var(--muted)}
 details[open] .con-chevron{transform:rotate(90deg)}
-.con-term{width:14px;height:14px;color:var(--muted)}
 .con-title{font-weight:600;color:var(--fg);font-size:12.5px}
 summary .n{margin-left:auto;padding:1px 6px;border-radius:4px;background:rgba(127,127,127,.12);font-size:11px}
-pre{font:11px/1.5 var(--mono);color:var(--fg);opacity:.88;padding:4px 12px 12px;max-height:260px;overflow:auto;white-space:pre-wrap;word-break:break-all;margin:0}
+pre{font:11.5px/1.55 var(--mono);color:var(--fg);opacity:.9;padding:6px 12px 14px;max-height:260px;overflow-x:auto;white-space:pre-wrap;word-break:normal;overflow-wrap:break-word;margin:0}
 footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color:var(--muted);padding:0 0 14px;opacity:.7}
 .out{opacity:0;transform:scale(.98)}
 /* Skeleton loading */
@@ -145,10 +151,10 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
       <svg class="globe-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>
       </svg>
-      <span id="ltext">中文</span>
+      <span id="ltext">简体中文</span>
       <svg class="chevron-sm" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
     </button>
-    <div class="menu-popover" id="lang-popover" role="menu" hidden>
+    <div class="menu-popover" id="lang-popover" role="menu">
       <button type="button" class="menu-item" role="menuitem" id="opt-lang-zh">
         <span>简体中文</span>
         <svg class="menu-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -159,9 +165,15 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
       </button>
     </div>
   </div>
-  <button class="icon" id="theme" aria-label="Toggle theme" title="Toggle theme">◐</button>
+  <button class="icon" id="theme" aria-label="Toggle theme" title="Toggle theme">
+    <svg class="theme-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+    </svg>
+    <svg class="theme-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+    </svg>
+  </button>
 </header>
-<div class="sel-backdrop" id="lang-backdrop" hidden></div>
 <main>
 <section class="card" id="card" aria-live="polite">
   <div class="card-glow"></div>
@@ -185,7 +197,7 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
         </div>
         <svg class="sel-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
       </button>
-      <div class="sel-popover" id="prof-popover" role="listbox" hidden>
+      <div class="sel-popover" id="prof-popover" role="listbox">
         <div class="sel-popover-head">
           <span class="sel-popover-title" id="pop-title">Profile</span>
           <button type="button" class="sel-close-btn" id="pop-close" aria-label="Close">
@@ -197,7 +209,6 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
       <select id="profile" hidden></select>
     </div>
   </div>
-  <div class="sel-backdrop" id="prof-backdrop" hidden></div>
   <button class="star" id="wake">
     <span>
       <span id="wicon">
@@ -212,7 +223,6 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
   <details id="logs">
     <summary>
       <svg class="con-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-      <svg class="con-term" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
       <span class="con-title" id="con-title">Console</span>
       <span class="n" id="lcount">0 lines</span>
     </summary>
@@ -301,12 +311,12 @@ const root=document.documentElement,theme=localStorage.getItem("kit.theme")||"da
 $("theme").onclick=()=>{const n=root.dataset.theme==="dark"?"light":"dark";root.dataset.theme=n;localStorage.setItem("kit.theme",n);window.kitBg&&kitBg.set({})};
 
 // Language Dropdown Menu Implementation
-const langBtn=$("lang-btn"),langPopover=$("lang-popover"),langDropdown=$("lang-dropdown"),langBackdrop=$("lang-backdrop");
+const langBtn=$("lang-btn"),langPopover=$("lang-popover"),langDropdown=$("lang-dropdown");
 let langOpen=false;
 function toggleLangMenu(force){
  langOpen=force!==undefined?force:!langOpen;
- langPopover.hidden=!langOpen;
- langBackdrop.hidden=!langOpen;
+ if(langOpen&&selectOpen)toggleSelect(false);
+ langPopover.classList.toggle("open",langOpen);
  langDropdown.classList.toggle("lang-open",langOpen);
  langBtn.setAttribute("aria-expanded",langOpen);
 }
@@ -318,14 +328,13 @@ function setLanguage(l){
  renderCustomSelect();
 }
 function updateLanguageUI(){
- $("ltext").textContent=lang==="zh"?"中文":"EN";
+ $("ltext").textContent=lang==="zh"?"简体中文":"English";
  $("opt-lang-zh").classList.toggle("active",lang==="zh");
  $("opt-lang-en").classList.toggle("active",lang==="en");
 }
 langBtn.onclick=(e)=>{e.stopPropagation();toggleLangMenu()};
-langBackdrop.onclick=()=>toggleLangMenu(false);
-$("opt-lang-zh").onclick=()=>{setLanguage("zh");toggleLangMenu(false)};
-$("opt-lang-en").onclick=()=>{setLanguage("en");toggleLangMenu(false)};
+$("opt-lang-zh").onclick=(e)=>{e.stopPropagation();setLanguage("zh");toggleLangMenu(false)};
+$("opt-lang-en").onclick=(e)=>{e.stopPropagation();setLanguage("en");toggleLangMenu(false)};
 updateLanguageUI();
 
 const card=$("card");card.addEventListener("pointermove",e=>{const r=card.getBoundingClientRect();card.style.setProperty("--mx",e.clientX-r.left+"px");card.style.setProperty("--my",e.clientY-r.top+"px")});
@@ -340,19 +349,26 @@ function dlp(d){if(!d)return null;const G=1e9;
 const gb=b=>(b/1e9).toFixed(b>=1e10?1:2);
 
 // Custom Select Implementation
-const profTrigger=$("prof-trigger"),profPopover=$("prof-popover"),profItems=$("prof-items"),customSelect=$("custom-select"),profBackdrop=$("prof-backdrop");
+const profTrigger=$("prof-trigger"),profPopover=$("prof-popover"),profItems=$("prof-items"),customSelect=$("custom-select");
 let selectOpen=false;
 function toggleSelect(force){
  selectOpen=force!==undefined?force:!selectOpen;
- profPopover.hidden=!selectOpen;
- profBackdrop.hidden=!selectOpen;
+ if(selectOpen&&langOpen)toggleLangMenu(false);
+ profPopover.classList.toggle("open",selectOpen);
  customSelect.classList.toggle("sel-open",selectOpen);
  profTrigger.setAttribute("aria-expanded",selectOpen);
 }
 profTrigger.onclick=(e)=>{e.stopPropagation();toggleSelect()};
-profBackdrop.onclick=()=>toggleSelect(false);
 $("pop-close").onclick=(e)=>{e.stopPropagation();toggleSelect(false)};
-window.addEventListener("keydown",e=>{if(e.key==="Escape"){toggleSelect(false);toggleLangMenu(false)}});
+
+// Universal outside-click and escape handling
+document.addEventListener("pointerdown",e=>{
+ if(selectOpen&&(!e.target||(e.target instanceof Node&&!customSelect.contains(e.target))))toggleSelect(false);
+ if(langOpen&&(!e.target||(e.target instanceof Node&&!langDropdown.contains(e.target))))toggleLangMenu(false);
+});
+window.addEventListener("keydown",e=>{
+ if(e.key==="Escape"){toggleSelect(false);toggleLangMenu(false)}
+});
 
 function renderCustomSelect(){
  if(!profiles.length)return;
@@ -363,6 +379,7 @@ function renderCustomSelect(){
  $("sel-desc").textContent=`${t("workflows_count",{count:cur.workflows.filter(w=>!w.optional).length})} · ~${cur.size_gb_default} GB · ${cur.accelerator}`;
  $("plabel-txt").textContent=t("profile_label");
  $("pop-title").textContent=t("select_profile");
+ if($("hprof"))$("hprof").textContent=cur.id;
 
  profItems.innerHTML="";
  for(const p of profiles){
@@ -377,7 +394,8 @@ function renderCustomSelect(){
    </div>
    <svg class="sel-item-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
   `;
-  item.onclick=()=>{
+  item.onclick=(e)=>{
+   e.stopPropagation();
    selectedProfileId=p.id;
    toggleSelect(false);
    renderCustomSelect();
@@ -397,7 +415,8 @@ function render(){
  const cls=st==="ready"?"ready":st==="failed"?"failed":waking||st==="stopping"?"waking":"";
  $("badge").className="badge "+cls;
  $("btext").textContent={sleeping:t("badge_sleeping"),ready:t("badge_ready"),failed:t("badge_failed"),stopping:t("badge_stopping"),switching:t("badge_switching")}[st]||t("badge_waking");
- $("hprof").hidden=!S.profile;$("hprof").textContent=S.profile||"";
+ const curP=(S.state==="ready"||S.state==="switching"||BOOT.includes(S.state))?(S.profile||selectedProfileId):(selectedProfileId||S.profile);
+ $("hprof").hidden=!curP;$("hprof").textContent=curP||"";
  $("vcount").textContent=t("online",{count:S.clients||1});
  $("title").textContent=st==="sleeping"?t("sleeping_title"):st==="ready"?t("ready_title"):st==="failed"?t("failed_title"):st==="stopping"?t("stopping_title"):st==="switching"?t("switching_title"):t("waking_title");
  const started=S.session_started||S.since;
