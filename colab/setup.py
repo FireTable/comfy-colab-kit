@@ -296,7 +296,7 @@ class Downloads:
         return {
             "bytes_done": b, "bytes_total": self.total,
             "core_bytes_done": cb, "core_bytes_total": self.core_total,
-            "bytes_per_s": int(rate), "eta_s": int(left / rate) if rate > 1e5 else None,
+            "bytes_per_s": int(rate), "eta_s": int(left / rate) if rate > 1e5 and not self.paused else None,
             "files_done": self.files_done, "files_total": len(self.models),
             "core_done": self.core_done.is_set(), "paused": self.paused, "restarts": self.restarts,
             # legacy, file-granular

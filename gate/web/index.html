@@ -167,12 +167,14 @@ $("wake").onclick=async()=>{$("err").textContent="";$("wake").disabled=true;$("w
  try{await api("/_gate/wake",{method:"POST",body:JSON.stringify({profile:$("profile").value})})}catch(e){$("err").textContent=e.message;$("wake").disabled=false;$("wtext").textContent="⚡ Wake"}};
 $("stop").onclick=async()=>{if(!confirm("Stop and release the GPU?"))return;try{await api("/_gate/stop",{method:"POST"})}catch(e){$("err").textContent=e.message}};
 function connect(){const es=new EventSource("/_gate/events");
- es.addEventListener("state",e=>{S=JSON.parse(e.data);render()});
+ es.addEventListener("state",e=>{const j=JSON.parse(e.data);S=Object.assign({you:S&&S.you,owner_only:S&&S.owner_only},j);render()});
  es.addEventListener("progress",e=>{if(S){S.progress=JSON.parse(e.data);render()}});
  es.addEventListener("log",e=>log(JSON.parse(e.data)));
  es.onerror=()=>{$("sub").textContent="Reconnecting…"}}
 api("/_gate/status").then(j=>{S=j;render()}).catch(e=>$("err").textContent=e.message);
 loadProfiles();connect();setInterval(render,1000);
+// safety net if a proxy buffers or drops the SSE stream: resync the full status every 10 s
+setInterval(()=>api("/_gate/status").then(j=>{S=Object.assign({},S||{},j);render()}).catch(()=>{}),10000);
 </script>
 </body>
 </html>
