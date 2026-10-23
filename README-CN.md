@@ -65,15 +65,15 @@ docker compose -f deploy/docker-compose.yml up -d
 # 把 deploy/Caddyfile.snippet 加进 Caddy 并 reload，打开 https://$PUBLIC_HOST
 ```
 
-完整步骤见 [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md) 与 [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md)。
+完整步骤见 [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md) 与 [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md)，从零开始申请凭证与部署指南详见 [docs/AGENT.md](docs/AGENT.md)。
 
 ## 🧩 Profile
 
 | Profile | 用途 | 默认下载量 |
 |---|---|---|
-| [`moss-image`](examples/profiles/moss-image/)（主力） | MOSS-Image：默认 DeBand int8，4 步加速、官方高质量 / 布局、编辑（可选），在 App 模式里并排对比 | 核心约 26 GB / 默认全集约 57 GB |
-| [`sd-latest`](examples/profiles/sd-latest/) | Stable Diffusion 3.5：默认 Large fp8，TurboX 8 步，Medium 加速（需授权，可选） | 核心约 15 GB / 约 22 GB |
-| [`qwen-image`](examples/profiles/qwen-image/) | Qwen-Image 2.1：默认 Turbo 文生图，完整文生图，Turbo / 完整编辑 | 核心约 27 GB / 约 43 GB |
+| [`moss-image`](profiles/examples/moss-image/)（主力） | MOSS-Image：默认 DeBand int8，4 步加速、官方高质量 / 布局、编辑（可选），在 App 模式里并排对比 | 核心约 26 GB / 默认全集约 57 GB |
+| [`sd-latest`](profiles/examples/sd-latest/) | Stable Diffusion 3.5：默认 Large fp8，TurboX 8 步，Medium 加速（需授权，可选） | 核心约 15 GB / 约 22 GB |
+| [`qwen-image`](profiles/examples/qwen-image/) | Qwen-Image 2.1：默认 Turbo 文生图，完整文生图，Turbo / 完整编辑 | 核心约 27 GB / 约 43 GB |
 
 工作流**只用**社区已发布的版本，从作者处下载并记录来源与许可证。格式与透传选项见 [docs/PROFILES.md](docs/PROFILES.md)。
 
@@ -88,9 +88,44 @@ docker compose -f deploy/docker-compose.yml up -d
 密钥永不入库：`.env`、`secrets/`、`data/` 已忽略；pre-commit 与 CI 运行 gitleaks + `scripts/check-secrets.sh`；profile
 拒绝类似凭据的字段。密钥经 `colab exec` 的 stdin 进入 Colab，只存在于内核内存。详见 [docs/SECURITY.md](docs/SECURITY.md)。
 
-## 🗂️ 项目结构
+## 🏗️ Monorepo 工程结构
 
-见英文 README 的 *Project structure*；文档入口 [docs/README.md](docs/README.md)。
+Comfy Colab Kit 采用工程化 Monorepo 组织架构，清晰分离服务应用、运行时包、模型预设与基础设施配置：
+
+```
+comfy-colab-kit/
+├── apps/
+│   ├── gate/                 # [应用] 网关与反向代理服务
+│   │   ├── gate/             # 后端 Python 代码（aiohttp、状态机、CU 预算、反代）
+│   │   │   └── web/          # 唤醒页 UI（index.html、bg.js、overlay.js）
+│   │   └── openapi.yaml      # OpenAPI 3.1 接口定义
+│   └── site/                 # [应用] 产品官网与架构展示静态站点
+│       ├── index.html        # 宣传站入口
+│       ├── styles.css        # 一致性暗黑/明亮主题样式
+│       └── main.js           # 前端交互与动效
+├── packages/
+│   ├── colab/                # [运行时包] 远端 Google Colab 内核代理脚本
+│   │   └── setup.py          # 容器打包上传并在 Colab VM 执行的环境装配脚本
+│   ├── cli/                  # [开发工具包] 宿主机与智能体运维命令行
+│   │   └── ckit              # Python 标准库独立 CLI 工具
+│   └── schemas/              # [规范包] 预设 JSON Schema 约束定义
+│       └── profile.schema.json
+├── profiles/                 # 模型预设与工作流管理
+│   ├── examples/             # 内置社区预设（moss-image、sd-latest、qwen-image）
+│   └── custom/               # 用户挂载自定义预设目录
+├── deploy/                   # 基础设施与部署编排
+│   ├── Dockerfile            # 最小化容器镜像构建文件
+│   ├── docker-compose.yml    # VPS 多容器互联编排
+│   └── Caddyfile.snippet     # 反向代理路由规则配置
+├── docs/                     # 完整工程规范与产品技术文档
+│   ├── AGENT.md              # VPS 完整实操部署与凭证申请指南（英文）
+│   ├── AGENT_SKILL.md        # AI Agent 自动化调度指南（唤醒、出图、关机）
+│   └── ...
+├── scripts/                  # 验证、校验与敏感信息审计脚本
+└── tests/                    # 完整自动化单元与集成测试套件（108+ 测试）
+```
+
+根目录下维护有软链接（`gate/`、`site/`、`colab/`、`cli/`、`schemas/`、`examples/`），确保对已有环境、部署脚本及挂载完全向后兼容。
 
 ## 📄 许可证
 

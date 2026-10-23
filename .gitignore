@@ -25,3 +25,4 @@ dist/
 .DS_Store
 .deploy-notes.md
 grok/
+scratch/

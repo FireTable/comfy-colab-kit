@@ -5,24 +5,24 @@ read [docs/AGENT_SKILL.md](docs/AGENT_SKILL.md) instead.
 
 ---
 
-## 🧭 Module map
+## 🧭 Monorepo Module Map
 
-| Path | Role | Notes |
-|---|---|---|
-| `gate/app.py` | aiohttp routes, auth middleware, background loop (auto-stop tick, heartbeat, orphan sweep, ccu-info) | `build_app(settings, colab, profiles, run_background)` is the test seam |
-| `gate/session.py` | **The one global shared session**: wake lock, boot task, SSE broadcaster, persistence (`STATE_DIR/session.json`) | `wake()` is idempotent; never add a second code path that calls `colab new` |
-| `gate/state.py` | 10-state machine + allowed transitions + setup-stage mapping | pure; extend `TRANSITIONS` + tests together |
-| `gate/stopper.py` | auto-stop rules and wake admission | pure functions on a `Snapshot`; no I/O |
-| `gate/auth.py` | Cloudflare Access JWT verification, owner / owner-only actions, agent bearer | never trust the plain email header |
-| `gate/config.py` | `.env` → `Settings` / `AutoStop` with validation | secrets only via `*_FILE` |
-| `gate/profiles.py` | profile loading/validation (secret-key scan, URL rules, references) | mirrors `schemas/profile.schema.json` — keep both in sync |
-| `gate/plan.py` | profile + settings → JSON plan for Colab | |
-| `gate/proxy.py` | reverse proxy incl. `/ws`, CF service-token headers, overlay injection | strips user Access headers/cookies before forwarding |
-| `gate/colab.py` | async wrapper of the `colab` CLI | secrets go on **stdin** of `colab exec`, never argv |
-| `gate/web/` | wake page + `overlay.js` (App ⇄ Graph via `Comfy.ToggleLinear`) | no build step, no external assets |
-| `colab/setup.py` | runs in the Colab kernel; prints `KIT_STAGE/KIT_PROGRESS/KIT_READY/KIT_FAILED` | stdlib + huggingface_hub only |
-| `cli/ckit` | stdlib CLI for humans/agents | |
-| `examples/profiles/*` | `moss-image` (primary), `sd-latest`, `qwen-image` | community workflows only |
+The repository is structured as an engineering monorepo with root compatibility symlinks:
+
+| Path | Primary Module | Role | Notes |
+|---|---|---|---|
+| `apps/gate/` (`gate/`) | Gateway App | aiohttp gateway, auth middleware, background loop, state machine | `build_app(settings, colab, profiles, run_background)` is the test seam |
+| `apps/gate/gate/web/` | Web UI | Wake page (`index.html`), `bg.js`, `overlay.js` (App ⇄ Graph via `Comfy.ToggleLinear`) | Zero-RTT SSR-like injection, no build step |
+| `apps/site/` (`site/`) | Landing App | Promo marketing & architecture documentation showcase | Pure static HTML/CSS/JS (Cloudflare Pages) |
+| `packages/colab/` (`colab/`) | VM Runtime | Runs in Colab kernel; prints `KIT_STAGE/KIT_PROGRESS/KIT_READY/KIT_FAILED` | stdlib + huggingface_hub only |
+| `packages/cli/` (`cli/`) | CLI Tool | `ckit` command line utility for operators and agents | stdlib CLI |
+| `packages/schemas/` (`schemas/`) | Schema Package | JSON schema (`profile.schema.json`) | Validates all profiles |
+| `profiles/examples/` (`examples/`) | Community Profiles | `moss-image` (primary), `sd-latest`, `qwen-image` | Community workflows only |
+| `profiles/custom/` | User Profiles | User-defined custom model profiles mount | Re-read dynamically on wake |
+| `deploy/` | Deployment | Dockerfile, compose, Caddyfile snippet | Container run as uid 10001 |
+| `docs/` | Documentation | Product & architecture guides, including `docs/AGENT.md` | English only, no secrets |
+| `scripts/` | Tooling | `check-secrets.sh`, `validate-profile.py`, `cf-setup.sh` | Run before commit |
+| `tests/` | Tests | Pytest test suite | Run with `python3 -m pytest -q` |
 
 ## 🔁 State machine
 

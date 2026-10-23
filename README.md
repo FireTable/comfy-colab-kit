@@ -69,15 +69,15 @@ docker compose -f deploy/docker-compose.yml up -d
 # add deploy/Caddyfile.snippet to Caddy, reload, open https://$PUBLIC_HOST
 ```
 
-Full walkthrough: [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md) and [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md).
+Full walkthrough: [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md), [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md), and [docs/AGENT.md](docs/AGENT.md) (comprehensive credential guide).
 
 ## 🧩 Profiles
 
 | Profile | Purpose | Default download |
 |---|---|---|
-| [`moss-image`](examples/profiles/moss-image/) (primary) | MOSS-Image: DeBand int8 default, 4-step turbo, official quality / layout, edit (optional) — side by side in App mode | ~26 GB core / ~57 GB full default set |
-| [`sd-latest`](examples/profiles/sd-latest/) | Stable Diffusion 3.5: Large fp8 default, TurboX 8-step, Medium turbo (gated, optional) | ~15 GB core / ~22 GB |
-| [`qwen-image`](examples/profiles/qwen-image/) | Qwen-Image 2.1: Turbo T2I default, full T2I, Turbo / full Edit | ~27 GB core / ~43 GB |
+| [`moss-image`](profiles/examples/moss-image/) (primary) | MOSS-Image: DeBand int8 default, 4-step turbo, official quality / layout, edit (optional) — side by side in App mode | ~26 GB core / ~57 GB full default set |
+| [`sd-latest`](profiles/examples/sd-latest/) | Stable Diffusion 3.5: Large fp8 default, TurboX 8-step, Medium turbo (gated, optional) | ~15 GB core / ~22 GB |
+| [`qwen-image`](profiles/examples/qwen-image/) | Qwen-Image 2.1: Turbo T2I default, full T2I, Turbo / full Edit | ~27 GB core / ~43 GB |
 
 Workflows are **only** community-published ones, fetched from the author with source and license recorded.
 Format and passthrough options: [docs/PROFILES.md](docs/PROFILES.md).
@@ -94,21 +94,44 @@ No secret ever enters the repo: `.env`, `secrets/`, `data/` are ignored, gitleak
 run in pre-commit and CI, profiles reject credential-like keys. Secrets reach Colab over `colab exec` stdin and
 live only in kernel memory. See [docs/SECURITY.md](docs/SECURITY.md).
 
-## 🗂️ Project structure
+## 🏗️ Monorepo Architecture
+
+Comfy Colab Kit is structured as an engineering monorepo separating server applications, runtime packages, model profiles, and deployment automation:
 
 ```
-gate/            comfy-gate: app.py session.py state.py auth.py stopper.py budget.py proxy.py colab.py plan.py
-gate/web/        wake page (index.html), overlay.js, logo
-gate/openapi.yaml
-colab/setup.py   runs inside Colab: parallel install/download, App-mode metadata, tunnel, watchdog, smoke
-cli/ckit         stdlib client (status|profiles|wake|switch|stop|extend --json)
-schemas/         profile.schema.json
-examples/profiles/{moss-image,sd-latest,qwen-image}/  (each with README.md + workflows/)
-deploy/          Dockerfile, docker-compose.yml, Caddyfile.snippet
-scripts/         cf-setup.sh, check-secrets.sh, validate-profile.py
-docs/            product documentation (start at docs/README.md)
-tests/           pytest suite (state machine, auth, auto-stop config, profiles, shared session, app)
+comfy-colab-kit/
+├── apps/
+│   ├── gate/                 # [Application] Gateway & Reverse Proxy
+│   │   ├── gate/             # Python backend (aiohttp, auth, state machine, budget)
+│   │   │   └── web/          # Wake page UI (index.html, bg.js, overlay.js)
+│   │   └── openapi.yaml      # OpenAPI 3.1 specification
+│   └── site/                 # [Application] Showcase / Landing Site
+│       ├── index.html        # Showcase documentation & promo page
+│       ├── styles.css        # Aligned theme styles
+│       └── main.js           # Client interactions
+├── packages/
+│   ├── colab/                # [Package] Colab VM agent & runtime
+│   │   └── setup.py          # Setup & execution runner inside Colab kernel
+│   ├── cli/                  # [Package] Host & developer CLI tool
+│   │   └── ckit              # Standalone Python stdlib CLI client
+│   └── schemas/              # [Package] JSON Schema definitions
+│       └── profile.schema.json
+├── profiles/                 # Profiles & Model Configurations
+│   ├── examples/             # Built-in community profiles (moss-image, sd-latest, qwen-image)
+│   └── custom/               # Mount point for user custom profiles
+├── deploy/                   # Infrastructure & deployment configuration
+│   ├── Dockerfile            # Container build recipe
+│   ├── docker-compose.yml    # VPS orchestration
+│   └── Caddyfile.snippet     # Reverse proxy routing
+├── docs/                     # Comprehensive product & engineering documentation
+│   ├── AGENT.md              # VPS deployment & credential acquisition runbook
+│   ├── AGENT_SKILL.md        # AI agent usage guide (wake, generate, stop)
+│   └── ...
+├── scripts/                  # CI, validation and secret check utilities
+└── tests/                    # Pytest test suite (108+ tests)
 ```
+
+Root-level compatibility symlinks (`gate/`, `site/`, `colab/`, `cli/`, `schemas/`, `examples/`) are maintained for 100% backwards compatibility with existing container volumes, local tools, and paths.
 
 ## 🛠️ Development
 

@@ -23,8 +23,21 @@ body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 Inter,system-ui
 header{position:relative;z-index:2;display:flex;align-items:center;gap:10px;padding:14px max(18px,env(safe-area-inset-left))}
 header img{width:30px;height:30px;border-radius:8px}header b{font-size:15px;letter-spacing:.2px}header .sp{flex:1}
 .chip{font:12px var(--mono);color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:2px 9px}
-.icon{background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:10px;height:38px;padding:0 10px;cursor:pointer;font:600 13px var(--mono);backdrop-filter:blur(8px);display:inline-flex;align-items:center;justify-content:center;gap:4px;transition:all .15s}
+.icon{background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:10px;height:38px;padding:0 10px;cursor:pointer;font:600 13px var(--mono);backdrop-filter:blur(8px);display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
 .icon:hover{border-color:var(--y);color:var(--y)}
+/* Language Dropdown Menu */
+.lang-dropdown{position:relative}
+.lang-btn{font:600 12.5px var(--mono);padding:0 9px}
+.globe-icon{color:var(--muted);flex-shrink:0}
+.chevron-sm{width:12px;height:12px;color:var(--muted);transition:transform .2s;flex-shrink:0}
+.lang-open .chevron-sm{transform:rotate(180deg)}
+.menu-popover{position:absolute;right:0;top:calc(100% + 6px);min-width:140px;background:var(--popover);border:1px solid var(--line2);border-radius:14px;padding:5px;
+ backdrop-filter:blur(24px) saturate(150%);-webkit-backdrop-filter:blur(24px) saturate(150%);box-shadow:0 16px 36px -8px rgba(0,0,0,.65);z-index:70;display:flex;flex-direction:column;gap:2px}
+.menu-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:8px;border:0;background:transparent;color:var(--fg);cursor:pointer;font:500 13px system-ui,-apple-system,sans-serif;width:100%;text-align:left;transition:background-color .12s}
+.menu-item:hover{background:rgba(127,127,127,.15)}
+.menu-item.active{background:rgba(249,171,0,.15);color:var(--fg);font-weight:600}
+.menu-check{width:14px;height:14px;color:var(--y);opacity:0;flex-shrink:0}
+.menu-item.active .menu-check{opacity:1}
 main{position:relative;z-index:1;flex:1;display:grid;place-items:center;padding:12px 16px calc(28px + env(safe-area-inset-bottom))}
 /* SpotlightCard */
 .card{position:relative;width:100%;max-width:460px;background:var(--card);border:1px solid var(--line2);border-radius:22px;padding:26px 24px 20px;
@@ -38,11 +51,9 @@ main{position:relative;z-index:1;flex:1;display:grid;place-items:center;padding:
 .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);box-shadow:0 0 0 0 currentColor}
 .waking .dot{background:var(--y);animation:pulse 1.6s infinite;color:var(--y)}.ready .dot{background:var(--ok)}.failed .dot{background:var(--bad)}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(249,171,0,.6)}70%{box-shadow:0 0 0 8px rgba(249,171,0,0)}100%{box-shadow:0 0 0 0 rgba(249,171,0,0)}}
-/* Online Badge with SVG & Live Dot */
-.viewers{display:inline-flex;align-items:center;gap:6px;font:500 12px var(--mono);color:var(--muted);padding:4px 8px;border-radius:8px;background:rgba(127,127,127,.06);border:1px solid var(--line)}
-.user-icon{width:13px;height:13px;color:var(--muted)}
-.live-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 6px var(--ok);animation:livePulse 2s infinite}
-@keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.85)}}
+/* Online Badge with SVG (clean, no live dot) */
+.viewers{display:inline-flex;align-items:center;gap:6px;font:500 12px var(--mono);color:var(--muted);padding:4px 9px;border-radius:8px;background:rgba(127,127,127,.06);border:1px solid var(--line)}
+.user-icon{width:14px;height:14px;color:var(--muted);flex-shrink:0}
 .hero{display:flex;flex-direction:column;align-items:center;text-align:center;margin:18px 0 6px}
 .hero img{width:64px;height:64px;border-radius:16px;box-shadow:0 0 40px -6px var(--o)}
 /* ShinyText */
@@ -64,6 +75,7 @@ h1{font-size:24px;font-weight:700;letter-spacing:-.01em;margin:14px 0 4px;backgr
 .sm{font:11.5px var(--mono);color:var(--muted);margin-top:6px}
 label{display:block;margin:18px 0 6px;font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 /* shadcn-ui Style Custom Select */
+.sel-backdrop{position:fixed;inset:0;z-index:55;background:transparent;cursor:default}
 .custom-select{position:relative;width:100%}
 .sel-trigger{width:100%;min-height:50px;border-radius:12px;border:1px solid var(--line2);background:rgba(127,127,127,.08);color:var(--fg);padding:8px 12px;font-size:14px;cursor:pointer;
  display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;transition:border-color .15s,background-color .15s}
@@ -75,6 +87,11 @@ label{display:block;margin:18px 0 6px;font:600 11px var(--mono);letter-spacing:.
 .sel-open .sel-chevron{transform:rotate(180deg)}
 .sel-popover{position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--popover);border:1px solid var(--line2);border-radius:14px;padding:6px;
  backdrop-filter:blur(24px) saturate(150%);-webkit-backdrop-filter:blur(24px) saturate(150%);box-shadow:0 16px 40px -10px rgba(0,0,0,.65);z-index:60;display:flex;flex-direction:column;gap:2px}
+.sel-popover-head{display:flex;align-items:center;justify-content:space-between;padding:4px 8px 6px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.sel-popover-title{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.sel-close-btn{background:none;border:0;color:var(--muted);cursor:pointer;padding:2px 4px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:color .12s}
+.sel-close-btn:hover{color:var(--fg);background:rgba(127,127,127,.15)}
+.sel-items{display:flex;flex-direction:column;gap:2px}
 .sel-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background-color .12s}
 .sel-item:hover{background:rgba(127,127,127,.15)}
 .sel-item.active{background:rgba(249,171,0,.15);color:var(--fg)}
@@ -123,17 +140,35 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
 <canvas id="bg" aria-hidden="true"></canvas><div class="grid" aria-hidden="true"></div>
 <header>
   <img src="/_gate/static/logo.svg" alt=""><b>Comfy Colab Kit</b><span class="chip" id="hprof" hidden></span><span class="sp"></span>
-  <button class="icon" id="lang" title="Toggle language" aria-label="Toggle language"><span id="ltext">中</span></button>
+  <div class="lang-dropdown" id="lang-dropdown">
+    <button type="button" class="icon lang-btn" id="lang-btn" aria-haspopup="menu" aria-expanded="false" title="Language">
+      <svg class="globe-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>
+      </svg>
+      <span id="ltext">中文</span>
+      <svg class="chevron-sm" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <div class="menu-popover" id="lang-popover" role="menu" hidden>
+      <button type="button" class="menu-item" role="menuitem" id="opt-lang-zh">
+        <span>简体中文</span>
+        <svg class="menu-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </button>
+      <button type="button" class="menu-item" role="menuitem" id="opt-lang-en">
+        <span>English</span>
+        <svg class="menu-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </button>
+    </div>
+  </div>
   <button class="icon" id="theme" aria-label="Toggle theme" title="Toggle theme">◐</button>
 </header>
+<div class="sel-backdrop" id="lang-backdrop" hidden></div>
 <main>
 <section class="card" id="card" aria-live="polite">
   <div class="card-glow"></div>
   <div class="top">
     <span class="badge" id="badge"><span class="dot"></span><span id="btext">…</span></span>
     <span class="viewers" id="viewers">
-      <svg class="user-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <span class="live-dot"></span>
+      <svg class="user-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       <span id="vcount">1 online</span>
     </span>
   </div>
@@ -150,10 +185,19 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
         </div>
         <svg class="sel-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
       </button>
-      <div class="sel-popover" id="prof-popover" role="listbox" hidden></div>
+      <div class="sel-popover" id="prof-popover" role="listbox" hidden>
+        <div class="sel-popover-head">
+          <span class="sel-popover-title" id="pop-title">Profile</span>
+          <button type="button" class="sel-close-btn" id="pop-close" aria-label="Close">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="sel-items" id="prof-items"></div>
+      </div>
       <select id="profile" hidden></select>
     </div>
   </div>
+  <div class="sel-backdrop" id="prof-backdrop" hidden></div>
   <button class="star" id="wake">
     <span>
       <span id="wicon">
@@ -198,6 +242,7 @@ const I18N={
   stage_allocating:"Allocate GPU",stage_installing:"Install runtime",stage_downloading:"Download models",stage_booting:"Start ComfyUI",stage_smoke_testing:"Smoke test",
   overall:"Overall",eta:"ETA ~{time}",paused:"paused (prompt running)",stalled_restarted:"{count} stalled file restarted",stalled_restarted_p:"{count} stalled files restarted",later:"+{size} GB later",
   profile_label:"Profile",
+  select_profile:"Select Profile",
   wake_btn:"Wake",retry_btn:"Retry",starting_btn:"Starting…",
   stop_btn:"Stop · release GPU",stop_confirm:"Stop and release the GPU?",
   console_title:"Console",lines:"{count} lines",
@@ -222,6 +267,7 @@ const I18N={
   stage_allocating:"分配 GPU 算力",stage_installing:"安装运行时与依赖",stage_downloading:"下载核心模型",stage_booting:"启动 ComfyUI",stage_smoke_testing:"冒烟出图验证",
   overall:"总体进度",eta:"预计剩余 ~{time}",paused:"已暂停 (正在出图)",stalled_restarted:"{count} 个卡死文件已重启",stalled_restarted_p:"{count} 个卡死文件已重启",later:"另有 +{size} GB 后续拉取",
   profile_label:"运行预设 (Profile)",
+  select_profile:"选择运行预设",
   wake_btn:"唤醒",retry_btn:"重试",starting_btn:"启动中…",
   stop_btn:"关机 · 释放 GPU",stop_confirm:"确定要停机并释放 GPU 吗？",
   console_title:"控制台日志",lines:"{count} 行",
@@ -254,9 +300,33 @@ if(window.__INIT__){
 const root=document.documentElement,theme=localStorage.getItem("kit.theme")||"dark";root.dataset.theme=theme;
 $("theme").onclick=()=>{const n=root.dataset.theme==="dark"?"light":"dark";root.dataset.theme=n;localStorage.setItem("kit.theme",n);window.kitBg&&kitBg.set({})};
 
-function updateLangButton(){$("ltext").textContent=lang==="zh"?"EN":"中"}
-$("lang").onclick=()=>{lang=lang==="zh"?"en":"zh";localStorage.setItem("kit.lang",lang);updateLangButton();render();renderCustomSelect()};
-updateLangButton();
+// Language Dropdown Menu Implementation
+const langBtn=$("lang-btn"),langPopover=$("lang-popover"),langDropdown=$("lang-dropdown"),langBackdrop=$("lang-backdrop");
+let langOpen=false;
+function toggleLangMenu(force){
+ langOpen=force!==undefined?force:!langOpen;
+ langPopover.hidden=!langOpen;
+ langBackdrop.hidden=!langOpen;
+ langDropdown.classList.toggle("lang-open",langOpen);
+ langBtn.setAttribute("aria-expanded",langOpen);
+}
+function setLanguage(l){
+ lang=l;
+ localStorage.setItem("kit.lang",lang);
+ updateLanguageUI();
+ render();
+ renderCustomSelect();
+}
+function updateLanguageUI(){
+ $("ltext").textContent=lang==="zh"?"中文":"EN";
+ $("opt-lang-zh").classList.toggle("active",lang==="zh");
+ $("opt-lang-en").classList.toggle("active",lang==="en");
+}
+langBtn.onclick=(e)=>{e.stopPropagation();toggleLangMenu()};
+langBackdrop.onclick=()=>toggleLangMenu(false);
+$("opt-lang-zh").onclick=()=>{setLanguage("zh");toggleLangMenu(false)};
+$("opt-lang-en").onclick=()=>{setLanguage("en");toggleLangMenu(false)};
+updateLanguageUI();
 
 const card=$("card");card.addEventListener("pointermove",e=>{const r=card.getBoundingClientRect();card.style.setProperty("--mx",e.clientX-r.left+"px");card.style.setProperty("--my",e.clientY-r.top+"px")});
 async function api(p,o){const r=await fetch(p,Object.assign({headers:{"Content-Type":"application/json"}},o));const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||r.status);return j}
@@ -270,17 +340,19 @@ function dlp(d){if(!d)return null;const G=1e9;
 const gb=b=>(b/1e9).toFixed(b>=1e10?1:2);
 
 // Custom Select Implementation
-const profTrigger=$("prof-trigger"),profPopover=$("prof-popover"),customSelect=$("custom-select");
+const profTrigger=$("prof-trigger"),profPopover=$("prof-popover"),profItems=$("prof-items"),customSelect=$("custom-select"),profBackdrop=$("prof-backdrop");
 let selectOpen=false;
 function toggleSelect(force){
  selectOpen=force!==undefined?force:!selectOpen;
  profPopover.hidden=!selectOpen;
+ profBackdrop.hidden=!selectOpen;
  customSelect.classList.toggle("sel-open",selectOpen);
  profTrigger.setAttribute("aria-expanded",selectOpen);
 }
-profTrigger.onclick=()=>toggleSelect();
-document.addEventListener("click",e=>{if(!customSelect.contains(e.target))toggleSelect(false)});
-document.addEventListener("keydown",e=>{if(e.key==="Escape")toggleSelect(false)});
+profTrigger.onclick=(e)=>{e.stopPropagation();toggleSelect()};
+profBackdrop.onclick=()=>toggleSelect(false);
+$("pop-close").onclick=(e)=>{e.stopPropagation();toggleSelect(false)};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){toggleSelect(false);toggleLangMenu(false)}});
 
 function renderCustomSelect(){
  if(!profiles.length)return;
@@ -290,8 +362,9 @@ function renderCustomSelect(){
  $("sel-title").textContent=cur.title;
  $("sel-desc").textContent=`${t("workflows_count",{count:cur.workflows.filter(w=>!w.optional).length})} · ~${cur.size_gb_default} GB · ${cur.accelerator}`;
  $("plabel-txt").textContent=t("profile_label");
+ $("pop-title").textContent=t("select_profile");
 
- profPopover.innerHTML="";
+ profItems.innerHTML="";
  for(const p of profiles){
   const item=document.createElement("div");
   item.className="sel-item"+(p.id===cur.id?" active":"");
@@ -309,7 +382,7 @@ function renderCustomSelect(){
    toggleSelect(false);
    renderCustomSelect();
   };
-  profPopover.appendChild(item);
+  profItems.appendChild(item);
  }
 }
 

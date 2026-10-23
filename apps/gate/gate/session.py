@@ -28,7 +28,17 @@ from .profiles import Profile
 from .state import BOOT_STATES, Machine, State
 
 log = logging.getLogger("gate.session")
-REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _find_repo_root() -> Path:
+    cur = Path(__file__).resolve()
+    for p in [cur] + list(cur.parents):
+        if (p / "pyproject.toml").is_file():
+            return p
+    return cur.parent.parent
+
+
+REPO_ROOT = _find_repo_root()
 
 
 @dataclass
