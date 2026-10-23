@@ -64,3 +64,46 @@ def test_smoke_prompt_unwraps_request_body():
     g = {"1": {"class_type": "X", "inputs": {}}}
     assert m.smoke_prompt({"prompt": g, "presets": []}) == g
     assert m.smoke_prompt(g) == g
+
+
+
+def test_remap_models_rewrites_nodes_subgraphs_and_api_inputs():
+    al = {"moss_image_sft_int8_convrot.safetensors": "moss_image_sft_bf16.safetensors"}
+    g = {"nodes": [{"id": 1, "widgets_values": ["moss_image_sft_int8_convrot.safetensors", "default"]}],
+         "definitions": {"subgraphs": [{"nodes": [{"id": 2, "widgets_values": ["moss_image_sft_int8_convrot.safetensors"]}]}]}}
+    assert setup.remap_models(g, al) == 2
+    assert g["nodes"][0]["widgets_values"][0] == "moss_image_sft_bf16.safetensors"
+    api = {"3": {"class_type": "UNETLoader", "inputs": {"unet_name": "moss_image_sft_int8_convrot.safetensors"}}}
+    setup.remap_models(api, al)
+    assert api["3"]["inputs"]["unet_name"] == "moss_image_sft_bf16.safetensors"
+
+
+def _fake_models(tmp_path, monkeypatch, script):
+    monkeypatch.setattr(setup, "COMFY", str(tmp_path / "ComfyUI"))
+    monkeypatch.setattr(setup, "HF_DL_SCRIPT", script)
+    monkeypatch.setattr(setup, "HF_TMP", str(tmp_path / "hf"))
+    return [{"id": "a", "dest": "x/a.bin", "url": "https://huggingface.co/o/r/resolve/main/a.bin",
+             "size_gb": 0.000001, "core": True}]
+
+
+import pathlib  # noqa: E402
+
+
+def test_stalled_file_is_restarted(tmp_path, monkeypatch):
+    # first attempt writes nothing and hangs; the second attempt (marker present) succeeds
+    script = r"""
+import os, sys, time
+d = sys.argv[4]; os.makedirs(d, exist_ok=True)
+marker = d + '.tried'
+if not os.path.exists(marker):
+    open(marker, 'w').close(); time.sleep(60)
+p = os.path.join(d, 'a.bin'); open(p, 'wb').write(b'x' * 1000); print(p)
+"""
+    models = _fake_models(tmp_path, monkeypatch, script)
+    dl = setup.Downloads(models, 2, busy=lambda: False, stall_s=4)
+    dl.start()
+    dl.wait(["a"])
+    assert dl.restarts == 1 and dl.files_done == 1
+    assert (tmp_path / "ComfyUI/models/x/a.bin").exists()
+    p = dl.progress(0)
+    assert p["bytes_total"] == 1000 and p["core_done"] is True

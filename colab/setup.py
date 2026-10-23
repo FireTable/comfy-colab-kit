@@ -8,6 +8,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import struct
 import subprocess
 import sys
@@ -85,15 +86,55 @@ HF_RE = re.compile(r"^https://huggingface\.co/([^/]+/[^/]+)/resolve/([^/]+)/(.+)
 
 
 # ─────────────────────────── downloads ───────────────────────────
+# HF files download in a child process each, so a stalled file can be killed/restarted and background (non-core)
+# files can be paused (SIGSTOP) while ComfyUI is executing a prompt.
+HF_DL_SCRIPT = r"""
+import os, sys
+from huggingface_hub import hf_hub_download
+print(hf_hub_download(sys.argv[1], sys.argv[2], revision=sys.argv[3], local_dir=sys.argv[4],
+                      token=os.environ.get("HF_TOKEN") or None), flush=True)
+"""
+HF_TMP = "/content/hf"
+STALL_S = int(os.environ.get("KIT_STALL_S", "45"))
+RETRYABLE = re.compile(r"429|Too Many|\b5\d\d\b|timed out|Timeout|Connection|reset by peer")
+
+
+def du(path):
+    total = 0
+    for root, _, files in os.walk(path):
+        for f in files:
+            try:
+                total += os.lstat(os.path.join(root, f)).st_size
+            except OSError:
+                pass
+    return total
+
+
+def comfy_busy():
+    """True while ComfyUI is executing a prompt (background downloads pause)."""
+    try:
+        q = json.loads(urllib.request.urlopen(f"http://127.0.0.1:{PORT}/queue", timeout=3).read())
+        return bool(q.get("queue_running"))
+    except Exception:
+        return False
+
+
 class Downloads:
-    def __init__(self, models, concurrency):
+    def __init__(self, models, concurrency, busy=comfy_busy, stall_s=STALL_S):
         self.models = models
-        self.total = sum((m.get("size_gb") or 0) for m in models)
-        self.done_gb = 0.0
+        self.size = {m["id"]: int((m.get("size_gb") or 0) * 1e9) for m in models}
+        self.total = sum(self.size.values())
+        self.core_ids = [m["id"] for m in models if m.get("core")]
+        self.core_total = sum(self.size[i] for i in self.core_ids)
+        self.done_bytes, self.core_done_bytes = 0, 0
         self.files_done = 0
         self.errors = []
+        self.restarts = 0
         self.lock = threading.Lock()
-        self.by_sha = {}
+        self.live = {}   # id -> tmp dir of an in-flight HF download
+        self.procs = {}  # id -> (Popen, pausable)
+        self.paused = False
+        self.busy, self.stall_s = busy, stall_s
         self.pool = ThreadPoolExecutor(max_workers=max(1, concurrency))
         self.bg_pool = ThreadPoolExecutor(max_workers=max(1, concurrency))
         self.core_done = threading.Event()
@@ -116,12 +157,18 @@ class Downloads:
             else:
                 # non-core files must not steal bandwidth from the critical path: they start once core is done
                 self.futures[m["id"]] = self.bg_pool.submit(self._after_core, m)
-        core = [f for i, f in self.futures.items() if next(x for x in self.models if x["id"] == i).get("core")]
+        core = [self.futures[i] for i in self.core_ids if i in self.futures]
         threading.Thread(target=lambda: ([f.exception() for f in core], self.core_done.set()), daemon=True).start()
         threading.Thread(target=self._report, daemon=True).start()
+        threading.Thread(target=self._pauser, daemon=True).start()
+
+    def all_done(self):
+        return self.files_done >= len(self.models) or bool(self.errors)
 
     def _after_core(self, m):
         self.core_done.wait()
+        while self.paused:
+            time.sleep(1)
         return self._one(m)
 
     def _link_after(self, first_id, m):
@@ -133,6 +180,72 @@ class Downloads:
             os.link(f"{COMFY}/models/{src['dest']}", dst)
         self._finish(m)
 
+    def _pauser(self):
+        while not self.all_done():
+            time.sleep(2)
+            want = self.busy()
+            if want == self.paused:
+                continue
+            self.paused = want
+            for p, pausable in list(self.procs.values()):
+                if pausable and p.poll() is None:
+                    try:
+                        p.send_signal(signal.SIGSTOP if want else signal.SIGCONT)
+                    except OSError:
+                        pass
+            print(f"  background downloads {'paused: prompt running' if want else 'resumed'}", flush=True)
+
+    def _hf(self, m, repo, rev, fname, dst):
+        tmp = f"{HF_TMP}/{m['id']}"
+        pausable = not m.get("core")
+        attempt = 0
+        while True:
+            p = subprocess.Popen([sys.executable, "-c", HF_DL_SCRIPT, repo, fname, rev, tmp],
+                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace")
+            with self.lock:
+                self.live[m["id"]] = tmp
+                self.procs[m["id"]] = (p, pausable)
+            if pausable and self.paused:
+                p.send_signal(signal.SIGSTOP)
+            out = []
+            reader = threading.Thread(target=lambda: out.extend(p.stdout), daemon=True)
+            reader.start()
+            last, last_t, stalled = -1, time.time(), False
+            while p.poll() is None:
+                time.sleep(3)
+                if pausable and self.paused:
+                    last_t = time.time()  # paused time is not a stall
+                    continue
+                size = du(tmp)
+                if size != last:
+                    last, last_t = size, time.time()
+                elif time.time() - last_t > self.stall_s:
+                    print(f"  stall: no bytes for {self.stall_s}s on {m['id']}; restarting that file", flush=True)
+                    p.kill()
+                    stalled = True
+                    break
+            p.wait()
+            reader.join(5)
+            with self.lock:
+                self.procs.pop(m["id"], None)
+            text = "".join(out).strip()
+            if p.returncode == 0 and not stalled and text:
+                path = text.splitlines()[-1].strip()
+                break
+            attempt += 1
+            if stalled:
+                self.restarts += 1
+            if attempt >= 8 or (not stalled and not RETRYABLE.search(text)):
+                raise RuntimeError(text[-300:] or f"exit {p.returncode}")
+            wait = 2 if stalled else min(120, 10 * 2 ** (attempt - 1))
+            if not stalled:
+                print(f"  retry {m['id']} in {wait}s ({text[-120:]})", flush=True)
+            time.sleep(wait)
+        shutil.move(path, dst)  # local_dir keeps repo subfolders; the file always lands flat at models/<dest>
+        shutil.rmtree(tmp, ignore_errors=True)
+        with self.lock:
+            self.live.pop(m["id"], None)
+
     def _one(self, m):
         dst = f"{COMFY}/models/{m['dest']}"
         os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -141,22 +254,7 @@ class Downloads:
         hm = HF_RE.match(m["url"])
         try:
             if hm:
-                from huggingface_hub import hf_hub_download
-                tmp = f"/content/hf/{m['id']}"
-                # the Xet CDN answers 429 under bursty parallel load; partial chunks are kept in local_dir, so retry
-                for attempt in range(6):
-                    try:
-                        p = hf_hub_download(hm.group(1), hm.group(3), revision=hm.group(2), local_dir=tmp,
-                                            token=os.environ.get("HF_TOKEN") or None)
-                        break
-                    except Exception as e:  # noqa: BLE001
-                        if attempt == 5 or not re.search(r"429|Too Many|5\d\d |timed out|Connection", str(e)):
-                            raise
-                        wait = min(120, 10 * 2 ** attempt)
-                        print(f"  retry {m['id']} in {wait}s ({str(e)[:120]})", flush=True)
-                        time.sleep(wait)
-                shutil.move(p, dst)
-                shutil.rmtree(tmp, ignore_errors=True)
+                self._hf(m, hm.group(1), hm.group(2), hm.group(3), dst)
             else:
                 rc = sh(f"aria2c -q -x16 -s16 -k1M -d '{os.path.dirname(dst)}' -o '{os.path.basename(dst)}' '{m['url']}'",
                         check=False, quiet=True) if shutil.which("aria2c") else 1
@@ -179,23 +277,42 @@ class Downloads:
     def _finish(self, m):
         with self.lock:
             self.files_done += 1
-            self.done_gb += m.get("size_gb") or 0
+            self.done_bytes += self.size[m["id"]]
+            if m.get("core"):
+                self.core_done_bytes += self.size[m["id"]]
         print(f"  ok {m['dest']}", flush=True)
 
+    def snapshot(self):
+        with self.lock:
+            live = dict(self.live)
+            done, core_done = self.done_bytes, self.core_done_bytes
+        inflight = {i: min(du(t), self.size[i] or 1 << 62) for i, t in live.items()}
+        return (done + sum(inflight.values()),
+                core_done + sum(v for i, v in inflight.items() if i in self.core_ids))
+
+    def progress(self, rate):
+        b, cb = self.snapshot()
+        left = max(0, self.total - b)
+        return {
+            "bytes_done": b, "bytes_total": self.total,
+            "core_bytes_done": cb, "core_bytes_total": self.core_total,
+            "bytes_per_s": int(rate), "eta_s": int(left / rate) if rate > 1e5 else None,
+            "files_done": self.files_done, "files_total": len(self.models),
+            "core_done": self.core_done.is_set(), "paused": self.paused, "restarts": self.restarts,
+            # legacy, file-granular
+            "done_gb": round(self.done_bytes / 1e9, 2), "total_gb": round(self.total / 1e9, 2),
+        }
+
     def _report(self):
-        # bytes on disk under /content is the honest throughput signal (files_done only moves per file)
-        disk0 = shutil.disk_usage("/content").used
-        last = (disk0, time.time())
-        while self.files_done < len(self.models) and not self.errors:
+        last_b, last_t, rate = self.snapshot()[0], time.time(), 0.0
+        while not self.all_done():
             time.sleep(5)
-            now, used = time.time(), shutil.disk_usage("/content").used
-            speed = (used - last[0]) / 1e9 / max(1e-6, now - last[1])
-            last = (used, now)
-            print("KIT_PROGRESS download " + json.dumps({
-                "done_gb": round(self.done_gb, 2), "total_gb": round(self.total, 2),
-                "written_gb": round((used - disk0) / 1e9, 2),
-                "files_done": self.files_done, "files_total": len(self.models),
-                "core_done": self.core_done.is_set(), "gbps": round(speed, 3)}), flush=True)
+            b, now = self.snapshot()[0], time.time()
+            inst = max(0.0, (b - last_b) / max(1e-6, now - last_t))
+            rate = inst if rate == 0 else 0.6 * rate + 0.4 * inst  # smoothed for a steady ETA
+            last_b, last_t = b, now
+            print("KIT_PROGRESS download " + json.dumps(self.progress(rate)), flush=True)
+        print("KIT_PROGRESS download " + json.dumps(self.progress(0)), flush=True)
 
     def wait(self, ids):
         for i in ids:
@@ -214,6 +331,29 @@ def png_workflow(data):
     raise RuntimeError("PNG has no embedded workflow")
 
 
+def remap_models(obj, aliases):
+    """Profile `model_aliases`: rewrite loader filenames anywhere in a UI graph (nodes, subgraph definitions) or an
+    API prompt (inputs), so every workflow uses the profile's shared weights. Returns the number of rewrites."""
+    if not aliases:
+        return 0
+    n = 0
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if isinstance(v, str) and v in aliases:
+                obj[k] = aliases[v]
+                n += 1
+            else:
+                n += remap_models(v, aliases)
+    elif isinstance(obj, list):
+        for i, v in enumerate(obj):
+            if isinstance(v, str) and v in aliases:
+                obj[i] = aliases[v]
+                n += 1
+            else:
+                n += remap_models(v, aliases)
+    return n
+
+
 def prepare_workflow(wf, data, default_view):
     """Apply declared filename overrides and ComfyUI App-mode metadata; graph otherwise untouched."""
     g = png_workflow(data) if wf["format"] == "png" else json.loads(data)
@@ -223,6 +363,7 @@ def prepare_workflow(wf, data, default_view):
         if not n or len(n.get("widgets_values") or []) <= o["widget_index"]:
             raise RuntimeError(f"{wf['id']}: override target {o} not found (upstream workflow changed?)")
         n["widgets_values"][o["widget_index"]] = o["value"]
+    remap_models(g, PLAN.get("model_aliases") or {})
     extra = g.setdefault("extra", {})
     if wf.get("app_outputs"):
         extra["linearData"] = {"inputs": [list(x) for x in wf.get("app_inputs", [])],
@@ -231,7 +372,7 @@ def prepare_workflow(wf, data, default_view):
     return g
 
 
-def install_workflows():
+def install_workflows(update_default=True):
     d = f"{COMFY}/user/default/workflows"
     os.makedirs(d, exist_ok=True)
     default_file = None
@@ -249,8 +390,9 @@ def install_workflows():
         if wf.get("default"):
             default_file = name
         print(f"  workflow {name} ({wf['title']})", flush=True)
-    json.dump({"default_workflow": default_file, "default_view": PLAN.get("default_view", "app")},
-              open(f"{COMFY}/user/default/kit.json", "w"))
+    if update_default:
+        json.dump({"default_workflow": default_file, "default_view": PLAN.get("default_view", "app")},
+                  open(f"{COMFY}/user/default/kit.json", "w"))
 
 
 def apply_settings():
@@ -357,6 +499,7 @@ def smoke_prompt(d):
 
 def smoke():
     api = smoke_prompt(json.loads(fetch(PLAN["smoke"]["api_url"])))
+    remap_models(api, PLAN.get("model_aliases") or {})
     req = urllib.request.Request(f"http://127.0.0.1:{PORT}/prompt", data=json.dumps({"prompt": api}).encode(),
                                  headers={"Content-Type": "application/json"})
     try:
@@ -379,8 +522,29 @@ def smoke():
     raise RuntimeError("timeout waiting for smoke image")
 
 
+def fetch_only():
+    """On-demand download on a running VM (gate: POST /_gate/fetch). No KIT_STAGE lines: the session state
+    stays `ready`; progress arrives as KIT_PROGRESS, the result as KIT_FETCHED / KIT_FETCH_FAILED."""
+    os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+    if PLAN.get("xet_high_performance", True):
+        os.environ["HF_XET_HIGH_PERFORMANCE"] = "1"
+    ids = [w["id"] for w in PLAN["workflows"]]
+    try:
+        install_custom_nodes()
+        install_workflows(update_default=False)
+        dl = Downloads(PLAN["models"], PLAN.get("download_concurrency", 8))
+        dl.start()
+        dl.wait([m["id"] for m in PLAN["models"]])
+    except Exception as e:  # noqa: BLE001
+        print(f"KIT_FETCH_FAILED {json.dumps({'workflows': ids, 'error': repr(e)[:300]})}", flush=True)
+        return
+    print(f"KIT_FETCHED {json.dumps({'workflows': ids})}", flush=True)
+
+
 def main():
     os.makedirs(LOG, exist_ok=True)
+    if PLAN.get("fetch_only"):
+        return fetch_only()
     cfg = PLAN["comfyui"]
     if up():
         print("ComfyUI already running on this VM; skipping setup.", flush=True)
