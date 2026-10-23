@@ -66,6 +66,9 @@ class Proxy:
         h["Host"] = backend_host
         if "Origin" in h:
             h["Origin"] = self.backend  # ComfyUI rejects Host/Origin mismatches
+        # Request only encodings aiohttp can decompress (gzip, deflate, br)
+        if any(k.lower() == "accept-encoding" for k in req.headers):
+            h["Accept-Encoding"] = "gzip, deflate, br"
         h.update(service_headers(self.token_file))
         return h
 
