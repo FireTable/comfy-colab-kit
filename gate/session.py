@@ -149,8 +149,21 @@ class Session:
             "default_view": self.settings.default_view,
         }
 
+    def reload_profiles(self) -> dict[str, str]:
+        """Re-read profiles from disk (bind-mounted, read-only) so edits apply on the next wake without a
+        restart. Updates the shared dict in place; a profile that fails to load keeps its last good version."""
+        from .profiles import load_all
+        fresh, errors = load_all(self.settings.profiles, REPO_ROOT)
+        for ref, err in errors.items():
+            log.warning("profile reload failed for %s: %s (keeping last good)", ref, err)
+        # new/changed profiles apply now; removing one from PROFILES needs a restart
+        self.profiles.update(fresh)
+        return errors
+
     async def wake(self, profile_id: str | None, by: str = "", workflows: list[str] | None = None) -> WakeResult:
         async with self.lock:
+            if self.machine.state in (State.SLEEPING, State.FAILED):
+                self.reload_profiles()
             m = self.machine
             if m.state not in (State.SLEEPING, State.FAILED):
                 # someone already started it: join the in-flight / running session
@@ -186,6 +199,7 @@ class Session:
 
     async def switch(self, profile_id: str, by: str = "") -> WakeResult:
         """v1: cold switch (stop, then wake with the new profile)."""
+        self.reload_profiles()
         if profile_id not in self.profiles:
             raise KeyError(profile_id)
         async with self.lock:
