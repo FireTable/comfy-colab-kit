@@ -26,6 +26,10 @@ TIMES = {}
 HB_FILE = "/content/kit_heartbeat"
 
 
+class KitAbort(Exception):
+    """A stage failed and KIT_FAILED was already printed."""
+
+
 class Stage:
     def __init__(self, name):
         self.name = name
@@ -41,7 +45,8 @@ class Stage:
         if et:
             print(f"KIT_STAGE {self.name} fail {d:.1f}", flush=True)
             print(f"KIT_FAILED stage={self.name} error={ev!r}"[:800], flush=True)
-            sys.exit(1)
+            # not sys.exit(): inside the Jupyter kernel that dumps a huge (and broken) IPython traceback
+            raise KitAbort(self.name) from None
         print(f"KIT_STAGE {self.name} done {d:.1f}", flush=True)
 
 
@@ -138,8 +143,18 @@ class Downloads:
             if hm:
                 from huggingface_hub import hf_hub_download
                 tmp = f"/content/hf/{m['id']}"
-                p = hf_hub_download(hm.group(1), hm.group(3), revision=hm.group(2), local_dir=tmp,
-                                    token=os.environ.get("HF_TOKEN") or None)
+                # the Xet CDN answers 429 under bursty parallel load; partial chunks are kept in local_dir, so retry
+                for attempt in range(6):
+                    try:
+                        p = hf_hub_download(hm.group(1), hm.group(3), revision=hm.group(2), local_dir=tmp,
+                                            token=os.environ.get("HF_TOKEN") or None)
+                        break
+                    except Exception as e:  # noqa: BLE001
+                        if attempt == 5 or not re.search(r"429|Too Many|5\d\d |timed out|Connection", str(e)):
+                            raise
+                        wait = min(120, 10 * 2 ** attempt)
+                        print(f"  retry {m['id']} in {wait}s ({str(e)[:120]})", flush=True)
+                        time.sleep(wait)
                 shutil.move(p, dst)
                 shutil.rmtree(tmp, ignore_errors=True)
             else:
@@ -374,6 +389,7 @@ def main():
     with Stage("bootstrap"):
         sh("pip install -q -U uv 'huggingface_hub>=0.36' 'hf-xet>=1.5.2'", quiet=True)
         os.environ["HF_XET_HIGH_PERFORMANCE"] = "1"
+        os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"  # tqdm bars flood the wake-page log
         if not shutil.which("cloudflared"):
             sh("wget -q -O /tmp/cf.deb https://github.com/cloudflare/cloudflared/releases/latest/download/"
                "cloudflared-linux-amd64.deb && dpkg -i /tmp/cf.deb >/dev/null")
@@ -419,4 +435,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KitAbort:
+        pass
