@@ -4,6 +4,7 @@ services:
   comfy-gate:
     build: {context: .., dockerfile: deploy/Dockerfile}
     image: comfy-colab-kit/gate:local
+    container_name: comfy-gate       # Caddy upstream = container_name (stable DNS, see vps-maintain §2.3)
     restart: unless-stopped
     env_file: ../.env
     environment:
@@ -11,9 +12,9 @@ services:
     volumes:
       - ../data:/data                  # state (session.json, cu_ledger.json) + colab CLI login; owner 10001, mode 700
       - ../examples/profiles:/app/examples/profiles:ro
-    secrets: [cf_service.json, colab_tunnel_token, agent_token]
+    secrets: [cf_service.json, colab_tunnel_token, agent_token, hf_token]
     networks: [caddy]
-    expose: ["8080"]
+    expose: ["8080"]               # no host ports; reached only via the Caddy network
     read_only: true
     tmpfs: [/tmp]
     security_opt: ["no-new-privileges:true"]
@@ -23,8 +24,9 @@ secrets:
   cf_service.json: {file: ../secrets/cf_service.json}
   colab_tunnel_token: {file: ../secrets/colab_tunnel_token}
   agent_token: {file: ../secrets/agent_token}
+  hf_token: {file: ../secrets/hf_token}
 
 networks:
   caddy:
     external: true
-    name: ${CADDY_NETWORK:-caddy}
+    name: ${CADDY_NETWORK:-langgraph-app_default}   # existing Caddy network on the VPS
