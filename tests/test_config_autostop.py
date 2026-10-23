@@ -99,6 +99,10 @@ def test_boot_timeout():
 def test_page_close():
     s = snap(open_clients=0, clients_zero_since=NOON - 11 * 60)
     assert stopper.evaluate(CFG, s).reason == "page_closed"
+    # Grace period: just entered READY (< 3 min) -> should not stop
+    assert not stopper.evaluate(CFG, snap(open_clients=0, clients_zero_since=NOON - 11 * 60, state_since=NOON - 60)).stop
+    # HTTP activity within 60s -> should not stop
+    assert not stopper.evaluate(CFG, snap(open_clients=0, clients_zero_since=NOON - 11 * 60, last_activity=NOON - 10)).stop
     off = AutoStop(stop_on_page_close_min=0)
     assert not stopper.evaluate(off, s).stop
 

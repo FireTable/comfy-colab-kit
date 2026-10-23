@@ -126,6 +126,7 @@ class Settings:
     download_concurrency: int = 8
     xet_high_performance: bool = True
     pip_installer: str = "uv"
+    enable_smoke_test: bool = False
     listen_host: str = "0.0.0.0"
     listen_port: int = 8080
     state_dir: str = "/data/state"
@@ -192,6 +193,7 @@ class Settings:
             download_concurrency=_int(env, "DOWNLOAD_CONCURRENCY", 8, 1),
             xet_high_performance=_bool(env, "XET_HIGH_PERFORMANCE", True),
             pip_installer="pip" if (env.get("PIP_INSTALLER") or "uv").strip().lower() == "pip" else "uv",
+            enable_smoke_test=_bool(env, "ENABLE_SMOKE_TEST", False),
             listen_host=host,
             listen_port=int(port),
             state_dir=(env.get("STATE_DIR") or "/data/state").strip(),

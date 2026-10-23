@@ -26,7 +26,7 @@ def build_plan(profile: Profile, settings: Settings, workflow_ids: list[str] | N
         for n in profile.workflows[wid].custom_nodes:
             if n not in node_ids:
                 node_ids.append(n)
-    if profile.smoke:
+    if settings.enable_smoke_test and profile.smoke:
         for mid in profile.smoke.models:
             models.setdefault(mid, profile.models[mid])
         for n in profile.smoke.custom_nodes:
@@ -65,7 +65,7 @@ def build_plan(profile: Profile, settings: Settings, workflow_ids: list[str] | N
         "on_demand": {w: [m.id for m in profile.models_for([w]) if m.id not in models]
                       for w in wf_ids if any(m.id not in models for m in profile.models_for([w]))},
         "smoke": ({"api_url": hf_to_https(profile.smoke.api_url), "timeout_s": profile.smoke.timeout_s}
-                  if profile.smoke else None),
+                  if settings.enable_smoke_test and profile.smoke else None),
         "model_aliases": {f: profile.models[mid].dest.rsplit("/", 1)[-1]
                           for f, mid in profile.model_aliases.items()},
         "default_view": settings.default_view,

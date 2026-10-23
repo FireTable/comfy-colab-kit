@@ -165,6 +165,15 @@ details[open] .con-chevron{transform:rotate(90deg)}
 .con-title{font-weight:600;color:var(--fg);font-size:12.5px}
 summary .n{margin-left:auto;padding:1px 6px;border-radius:4px;background:rgba(127,127,127,.12);font-size:11px}
 pre{font:11.5px/1.55 var(--mono);color:var(--fg);opacity:.9;padding:6px 12px 14px;max-height:260px;overflow-x:auto;white-space:pre-wrap;word-break:normal;overflow-wrap:break-word;margin:0}
+/* Custom Scrollbars */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border-radius:9999px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.28)}
+:root[data-theme=light] ::-webkit-scrollbar-thumb{background:rgba(15,23,42,.16)}
+:root[data-theme=light] ::-webkit-scrollbar-thumb:hover{background:rgba(15,23,42,.28)}
+*{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.16) transparent}
+:root[data-theme=light] *{scrollbar-color:rgba(15,23,42,.16) transparent}
 footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color:var(--muted);padding:0 0 14px;opacity:.7}
 .out{opacity:0;transform:scale(.98)}
 /* Skeleton loading */
@@ -291,7 +300,7 @@ const I18N={
   badge_sleeping:"Sleeping",badge_ready:"Ready",badge_failed:"Failed",badge_stopping:"Stopping",badge_switching:"Switching",badge_waking:"Waking",
   online:"{count} online",
   stage_allocating:"Allocate GPU",stage_installing:"Install runtime",stage_downloading:"Download models",stage_booting:"Start ComfyUI",stage_smoke_testing:"Smoke test",
-  overall:"Overall",eta:"ETA ~{time}",paused:"paused (prompt running)",stalled_restarted:"{count} stalled file restarted",stalled_restarted_p:"{count} stalled files restarted",later:"+{size} GB later",
+  overall:"Overall",eta:"ETA ~{time}",paused:"paused (prompt running)",stalled_restarted:"{count} download retry",stalled_restarted_p:"{count} download retries",later:"+{size} GB later",
   profile_label:"Profile",
   select_profile:"Select Profile",
   wake_btn:"Wake",retry_btn:"Retry",starting_btn:"Starting…",
@@ -316,7 +325,7 @@ const I18N={
   badge_sleeping:"休眠中",badge_ready:"就绪",badge_failed:"失败",badge_stopping:"正在停机",badge_switching:"正在切换",badge_waking:"唤醒中",
   online:"{count} 人在线",
   stage_allocating:"分配 GPU 算力",stage_installing:"安装运行时与依赖",stage_downloading:"下载核心模型",stage_booting:"启动 ComfyUI",stage_smoke_testing:"冒烟出图验证",
-  overall:"总体进度",eta:"预计剩余 ~{time}",paused:"已暂停 (正在出图)",stalled_restarted:"{count} 个卡死文件已重启",stalled_restarted_p:"{count} 个卡死文件已重启",later:"另有 +{size} GB 后续拉取",
+  overall:"总体进度",eta:"预计剩余 ~{time}",paused:"已暂停 (正在出图)",stalled_restarted:"网络重试中 ({count}次)",stalled_restarted_p:"网络重试中 ({count}次)",later:"另有 +{size} GB 后续拉取",
   profile_label:"运行预设 (Profile)",
   select_profile:"选择运行预设",
   wake_btn:"唤醒",retry_btn:"重试",starting_btn:"启动中…",
@@ -398,8 +407,8 @@ function dlp(d){if(!d)return null;const G=1e9;
  if(d.core_bytes_total!=null||d.bytes_total!=null){const core=d.core_bytes_total>0;
   return{done:core?d.core_bytes_done:d.bytes_done,total:core?d.core_bytes_total:d.bytes_total,rate:d.bytes_per_s||0,
    eta:d.eta_s!=null&&!core?d.eta_s:(d.bytes_per_s>0?((core?d.core_bytes_total-d.core_bytes_done:d.bytes_total-d.bytes_done)/d.bytes_per_s):null),
-   paused:!!d.paused,restarts:d.restarts||0,files:`${d.files_done}/${d.files_total}`,bg:core&&d.bytes_total>d.core_bytes_total?d.bytes_total-d.core_bytes_total:0}}
- if(!d.total_gb)return null;return{done:d.done_gb*G,total:d.total_gb*G,rate:(d.gbps||0)*G,eta:d.gbps>0?(d.total_gb-d.done_gb)/d.gbps:null,paused:false,restarts:0,files:`${d.files_done}/${d.files_total}`,bg:0}}
+   paused:!!d.paused,restarts:d.restarts||0,files:`${d.files_done}/${d.files_total}`,files_done:d.files_done,files_total:d.files_total,core_done:!!d.core_done,bg:core&&d.bytes_total>d.core_bytes_total?d.bytes_total-d.core_bytes_total:0}}
+ if(!d.total_gb)return null;return{done:d.done_gb*G,total:d.total_gb*G,rate:(d.gbps||0)*G,eta:d.gbps>0?(d.total_gb-d.done_gb)/d.gbps:null,paused:false,restarts:0,files:`${d.files_done}/${d.files_total}`,files_done:d.files_done,files_total:d.files_total,core_done:false,bg:0}}
 const gb=b=>(b/1e9).toFixed(b>=1e10?1:2);
 
 // Custom Select Implementation
@@ -489,18 +498,39 @@ function render(){
  $("con-title").textContent=t("console_title");
  $("footer-txt").textContent=t("footer");
 
- const ol=$("stages");ol.hidden=!waking;ol.innerHTML="";const ci=BOOT.indexOf(st);const d=dlp(S.progress&&S.progress.download);
- STAGES_KEYS.forEach(([k,lKey],i)=>{
+ const stages = (S && S.enable_smoke_test === false) ? STAGES_KEYS.filter(s => s[0] !== "smoke_testing") : STAGES_KEYS;
+ const bootKeys = stages.map(s => s[0]);
+ const ol=$("stages");ol.hidden=!waking;ol.innerHTML="";const ci=bootKeys.indexOf(st);const d=dlp(S.progress&&S.progress.download);
+ const durs=(S&&S.stage_durations)||{};
+ stages.forEach(([k,lKey],i)=>{
   const li=document.createElement("li");li.className=i<ci?"done":i===ci?"cur":"";
-  let tStr="";if(i===ci&&stageT[k])tStr=fmt(now-stageT[k]);
-  if(k==="downloading"&&d&&d.total)tStr=(i===ci?tStr+" · ":"")+`${Math.round(100*d.done/d.total)}%`+(d.paused?` · ${t("paused")}`:"");
+  let tStr="";
+  const sd=durs[k];
+  if(i<ci){
+   if(sd&&sd.duration!=null)tStr=`${sd.duration}s`;
+   else if(sd&&sd.start)tStr=fmt(now-sd.start);
+  }else if(i===ci){
+   const startT=(sd&&sd.start)||stageT[k]||now;
+   tStr=fmt(now-startT);
+  }
+  if(k==="downloading"&&d&&d.total){
+   const dlPct=(d.files_done!=null&&d.files_total!=null&&d.files_done<d.files_total)?Math.min(99,Math.floor(100*d.done/d.total)):Math.min(100,Math.round(100*d.done/d.total));
+   tStr=(tStr?tStr+" · ":"")+`${dlPct}%`+(d.paused?` · ${t("paused")}`:"");
+  }
   li.innerHTML=`<span class="k">${i<ci?"✓":""}</span><span>${t(lKey)}</span><span class="t">${tStr}</span>`;ol.appendChild(li)
  });
 
  $("prog").hidden=!waking;
  if(waking&&ci>=0){
-  const dlw=d&&d.total?Math.max(30,d.total/1e9*8):120;const W=STAGES_KEYS.map(s=>s[0]==="downloading"?dlw:s[2]);
-  const tot=W.reduce((a,b)=>a+b,0);let frac=0;if(st==="downloading"&&d)frac=d.total?Math.min(1,d.done/d.total):0;else frac=Math.min(.9,(now-(stageT[st]||now))/W[ci]);
+  const dlw=d&&d.total?Math.max(30,d.total/1e9*8):120;const W=stages.map(s=>s[0]==="downloading"?dlw:s[2]);
+  const tot=W.reduce((a,b)=>a+b,0);let frac=0;
+  if(st==="downloading"&&d){
+   frac=d.total?Math.min(.99,d.done/d.total):0;
+  }else{
+   const sd=durs[st];
+   const elapsed=sd&&sd.start?(now-sd.start):(now-(stageT[st]||now));
+   frac=Math.min(.9,elapsed/W[ci]);
+  }
   const done=W.slice(0,ci).reduce((a,b)=>a+b,0)+W[ci]*frac;const pct=Math.min(99,100*done/tot);
   $("pbar").style.width=pct.toFixed(1)+"%";
   let eta;if(st==="downloading"&&d&&d.eta!=null)eta=d.eta+W.slice(ci+1).reduce((a,b)=>a+b,0);else eta=Math.max(0,tot-done);

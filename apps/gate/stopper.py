@@ -82,6 +82,8 @@ def evaluate(cfg: AutoStop, s: Snapshot) -> Decision:
         if cfg.idle_timeout_min and s.now - s.last_activity >= cfg.idle_timeout_min * 60:
             return Decision(True, "idle", remaining_s=remaining)
         if (cfg.stop_on_page_close_min and s.open_clients == 0 and s.clients_zero_since is not None
+                and (s.now - s.state_since >= 180)
+                and (s.now - s.last_activity >= 60)
                 and s.now - s.clients_zero_since >= cfg.stop_on_page_close_min * 60):
             return Decision(True, "page_closed", remaining_s=remaining)
     warn = ""

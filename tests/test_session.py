@@ -169,3 +169,63 @@ async def test_logs_and_progress_persisted_and_restored(tmp_path):
     assert s2.progress["download"]["bytes_done"] == 500
     assert any("custom log line from setup" in line for line in s2.bus.logs)
     assert any("KIT_READY" in line for line in s2.bus.logs)
+
+
+async def test_stage_durations_and_log_archiving(tmp_path):
+    colab = FakeColab(lines=[
+        "KIT_STAGE bootstrap start",
+        "KIT_STAGE bootstrap done 2.5",
+        "KIT_STAGE download start",
+        "KIT_STAGE download done 10.0",
+        "KIT_READY {}",
+    ])
+    s = make(tmp_path, colab)
+    await s.wake(None)
+    await wait_for(lambda: s.machine.state == State.READY)
+
+    st = s.status()
+    assert "stage_durations" in st
+    assert st["stage_durations"]["allocating"]["duration"] is not None
+    assert st["stage_durations"]["downloading"]["duration"] == 10.0
+
+    state_file = tmp_path / "session.json"
+    saved = json.loads(state_file.read_text())
+    assert "stage_durations" in saved
+    assert saved["stage_durations"]["downloading"]["duration"] == 10.0
+
+    # Wake again after reset to check archive
+    s.machine.state = State.SLEEPING
+    await s.wake(None)
+    history_dir = tmp_path / "history"
+    assert history_dir.is_dir()
+    archives = list(history_dir.glob("session-*.log"))
+    assert len(archives) >= 1
+
+
+def test_secret_redaction(tmp_path):
+    colab = FakeColab()
+    s = make(tmp_path, colab)
+    fake_hf = "hf_" + "x" * 32
+    fake_jwt = "ey" + "J" * 32 + ".ey" + "K" * 25 + "." + "s" * 20
+    s.handle_line("downloading with Bearer secret-auth-token-12345678901234567890")
+    s.handle_line(f"HF model with {fake_hf}")
+    s.handle_line(f"Access token {fake_jwt}")
+
+    lines = list(s.bus.logs)
+    assert not any("secret-auth-token" in line for line in lines)
+    assert not any(fake_hf in line for line in lines)
+    assert not any(fake_jwt in line for line in lines)
+    assert all("[REDACTED_SECRET]" in line for line in lines)
+
+
+def test_smoke_test_setting_plan(tmp_path):
+    from gate.plan import build_plan
+    prof = load_profile(ROOT / "tests/fixtures/profiles/tiny")
+    s_off = Settings.from_env({"AUTH_DISABLED": "true", "ENABLE_SMOKE_TEST": "false"})
+    p_off = build_plan(prof, s_off)
+    assert p_off["smoke"] is None
+
+    s_on = Settings.from_env({"AUTH_DISABLED": "true", "ENABLE_SMOKE_TEST": "true"})
+    p_on = build_plan(prof, s_on)
+    # tiny profile does not have smoke, so smoke remains None
+    assert p_on["smoke"] is None

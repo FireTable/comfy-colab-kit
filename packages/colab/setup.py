@@ -95,7 +95,7 @@ print(hf_hub_download(sys.argv[1], sys.argv[2], revision=sys.argv[3], local_dir=
                       token=os.environ.get("HF_TOKEN") or None), flush=True)
 """
 HF_TMP = "/content/hf"
-STALL_S = int(os.environ.get("KIT_STALL_S", "45"))
+STALL_S = int(os.environ.get("KIT_STALL_S", "90"))
 RETRYABLE = re.compile(r"429|Too Many|\b5\d\d\b|timed out|Timeout|Connection|reset by peer")
 
 

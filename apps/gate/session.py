@@ -11,6 +11,8 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
+import shutil
 import tarfile
 import tempfile
 import time
@@ -25,9 +27,22 @@ from .colab import ColabError, ColabRunner
 from .config import Settings, read_secret_file
 from .plan import build_fetch_plan, build_plan
 from .profiles import Profile
-from .state import BOOT_STATES, Machine, State
+from .state import BOOT_STATES, Event, Machine, State
 
 log = logging.getLogger("gate.session")
+
+_SECRET_PATTERNS = [
+    re.compile(r"Bearer\s+[A-Za-z0-9_\-\.]{20,}", re.IGNORECASE),
+    re.compile(r"hf_[A-Za-z0-9]{20,}"),
+    re.compile(r"ey[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{6,}"),
+    re.compile(r"(?:CF_TUNNEL_TOKEN|HF_TOKEN)['\":= ]+([A-Za-z0-9_\-\.]{20,})"),
+]
+
+
+def redact_secrets(text: str) -> str:
+    for pat in _SECRET_PATTERNS:
+        text = pat.sub("[REDACTED_SECRET]", text)
+    return text
 
 
 def _find_repo_root() -> Path:
@@ -120,6 +135,7 @@ class Session:
         self.clients_zero_since: float | None = None
         self.queue_busy = False
         self.progress: dict[str, Any] = {}
+        self.stage_durations: dict[str, dict[str, Any]] = {}
         self.workflows: list[str] | None = None
         self._task: asyncio.Task | None = None
         self._fetch_task: asyncio.Task | None = None
@@ -127,15 +143,47 @@ class Session:
         self.fetching: list[str] = []
         self.fetch_error = ""
         self._last_accrual = clock()
-        self.machine.listeners.append(lambda ev: self.bus.publish("state", self.status()))
+        self.machine.listeners.append(self._on_state_event)
+
+    def _on_state_event(self, ev: Event) -> None:
+        now = self.clock()
+        st = ev.state.value
+        for k, v in self.stage_durations.items():
+            if v.get("duration") is None:
+                v["duration"] = round(max(0.1, now - v.get("start", now)), 1)
+        if st in ("allocating", "installing", "downloading", "booting", "smoke_testing"):
+            self.stage_durations[st] = {"start": now, "duration": None}
+        elif ev.state == State.READY:
+            self.clients_zero_since = None
+            self.touch()
+        self.persist()
+        self.bus.publish("state", self.status())
 
     def _append_log(self, line: str) -> None:
         try:
             self.state_file.parent.mkdir(parents=True, exist_ok=True)
             with open(self.log_file, "a", encoding="utf-8") as f:
-                f.write(line + "\n")
+                f.write(redact_secrets(line) + "\n")
         except Exception:
             pass
+
+    def _archive_logs(self) -> None:
+        history_dir = Path(self.settings.state_dir) / "history"
+        try:
+            history_dir.mkdir(parents=True, exist_ok=True)
+            if self.log_file.is_file() and self.log_file.stat().st_size > 0:
+                ts = int(self.clock())
+                dest = history_dir / f"session-{ts}.log"
+                shutil.copy2(self.log_file, dest)
+            cutoff = self.clock() - 3 * 86400
+            for p in history_dir.glob("session-*.log"):
+                try:
+                    if p.stat().st_mtime < cutoff:
+                        p.unlink(missing_ok=True)
+                except Exception:
+                    pass
+        except Exception as e:
+            log.warning("log archive/cleanup failed: %s", e)
 
     # ── persistence ───────────────────────────────────────────────────────
     def persist(self) -> None:
@@ -143,7 +191,8 @@ class Session:
         tmp = self.state_file.with_suffix(".tmp")
         tmp.write_text(json.dumps({**self.machine.snapshot(), "workflows": self.workflows,
                                    "last_activity": self.last_activity,
-                                   "progress": self.progress}))
+                                   "progress": self.progress,
+                                   "stage_durations": self.stage_durations}))
         tmp.replace(self.state_file)
 
     def restore(self) -> None:
@@ -164,6 +213,7 @@ class Session:
             self.workflows = d.get("workflows")
             self.last_activity = d.get("last_activity", self.clock())
             self.progress = d.get("progress") or {}
+            self.stage_durations = d.get("stage_durations") or {}
             if st == State.STOPPING:
                 m.state = State.FAILED  # stop was interrupted; tick() will retry it
                 m.reason = "stop interrupted by gate restart"
@@ -211,6 +261,8 @@ class Session:
             **m.snapshot(),
             "busy": m.state not in (State.SLEEPING, State.READY, State.FAILED),
             "progress": self.progress,
+            "stage_durations": self.stage_durations,
+            "enable_smoke_test": self.settings.enable_smoke_test,
             "remaining_s": d.remaining_s,
             "warn": d.warn,
             "can_extend": stopper.can_extend(self.settings.auto_stop, m.extends_used),
@@ -250,8 +302,10 @@ class Session:
                 return WakeResult(False, m.state.value, m.profile, refused=why)
             if m.state == State.FAILED:
                 await self._stop_locked("restart after failure")
+            self._archive_logs()
             self.bus.clear_logs()
             self.log_file.unlink(missing_ok=True)
+            self.stage_durations = {"allocating": {"start": self.clock(), "duration": None}}
             m.profile, self.workflows, self.progress = pid, workflows, {}
             m.to(State.ALLOCATING, f"wake by {by or 'unknown'}")
             self.last_activity = self.clock()
@@ -428,33 +482,46 @@ class Session:
 
     def handle_line(self, line: str) -> None:
         """Parse setup.py protocol lines; everything is also forwarded as a log line."""
-        self.bus.publish("log", line)
-        parts = line.split(" ", 3)
-        if line.startswith("KIT_STAGE ") and len(parts) >= 3:
+        clean = redact_secrets(line)
+        self.bus.publish("log", clean)
+        parts = clean.split(" ", 3)
+        if clean.startswith("KIT_STAGE ") and len(parts) >= 3:
             self.machine.on_stage(parts[1], parts[2])
             self.progress["stage"] = parts[1]
-        elif line.startswith("KIT_PROGRESS ") and len(parts) >= 3:
+            if parts[2] == "done" and len(parts) >= 4:
+                try:
+                    dur = float(parts[3])
+                    smap = {"bootstrap": "installing", "deps": "installing", "download": "downloading",
+                            "comfy_boot": "booting", "smoke": "smoke_testing"}
+                    gk = smap.get(parts[1])
+                    if gk and gk in self.stage_durations:
+                        self.stage_durations[gk]["duration"] = round(dur, 1)
+                except ValueError:
+                    pass
+        elif clean.startswith("KIT_PROGRESS ") and len(parts) >= 3:
             try:
-                self.progress[parts[1]] = json.loads(line.split(" ", 2)[2])
+                self.progress[parts[1]] = json.loads(clean.split(" ", 2)[2])
             except ValueError:
                 pass
             self.bus.publish("progress", self.progress)
-        elif line.startswith(("KIT_FETCHED", "KIT_FETCH_FAILED")):
+        elif clean.startswith(("KIT_FETCHED", "KIT_FETCH_FAILED")):
             try:
-                d = json.loads(line.split(" ", 1)[1])
+                d = json.loads(clean.split(" ", 1)[1])
             except (IndexError, ValueError):
                 d = {}
-            if line.startswith("KIT_FETCHED"):
+            if clean.startswith("KIT_FETCHED"):
                 self.on_demand = [w for w in self.on_demand if w not in (d.get("workflows") or [])]
             else:
                 self.fetch_error = str(d.get("error", "fetch failed"))
             self.bus.publish("state", self.status())
-        elif line.startswith("KIT_READY"):
+        elif clean.startswith("KIT_READY"):
             if self.machine.state != State.READY and self.machine.can(State.READY):
+                self.clients_zero_since = None
+                self.touch()
                 self.machine.to(State.READY, "ComfyUI ready")
-        elif line.startswith("KIT_FAILED"):
+        elif clean.startswith("KIT_FAILED"):
             if self.machine.state not in (State.FAILED, State.STOPPING, State.SLEEPING):
-                self.machine.to(State.FAILED, line[len("KIT_FAILED"):].strip() or "setup failed")
+                self.machine.to(State.FAILED, clean[len("KIT_FAILED"):].strip() or "setup failed")
         self.persist()
 
     async def _boot(self, pid: str) -> None:
