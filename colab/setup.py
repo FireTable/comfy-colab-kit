@@ -84,6 +84,8 @@ class Downloads:
         self.lock = threading.Lock()
         self.by_sha = {}
         self.pool = ThreadPoolExecutor(max_workers=max(1, concurrency))
+        self.bg_pool = ThreadPoolExecutor(max_workers=max(1, concurrency))
+        self.core_done = threading.Event()
         self.futures = {}
 
     def start(self):
@@ -94,12 +96,22 @@ class Downloads:
             sha = m.get("sha256")
             if sha and sha in seen_sha:
                 # identical file under a second name: link after the first one lands
-                self.futures[m["id"]] = self.pool.submit(self._link_after, seen_sha[sha], m)
+                self.futures[m["id"]] = self.bg_pool.submit(self._link_after, seen_sha[sha], m)
                 continue
             if sha:
                 seen_sha[sha] = m["id"]
-            self.futures[m["id"]] = self.pool.submit(self._one, m)
+            if m.get("core"):
+                self.futures[m["id"]] = self.pool.submit(self._one, m)
+            else:
+                # non-core files must not steal bandwidth from the critical path: they start once core is done
+                self.futures[m["id"]] = self.bg_pool.submit(self._after_core, m)
+        core = [f for i, f in self.futures.items() if next(x for x in self.models if x["id"] == i).get("core")]
+        threading.Thread(target=lambda: ([f.exception() for f in core], self.core_done.set()), daemon=True).start()
         threading.Thread(target=self._report, daemon=True).start()
+
+    def _after_core(self, m):
+        self.core_done.wait()
+        return self._one(m)
 
     def _link_after(self, first_id, m):
         self.futures[first_id].result()
@@ -150,16 +162,19 @@ class Downloads:
         print(f"  ok {m['dest']}", flush=True)
 
     def _report(self):
-        last = (0, time.time())
+        # bytes on disk under /content is the honest throughput signal (files_done only moves per file)
+        disk0 = shutil.disk_usage("/content").used
+        last = (disk0, time.time())
         while self.files_done < len(self.models) and not self.errors:
             time.sleep(5)
-            now = time.time()
-            speed = (self.done_gb - last[0]) / max(1e-6, now - last[1])
-            last = (self.done_gb, now)
+            now, used = time.time(), shutil.disk_usage("/content").used
+            speed = (used - last[0]) / 1e9 / max(1e-6, now - last[1])
+            last = (used, now)
             print("KIT_PROGRESS download " + json.dumps({
                 "done_gb": round(self.done_gb, 2), "total_gb": round(self.total, 2),
+                "written_gb": round((used - disk0) / 1e9, 2),
                 "files_done": self.files_done, "files_total": len(self.models),
-                "gbps": round(speed, 3)}), flush=True)
+                "core_done": self.core_done.is_set(), "gbps": round(speed, 3)}), flush=True)
 
     def wait(self, ids):
         for i in ids:
