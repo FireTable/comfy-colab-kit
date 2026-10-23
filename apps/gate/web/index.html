@@ -48,8 +48,9 @@ body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 Inter,system-ui
 header{position:relative;z-index:2;display:flex;align-items:center;gap:10px;padding:14px max(18px,env(safe-area-inset-left))}
 header img{width:30px;height:30px;border-radius:8px}header b{font-size:15px;letter-spacing:.2px}header .sp{flex:1}
 .chip{font:12px var(--mono);color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:2px 9px}
-.icon{background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:10px;height:38px;padding:0 10px;cursor:pointer;font:600 13px var(--mono);backdrop-filter:blur(8px);display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
+.icon{background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:10px;height:38px;padding:0 10px;cursor:pointer;font:600 13px var(--mono);backdrop-filter:blur(8px);display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;text-decoration:none}
 .icon:hover{border-color:var(--y);color:var(--y)}
+.icon-sq{width:38px;padding:0;flex-shrink:0}
 .theme-sun,.theme-moon{width:16px;height:16px;color:var(--fg);flex-shrink:0}
 :root[data-theme=dark] .theme-sun{display:block}
 :root[data-theme=dark] .theme-moon{display:none}
@@ -167,7 +168,7 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
 /* Skeleton loading */
 .skeleton{background:linear-gradient(90deg,rgba(127,127,127,.08) 25%,rgba(127,127,127,.18) 50%,rgba(127,127,127,.08) 75%);background-size:200% 100%;animation:shimmer 1.8s infinite;border-radius:8px}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-@media (max-width:480px){.chip{display:none}header{gap:8px;padding:12px 14px}header b{font-size:14px}.card{padding:22px 18px 16px;border-radius:20px}h1{font-size:21px}.hero img{width:54px;height:54px}.meta b{font-size:13px}main{place-items:start center;padding-top:4vh}}
+@media (max-width:480px){.chip{display:none}header{gap:7px;padding:12px 14px}header b{font-size:14.5px;white-space:nowrap}.lang-btn #ltext{display:none}.lang-btn{padding:0 7px;width:38px;justify-content:center}.lang-btn .chevron-sm{display:none}.card{padding:22px 18px 16px;border-radius:20px}h1{font-size:21px}.hero img{width:54px;height:54px}.meta b{font-size:13px}main{place-items:start center;padding-top:4vh}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -194,7 +195,7 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
       </button>
     </div>
   </div>
-  <button class="icon" id="theme" aria-label="Toggle theme" title="Toggle theme">
+  <button class="icon icon-sq" id="theme" aria-label="Toggle theme" title="Toggle theme">
     <svg class="theme-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
     </svg>
@@ -202,6 +203,11 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
       <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
     </svg>
   </button>
+  <a class="icon icon-sq" id="github-link" href="https://github.com/FireTable/comfy-colab-kit" target="_blank" rel="noopener noreferrer" title="GitHub Repository" aria-label="GitHub Repository">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+    </svg>
+  </a>
 </header>
 <main>
 <section class="card" id="card" aria-live="polite">
