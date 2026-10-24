@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """ckit — tiny client for comfy-gate (stdlib only; agent friendly).
 
+  ckit auth [URL]          (pair agent via RFC 8628 device flow)
   ckit status|profiles [--json]
   ckit wake [--profile ID] [--workflow ID ...] [--wait]
   ckit switch PROFILE      (owner)
   ckit stop | extend       (owner)
+  ckit mcp                 (start stdio MCP server for Cursor / Claude Desktop)
 
 Env: CKIT_URL (e.g. https://comfy.example.com), CKIT_TOKEN_FILE (agent bearer token file),
      optional CF_ACCESS_CLIENT_ID / CF_ACCESS_CLIENT_SECRET_FILE (Access service token for the public host).
@@ -22,12 +24,35 @@ def _read(path):
     return open(os.path.expanduser(path)).read().strip() if path else ""
 
 
+def load_config():
+    p = os.path.expanduser("~/.config/ckit/config.json")
+    if os.path.isfile(p):
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+
+def save_config(cfg):
+    p = os.path.expanduser("~/.config/ckit/config.json")
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    with open(p, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+
+
 def call(method, path, body=None):
-    base = os.environ.get("CKIT_URL", "http://127.0.0.1:8080").rstrip("/")
+    cfg = load_config()
+    default_endpoint = cfg.get("default_endpoint") or "http://127.0.0.1:8080"
+    base = os.environ.get("CKIT_URL", default_endpoint).rstrip("/")
+
     req = urllib.request.Request(base + path, method=method,
                                  data=json.dumps(body).encode() if body is not None else None,
                                  headers={"Content-Type": "application/json"})
-    tok = _read(os.environ.get("CKIT_TOKEN_FILE", ""))
+    
+    endpoint_cfg = cfg.get("endpoints", {}).get(base, {})
+    tok = os.environ.get("CKIT_TOKEN") or _read(os.environ.get("CKIT_TOKEN_FILE", "")) or endpoint_cfg.get("token", "")
     if tok:
         req.add_header("Authorization", "Bearer " + tok)
     cid = os.environ.get("CF_ACCESS_CLIENT_ID")
@@ -41,15 +66,116 @@ def call(method, path, body=None):
         return e.code, json.loads(e.read() or b"{}")
 
 
+def do_auth(target_url=None):
+    cfg = load_config()
+    base = target_url or os.environ.get("CKIT_URL") or cfg.get("default_endpoint")
+    if not base:
+        try:
+            val = input("请输入 Comfy Gate 网关地址 [http://127.0.0.1:8080]: ").strip()
+            base = val if val else "http://127.0.0.1:8080"
+        except (KeyboardInterrupt, EOFError):
+            print("\n已取消", file=sys.stderr)
+            sys.exit(1)
+    base = base.rstrip("/")
+    if not base.startswith("http://") and not base.startswith("https://"):
+        base = "https://" + base
+
+    client_name = os.environ.get("CKIT_CLIENT_NAME") or "AI Agent"
+    print(f"🔐 正在请求配对授权: {base} ...")
+
+    code_req = urllib.request.Request(
+        f"{base}/api/auth/device/code",
+        data=json.dumps({"client_name": client_name}).encode(),
+        headers={"Content-Type": "application/json"}
+    )
+    try:
+        with urllib.request.urlopen(code_req, timeout=15) as r:
+            res = json.loads(r.read())
+    except Exception as e:
+        print(f"❌ 无法连接网关 {base}: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    device_code = res["device_code"]
+    user_code = res["user_code"]
+    verify_url = res.get("verification_uri_complete") or f"{base}/auth/device?code={user_code}"
+    interval = max(2, res.get("interval", 3))
+
+    print(f"\n👉 请在浏览器中打开以下链接完成确认：\n   {verify_url}\n")
+    print(f"🔑 设备配对码: {user_code}")
+    print("⏳ 等待浏览器确认授权中 (Ctrl+C 取消)...", flush=True)
+
+    try:
+        import webbrowser
+        webbrowser.open(verify_url)
+    except Exception:
+        pass
+
+    poll_url = f"{base}/api/auth/device/token"
+    start_time = time.time()
+    while time.time() - start_time < res.get("expires_in", 600):
+        time.sleep(interval)
+        poll_req = urllib.request.Request(
+            poll_url,
+            data=json.dumps({"device_code": device_code}).encode(),
+            headers={"Content-Type": "application/json"}
+        )
+        try:
+            with urllib.request.urlopen(poll_req, timeout=10) as r:
+                tok_res = json.loads(r.read())
+                access_token = tok_res.get("access_token")
+                email = tok_res.get("email") or "user"
+
+                cfg.setdefault("endpoints", {})[base] = {
+                    "token": access_token,
+                    "email": email,
+                    "token_id": tok_res.get("token_id"),
+                    "authorized_at": time.time()
+                }
+                cfg["default_endpoint"] = base
+                save_config(cfg)
+
+                print(f"\n✅ 授权成功！已绑定账号: {email}")
+                print(f"📁 凭证已保存至: ~/.config/ckit/config.json")
+                print("🎉 你的 AI Agent / MCP 服务已完全就绪，无需手动复制 Token！\n")
+                return
+        except urllib.error.HTTPError as he:
+            err_data = {}
+            try:
+                err_data = json.loads(he.read())
+            except Exception:
+                pass
+            err_code = err_data.get("error")
+            if err_code == "authorization_pending":
+                continue
+            elif err_code == "access_denied":
+                print("\n🚫 浏览器中拒绝了授权请求。", file=sys.stderr)
+                sys.exit(1)
+            elif err_code in ("expired_token", "invalid_grant"):
+                print("\n⏰ 配对码已过期，请重新运行 ckit auth。", file=sys.stderr)
+                sys.exit(1)
+            else:
+                print(f"\n❌ 错误: {err_code or he}", file=sys.stderr)
+                sys.exit(1)
+        except Exception:
+            continue
+
+    print("\n⏰ 授权超时，请重试。", file=sys.stderr)
+    sys.exit(1)
+
+
 def main():
     ap = argparse.ArgumentParser(prog="ckit")
-    ap.add_argument("cmd", choices=["status", "profiles", "wake", "switch", "stop", "extend", "mcp"])
-    ap.add_argument("profile_arg", nargs="?")
+    ap.add_argument("cmd", choices=["auth", "status", "profiles", "wake", "switch", "stop", "extend", "mcp"])
+    ap.add_argument("extra_arg", nargs="?", help="URL for auth, or profile ID for switch")
     ap.add_argument("--profile")
     ap.add_argument("--workflow", action="append", help="enable an optional workflow (repeatable)")
     ap.add_argument("--wait", action="store_true", help="block until ready/failed (wake)")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args()
+
+    if a.cmd == "auth":
+        do_auth(a.extra_arg)
+        return
     if a.cmd == "mcp":
         import os
         import sys
@@ -72,7 +198,7 @@ def main():
             if not a.json:
                 print(f"… {out.get('state')} {json.dumps(out.get('progress', {}).get('download', {}))}", file=sys.stderr)
     elif a.cmd == "switch":
-        code, out = call("POST", "/_gate/switch", {"profile": a.profile_arg or a.profile})
+        code, out = call("POST", "/_gate/switch", {"profile": a.extra_arg or a.profile})
     else:
         code, out = call("POST", f"/_gate/{a.cmd}")
     print(json.dumps(out, indent=None if a.json else 2, ensure_ascii=False))

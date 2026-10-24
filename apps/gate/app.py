@@ -15,6 +15,16 @@ from . import __version__
 from .auth import AuthError, Identity, JWKSCache, authorize, identify
 from .colab import ColabCLI, ColabError, ColabRunner
 from .config import Settings, read_secret_file
+from .db import GateDB, DB_KEY
+from .device_auth import (
+    device_approve_endpoint,
+    device_code_endpoint,
+    device_deny_endpoint,
+    device_page_endpoint,
+    device_token_endpoint,
+    list_agent_tokens_endpoint,
+    revoke_agent_token_endpoint,
+)
 from .profiles import Profile, load_all
 from .proxy import Proxy
 from .session import REPO_ROOT, Session
@@ -35,7 +45,7 @@ def _find_web_dir() -> Path:
 
 
 WEB = _find_web_dir()
-PUBLIC_PATHS = ("/_gate/healthz", "/robots.txt")
+PUBLIC_PATHS = ("/_gate/healthz", "/robots.txt", "/api/auth/device/code", "/api/auth/device/token")
 BOT_UA_RE = re.compile(
     r"(bot|crawler|spider|crawling|slurp|archiver|scraper|yandex|bingbot|googlebot|baiduspider|bytespider|twitterbot|facebookexternalhit|rogerbot|linkedinbot|embedly|quora link preview|showyoubot|outbrain|pinterest|slackbot|vkShare|W3C_Validator)",
     re.IGNORECASE,
@@ -86,7 +96,7 @@ async def auth_mw(request: web.Request, handler):
     cookie_token = request.cookies.get("agent_token", "")
     try:
         ident = await asyncio.get_running_loop().run_in_executor(
-            None, identify, request.headers, app[SETTINGS], app[JWKS], app[AGENT_TOKEN], query_token, cookie_token)
+            None, identify, request.headers, app[SETTINGS], app[JWKS], app[AGENT_TOKEN], query_token, cookie_token, app.get(DB_KEY))
     except AuthError as e:
         return err(e.status, e.code, e.msg)
     request[IDENT] = ident
@@ -442,15 +452,16 @@ async def background(app: web.Application) -> None:
         await asyncio.sleep(30)
         try:
             if s.machine.state == State.READY:
-                if not await proxy.probe():
+                probe_ok = await proxy.probe()
+                if not probe_ok:
                     consecutive_probe_failures += 1
-                    if consecutive_probe_failures >= 3:
+                    if consecutive_probe_failures >= 5:
                         log.warning("backend probe failed %d times; reconciling with colab", consecutive_probe_failures)
                         await s.reconcile()
                 else:
                     consecutive_probe_failures = 0
                     s.queue_busy = await proxy.queue_busy()
-                    await proxy.heartbeat()
+                await proxy.heartbeat()
             elif s.is_boot_state() and not s.boot_task_running() and await proxy.probe():
                 # re-attached after a gate restart and the backend answers
                 if s.machine.can(State.READY):
@@ -493,6 +504,9 @@ def build_app(settings: Settings, colab: ColabRunner | None = None,
     app[SESSION] = session
     app[PROXY] = Proxy(settings.backend_url, settings.cf_service_token_file, session.touch,
                        session.client_opened, session.client_closed)
+    db_path = Path(settings.state_dir) / "gate.db"
+    db = GateDB(db_path)
+    app[DB_KEY] = db
     r = app.router
     r.add_get("/robots.txt", robots_txt)
     r.add_get("/_gate/healthz", healthz)
@@ -506,6 +520,14 @@ def build_app(settings: Settings, colab: ColabRunner | None = None,
     r.add_post("/_gate/extend", extend)
     r.add_route("*", "/_gate/mcp", mcp_endpoint)
     r.add_route("*", "/mcp", mcp_endpoint)
+    r.add_post("/api/auth/device/code", device_code_endpoint)
+    r.add_post("/api/auth/device/token", device_token_endpoint)
+    r.add_get("/auth/device", device_page_endpoint)
+    r.add_post("/api/auth/device/approve", device_approve_endpoint)
+    r.add_post("/api/auth/device/deny", device_deny_endpoint)
+    r.add_get("/api/agent-tokens", list_agent_tokens_endpoint)
+    r.add_post("/api/agent-tokens/{id}/revoke", revoke_agent_token_endpoint)
+    r.add_delete("/api/agent-tokens/{id}", revoke_agent_token_endpoint)
     r.add_static("/_gate/static/", WEB, show_index=False)
     r.add_route("*", "/{tail:.*}", catch_all)
 

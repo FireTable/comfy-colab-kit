@@ -94,6 +94,45 @@ body.app-ready{height:100vh;height:100dvh;overflow:hidden}
 .globe-icon{color:var(--muted);flex-shrink:0}
 .chevron-sm{width:12px;height:12px;color:var(--muted);transition:transform .2s;flex-shrink:0}
 .lang-open .chevron-sm{transform:rotate(180deg)}
+/* User Account & Agent Dropdown Card */
+.user-dropdown{position:relative;display:inline-flex}
+.user-btn{font:500 13px system-ui,-apple-system,sans-serif;padding:0 10px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;flex-shrink:0;height:36px}
+.user-email-text{max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:768px){.user-email-text{max-width:80px}}
+@media (max-width:480px){.user-email-text{display:none}}
+.badge-role{font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px;text-transform:uppercase}
+.badge-owner{background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3)}
+.badge-member{background:rgba(156,163,175,0.15);color:#9ca3af;border:1px solid rgba(156,163,175,0.3)}
+.user-open .chevron-sm{transform:rotate(180deg)}
+.user-popover{min-width:320px;max-width:360px;padding:14px;gap:12px}
+.user-popover-header{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line2)}
+.user-avatar-circle{width:34px;height:34px;border-radius:50%;background:rgba(127,127,127,0.15);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.user-details{overflow:hidden}
+.user-full-email{font-size:12.5px;font-weight:600;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-role-tag{font-size:11px;color:var(--muted);margin-top:2px}
+.user-popover-section{display:flex;flex-direction:column;gap:6px}
+.section-title-row{display:flex;align-items:center;justify-content:space-between}
+.section-title{font-size:11.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
+.refresh-tokens-btn{background:transparent;border:0;color:var(--muted);cursor:pointer;padding:2px 4px;border-radius:4px;display:flex;align-items:center}
+.refresh-tokens-btn:hover{color:var(--fg);background:rgba(127,127,127,0.15)}
+.agent-tokens-list{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;padding-right:2px}
+.empty-tokens{font-size:12px;color:var(--muted);text-align:center;padding:12px 0}
+.token-card{background:rgba(127,127,127,0.06);border:1px solid var(--line2);border-radius:8px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.token-info{overflow:hidden;flex:1}
+.token-name{font-size:12.5px;font-weight:600;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.token-time{font-size:10.5px;color:var(--muted);margin-top:2px}
+.btn-revoke{background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:4px 8px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;transition:all .15s}
+.btn-revoke:hover{background:rgba(239,68,68,0.25)}
+.token-card.revoked{opacity:0.5;background:transparent}
+.token-card.revoked .btn-revoke{display:none}
+.token-revoked-label{font-size:11px;color:var(--muted)}
+.cli-section{background:rgba(127,127,127,0.05);border:1px solid var(--line2);border-radius:8px;padding:10px}
+.cli-connect-title{font-size:11.5px;font-weight:600;color:var(--fg);margin-bottom:6px}
+.cli-cmd-box{display:flex;align-items:center;background:rgba(0,0,0,0.3);border:1px solid var(--line2);border-radius:6px;padding:4px 6px;gap:6px}
+.cli-cmd-box code{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--y);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy-cmd-btn{background:rgba(127,127,127,0.2);color:var(--fg);border:0;border-radius:4px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0}
+.copy-cmd-btn:hover{background:var(--y);color:#000}
+.cli-help-tip{font-size:10.5px;color:var(--muted);margin-top:4px}
 .menu-popover{position:absolute;right:0;top:calc(100% + 8px);min-width:144px;background:var(--popover);border:1px solid var(--line2);border-radius:14px;padding:6px;
  backdrop-filter:blur(24px) saturate(150%);-webkit-backdrop-filter:blur(24px) saturate(150%);box-shadow:0 16px 36px -8px rgba(0,0,0,.65);z-index:70;display:none;flex-direction:column;gap:2px}
 :root[data-theme=light] .menu-popover{background:#FFFFFF;border-color:rgba(15,23,42,.14);box-shadow:0 16px 36px -8px rgba(15,23,42,.16)}
@@ -310,6 +349,49 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
         <svg class="user-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span id="vcount">1 online</span>
       </span>
+
+      <!-- User Account & Agent Card (Immediately left of Language Selector) -->
+      <div class="user-dropdown" id="user-dropdown" style="display:none">
+        <button type="button" class="icon-btn user-btn" id="user-btn" aria-haspopup="dialog" aria-expanded="false" title="账户与 Agent 授权">
+          <svg class="user-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+          <span id="user-email-text" class="user-email-text"></span>
+          <span id="user-role-badge" class="badge-role"></span>
+          <svg class="chevron-sm" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+
+        <div class="menu-popover user-popover" id="user-popover" role="dialog">
+          <div class="user-popover-header">
+            <div class="user-avatar-circle" id="user-avatar-circle">👤</div>
+            <div class="user-details">
+              <div class="user-full-email" id="user-full-email"></div>
+              <div class="user-role-tag" id="user-role-tag"></div>
+            </div>
+          </div>
+
+          <div class="user-popover-section">
+            <div class="section-title-row">
+              <span class="section-title">已绑定的 AI Agent</span>
+              <button type="button" class="refresh-tokens-btn" id="refresh-tokens-btn" title="刷新列表">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+              </button>
+            </div>
+            <div id="agent-tokens-list" class="agent-tokens-list">
+              <div class="empty-tokens">正在加载...</div>
+            </div>
+          </div>
+
+          <div class="user-popover-section cli-section">
+            <div class="cli-connect-title">连接本机 Agent (CLI)</div>
+            <div class="cli-cmd-box">
+              <code id="cli-auth-cmd">ckit auth ...</code>
+              <button type="button" class="copy-cmd-btn" id="copy-cmd-btn" title="点击复制">复制</button>
+            </div>
+            <div class="cli-help-tip">在终端运行此命令即可自动打开浏览器完成配对</div>
+          </div>
+        </div>
+      </div>
 
       <div class="lang-dropdown" id="lang-dropdown">
         <button type="button" class="icon-btn lang-btn" id="lang-btn" aria-haspopup="menu" aria-expanded="false" title="Language">
@@ -539,6 +621,99 @@ $("opt-lang-zh").onclick=(e)=>{e.stopPropagation();setLanguage("zh");toggleLangM
 $("opt-lang-en").onclick=(e)=>{e.stopPropagation();setLanguage("en");toggleLangMenu(false)};
 updateLanguageUI();
 
+// User Account & Connected Agents Popover Implementation
+const userBtn=$("user-btn"),userPopover=$("user-popover"),userDropdown=$("user-dropdown");
+let userOpen=false,currentUser=null;
+function toggleUserMenu(force){
+ userOpen=force!==undefined?force:!userOpen;
+ if(userOpen){
+  if(langOpen)toggleLangMenu(false);
+  if(selectOpen)toggleSelect(false);
+  loadAgentTokens();
+ }
+ userPopover.classList.toggle("open",userOpen);
+ userDropdown.classList.toggle("user-open",userOpen);
+ userBtn.setAttribute("aria-expanded",userOpen);
+}
+function updateUserUI(you){
+ if(!you||!you.email)return;
+ currentUser=you;
+ userDropdown.style.display="inline-flex";
+ $("user-email-text").textContent=you.email;
+ $("user-full-email").textContent=you.email;
+ const isOwner=!!you.owner;
+ const roleBadge=$("user-role-badge");
+ roleBadge.textContent=isOwner?"Owner":"Member";
+ roleBadge.className="badge-role "+(isOwner?"badge-owner":"badge-member");
+ $("user-role-tag").textContent=isOwner?(lang==="zh"?"👑 系统管理员 (具备全部权限)":"👑 Admin (Full Access)"):(lang==="zh"?"👤 协作者 (查询与绘图)":"👤 Member (Query & Generate)");
+ $("cli-auth-cmd").textContent=`ckit auth ${window.location.origin}`;
+}
+userBtn.onclick=(e)=>{e.stopPropagation();toggleUserMenu()};
+$("refresh-tokens-btn").onclick=(e)=>{e.stopPropagation();loadAgentTokens()};
+
+function escapeHtml(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+
+async function loadAgentTokens(){
+ const listEl=$("agent-tokens-list");
+ listEl.innerHTML=`<div class="empty-tokens">${lang==="zh"?"正在读取...":"Loading..."}</div>`;
+ try{
+  const res=await api("/api/agent-tokens");
+  const tokens=res.tokens||[];
+  if(!tokens.length){
+   listEl.innerHTML=`<div class="empty-tokens">${lang==="zh"?"暂无绑定的 Agent 设备":"No connected Agents"}</div>`;
+   return;
+  }
+  listEl.innerHTML="";
+  for(const tok of tokens){
+   const card=document.createElement("div");
+   card.className="token-card"+(tok.revoked?" revoked":"");
+   const createdStr=new Date(tok.created_at*1000).toLocaleDateString();
+   const lastUsedStr=tok.last_used_at?new Date(tok.last_used_at*1000).toLocaleDateString():(lang==="zh"?"从未":"Never");
+   card.innerHTML=`
+     <div class="token-info">
+       <div class="token-name">${escapeHtml(tok.name)}</div>
+       <div class="token-time">${lang==="zh"?`创建: ${createdStr} · 调用: ${lastUsedStr}`:`Created: ${createdStr} · Used: ${lastUsedStr}`}</div>
+     </div>
+     ${tok.revoked
+       ?`<span class="token-revoked-label">${lang==="zh"?"已禁用":"Revoked"}</span>`
+       :`<button type="button" class="btn-revoke" data-id="${tok.id}">${lang==="zh"?"禁用":"Revoke"}</button>`}
+   `;
+   const btn=card.querySelector(".btn-revoke");
+   if(btn){
+    btn.onclick=async(e)=>{
+     e.stopPropagation();
+     const confirmMsg=lang==="zh"
+       ?`确认禁用 Agent「${tok.name}」吗？\n禁用后该设备将无法调用 MCP。`
+       :`Are you sure you want to revoke Agent "${tok.name}"?\nThis device will lose MCP access immediately.`;
+     if(!confirm(confirmMsg))return;
+     try{
+      await api(`/api/agent-tokens/${tok.id}/revoke`,{method:"POST"});
+      loadAgentTokens();
+     }catch(err){
+      alert((lang==="zh"?"操作失败: ":"Error: ")+err.message);
+     }
+    };
+   }
+   listEl.appendChild(card);
+  }
+ }catch(err){
+  listEl.innerHTML=`<div class="empty-tokens" style="color:#f87171;">${lang==="zh"?"读取失败: ":"Failed to load: "}${escapeHtml(err.message)}</div>`;
+ }
+}
+
+$("copy-cmd-btn").onclick=async(e)=>{
+ e.stopPropagation();
+ const cmd=$("cli-auth-cmd").textContent;
+ try{
+  await navigator.clipboard.writeText(cmd);
+  const orig=$("copy-cmd-btn").textContent;
+  $("copy-cmd-btn").textContent=lang==="zh"?"已复制!":"Copied!";
+  setTimeout(()=>{$("copy-cmd-btn").textContent=orig},2000);
+ }catch(_){
+  prompt(lang==="zh"?"请复制命令:":"Copy command:",cmd);
+ }
+};
+
 const card=$("card");card.addEventListener("pointermove",e=>{const r=card.getBoundingClientRect();card.style.setProperty("--mx",e.clientX-r.left+"px");card.style.setProperty("--my",e.clientY-r.top+"px")});
 async function api(p,o){const r=await fetch(p,Object.assign({headers:{"Content-Type":"application/json"}},o));const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||r.status);return j}
 function fmt(s){s=Math.max(0,Math.round(s));return s>=3600?`${Math.floor(s/3600)}h ${Math.floor(s%3600/60)}m`:s>=60?`${Math.floor(s/60)}m ${s%60}s`:`${s}s`}
@@ -576,9 +751,10 @@ document.addEventListener("pointerdown",e=>{
  const inWidget=(t)=>t instanceof Node&&(customSelect.contains(t)||(profLabel&&profLabel.contains(t)));
  if(selectOpen&&(!e.target||!inWidget(e.target)))toggleSelect(false);
  if(langOpen&&(!e.target||(e.target instanceof Node&&!langDropdown.contains(e.target))))toggleLangMenu(false);
+ if(userOpen&&(!e.target||(e.target instanceof Node&&!userDropdown.contains(e.target))))toggleUserMenu(false);
 });
 window.addEventListener("keydown",e=>{
- if(e.key==="Escape"){toggleSelect(false);toggleLangMenu(false)}
+ if(e.key==="Escape"){toggleSelect(false);toggleLangMenu(false);toggleUserMenu(false)}
 });
 
 function renderCustomSelect(){
@@ -638,6 +814,7 @@ function formatReason(r){
 
 function render(){
  if(!S)return;
+ if(S.you&&S.you.email)updateUserUI(S.you);
  const serverNow = S.server_time ? S.server_time + ((Date.now() - (render.lastSyncTime || Date.now())) / 1000) : (Date.now() / 1000);
  const st=S.state,waking=BOOT.includes(st)||st==="switching",now=serverNow;
  if(st!==lastSt){stageT[st]=now;lastSt=st;window.kitBg&&kitBg.set({amp:waking?1.6:1})}

@@ -551,6 +551,8 @@ class Session:
     def handle_line(self, line: str) -> None:
         """Parse setup.py protocol lines; everything is also forwarded as a log line."""
         clean = redact_secrets(line)
+        if clean.startswith("KIT_KEEPALIVE"):
+            return  # keepalive ping to prevent Colab idle reaper; don't flood logs
         self.bus.publish("log", clean)
         parts = clean.split(" ", 3)
         if clean.startswith("KIT_STAGE ") and len(parts) >= 3:
