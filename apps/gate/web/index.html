@@ -51,9 +51,9 @@ body.app-ready{height:100vh;height:100dvh;overflow:hidden}
 #bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;transform:scaleY(-1)}
 .grid{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
  background-size:44px 44px;mask-image:radial-gradient(ellipse at 50% 45%,#000 10%,transparent 70%);-webkit-mask-image:radial-gradient(ellipse at 50% 45%,#000 10%,transparent 70%);opacity:.55}
-.site-header{position:sticky;top:0;z-index:100;height:var(--header-h);padding:0 24px;
+.site-header{position:sticky;top:0;z-index:100;min-height:var(--header-h);height:auto;padding:12px 24px;
  background:rgba(14,10,18,.75);border-bottom:1px solid var(--line);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);
- transition:background-color .2s,border-color .2s;box-sizing:border-box;display:flex;align-items:center}
+ transition:background-color .2s,border-color .2s;box-sizing:border-box;display:flex;align-items:center;flex-shrink:0}
 :root[data-theme=light] .site-header{background:rgba(248,250,252,.88);border-bottom-color:var(--line)}
 .nav-container{max-width:1180px;width:100%;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
 .header-left{display:flex;align-items:center;gap:10px;flex-shrink:0}
@@ -220,12 +220,10 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
 /* Mobile: the card is fluid, so every fixed px in the type/spacing scale steps down with the viewport. */
 @media (max-width:480px){
  .chip{display:none}
- header{gap:7px;padding:12px max(14px,env(safe-area-inset-right)) 12px max(14px,env(safe-area-inset-left))}
- header b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
- /* Touch targets: keep every header control at a comfortable 44px */
- .icon{height:44px;min-width:44px}
- .icon-sq{width:44px}
- .lang-btn{padding:0 7px;width:44px;justify-content:center}.lang-btn #ltext{display:none}.lang-btn .chevron-sm{display:none}
+ .site-header{padding:max(12px,env(safe-area-inset-top,12px)) max(16px,env(safe-area-inset-right,16px)) 12px max(16px,env(safe-area-inset-left,16px))}
+ .icon{height:38px;min-width:38px}
+ .icon-sq{width:38px}
+ .lang-btn{padding:0 8px;width:38px;justify-content:center}.lang-btn #ltext{display:none}.lang-btn .chevron-sm{display:none}
  main{place-items:start center;padding:8px 12px calc(24px + env(safe-area-inset-bottom));padding-top:3vh}
  .card{padding:20px 16px 14px;border-radius:20px}
  h1{font-size:clamp(19px,5.6vw,22px);margin:10px 0 4px}
@@ -243,7 +241,6 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
 }
 @media (max-width:360px){
  .card{padding:16px 12px 12px;border-radius:18px}
- header b{font-size:13px}
  h1{font-size:18px}
  .hero img{width:46px;height:46px}
  .meta b{font-size:11.5px}.meta small{font-size:9px}
@@ -260,7 +257,7 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
  #pill-stat-prof,#pill-div-2{display:none}
 }
 @media (max-width:640px){
- .site-header{padding:0 16px}
+ .site-header{padding:max(12px,env(safe-area-inset-top,12px)) max(16px,env(safe-area-inset-right,16px)) 12px max(16px,env(safe-area-inset-left,16px))}
  .brand-text{display:none}
  .nav-pill{padding:4px 8px;gap:6px;font-size:11px}
  .header-stop-label{display:none}
