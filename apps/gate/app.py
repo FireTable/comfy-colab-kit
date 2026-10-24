@@ -89,7 +89,7 @@ async def anti_crawler_mw(request: web.Request, handler):
 
 @web.middleware
 async def auth_mw(request: web.Request, handler):
-    if request.path in PUBLIC_PATHS or request.path.startswith("/_gate/static/"):
+    if request.path in PUBLIC_PATHS or request.path.startswith("/_gate/static/") or (request.method == "GET" and request.path in ("/mcp", "/_gate/mcp")):
         return await handler(request)
     app = request.app
     query_token = request.query.get("token", "")
