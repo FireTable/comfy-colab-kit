@@ -62,21 +62,7 @@ body.app-ready{height:100vh;height:100dvh;overflow:hidden}
 .brand img{width:32px;height:32px;border-radius:9px;flex-shrink:0}
 .brand-text{overflow:hidden;text-overflow:ellipsis}
 .header-left .badge{margin-left:2px}
-.nav-pill{display:inline-flex;align-items:center;gap:10px;padding:5px 14px;background:rgba(255,255,255,.05);border:1px solid var(--line2);border-radius:9999px;
- backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);font:500 12px var(--mono);color:var(--fg);white-space:nowrap;transition:all .2s ease}
-:root[data-theme=light] .nav-pill{background:rgba(15,23,42,.04);border-color:rgba(15,23,42,.12)}
-.pill-stat{display:inline-flex;align-items:center;gap:5px}
-.pill-icon{color:var(--muted);flex-shrink:0}
-.pill-divider{width:1px;height:13px;background:var(--line2);flex-shrink:0}
 .header-right,.nav-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.header-btn-stop{height:36px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,107,74,.35);background:rgba(255,107,74,.12);color:var(--bad);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;font:600 12px var(--mono);transition:all .2s cubic-bezier(0.16,1,0.3,1);white-space:nowrap}
-.header-btn-stop:hover{background:rgba(255,107,74,.22);border-color:var(--bad);box-shadow:0 0 14px rgba(255,107,74,.35)}
-.header-btn-stop.confirming{background:var(--bad);color:#fff;border-color:var(--bad);padding:0 14px;box-shadow:0 4px 16px rgba(255,107,74,.5);animation:pulse-red 1.5s infinite}
-.header-btn-stop:disabled,.header-btn-stop.disabled{opacity:0.38;cursor:not-allowed !important;pointer-events:auto !important;border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--muted);box-shadow:none !important;transform:none !important}
-.header-btn-stop:disabled:hover,.header-btn-stop.disabled:hover{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.12);color:var(--muted);box-shadow:none !important;transform:none !important}
-:root[data-theme=light] .header-btn-stop:disabled,:root[data-theme=light] .header-btn-stop.disabled{border-color:rgba(15,23,42,.12);background:rgba(15,23,42,.04);color:#94A3B8}
-@keyframes pulse-red{0%,100%{box-shadow:0 0 0 0 rgba(255,107,74,.6)}50%{box-shadow:0 0 0 6px rgba(255,107,74,0)}}
-.header-stop-label{font:600 11.5px var(--mono);white-space:nowrap}
 .icon-btn,.icon{background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:10px;height:36px;padding:0 10px;cursor:pointer;font:600 13px var(--mono);backdrop-filter:blur(8px);display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;text-decoration:none;box-sizing:border-box}
 .icon-btn:hover,.icon:hover{border-color:var(--y);color:var(--y);transform:translateY(-1px)}
 :root[data-theme=light] .icon-btn,:root[data-theme=light] .icon{background:#FFFFFF;border-color:rgba(15,23,42,.12);box-shadow:0 1px 2px rgba(15,23,42,.04);color:#0F172A}
@@ -107,9 +93,21 @@ body.app-ready{height:100vh;height:100dvh;overflow:hidden}
 .user-popover{min-width:320px;max-width:360px;padding:14px;gap:12px}
 .user-popover-header{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line2)}
 .user-avatar-circle{width:34px;height:34px;border-radius:50%;background:rgba(127,127,127,0.15);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.user-details{overflow:hidden}
+.user-details{overflow:hidden;flex:1;min-width:0}
 .user-full-email{font-size:12.5px;font-weight:600;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .user-role-tag{font-size:11px;color:var(--muted);margin-top:2px}
+.user-panel-online{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font:500 11px var(--mono);color:var(--muted);background:rgba(127,127,127,0.08);padding:3px 7px;border-radius:6px;border:1px solid var(--line2);flex-shrink:0}
+.dot-online{width:6px;height:6px;border-radius:50%;background:#10b981;box-shadow:0 0 6px rgba(16,185,129,0.4)}
+.owner-ctrl-section{background:rgba(127,127,127,0.04);border:1px solid var(--line2);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.panel-metrics-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.panel-metric-item{background:rgba(0,0,0,0.25);border:1px solid var(--line2);border-radius:8px;padding:6px 8px;display:flex;flex-direction:column;gap:2px}
+:root[data-theme=light] .panel-metric-item{background:rgba(0,0,0,0.03)}
+.panel-metric-lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;font-family:var(--mono);letter-spacing:0.04em}
+.panel-metric-val{font-size:12px;font-weight:700;color:var(--fg);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn-panel-stop{width:100%;padding:8px 12px;background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.25);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
+.btn-panel-stop:hover{background:rgba(239,68,68,0.25);border-color:rgba(239,68,68,0.4)}
+.btn-panel-stop.confirming{background:var(--bad);color:#fff;border-color:var(--bad);box-shadow:0 4px 16px rgba(255,107,74,.5);animation:pulse-red 1.5s infinite}
+.btn-panel-stop:disabled{opacity:0.4;cursor:not-allowed !important}
 .user-popover-section{display:flex;flex-direction:column;gap:6px}
 .section-title-row{display:flex;align-items:center;justify-content:space-between}
 .section-title{font-size:11.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
@@ -344,36 +342,7 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
       <span class="badge" id="h-badge" style="display:none"><span class="dot"></span><span id="h-btext">…</span></span>
     </div>
 
-    <div class="nav-pill" id="nav-pill" style="display:none">
-      <span class="pill-stat" id="pill-stat-time" title="Running Time">
-        <svg class="pill-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        <span id="pill-time">00:00</span>
-      </span>
-      <span class="pill-divider" id="pill-div-1"></span>
-      <span class="pill-stat" id="pill-stat-cu" title="Compute Units">
-        <svg class="pill-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        <span id="pill-cu">0.00 CU</span>
-      </span>
-      <span class="pill-divider" id="pill-div-2"></span>
-      <span class="pill-stat" id="pill-stat-prof" title="Current Profile">
-        <span id="pill-prof">moss-image</span>
-      </span>
-    </div>
-
     <div class="header-right">
-      <button type="button" class="header-btn-stop" id="header-stop" title="关机 · 释放 GPU" aria-label="关机" hidden>
-        <svg class="power-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
-          <line x1="12" y1="2" x2="12" y2="12"/>
-        </svg>
-        <span id="header-stop-txt" class="header-stop-label">关机</span>
-      </button>
-
-      <span class="viewers" id="h-viewers" style="display:none">
-        <svg class="user-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span id="vcount">1 online</span>
-      </span>
-
       <!-- User Account & Agent Card (Immediately left of Language Selector) -->
       <div class="user-dropdown" id="user-dropdown" style="display:none">
         <button type="button" class="icon-btn user-btn" id="user-btn" aria-haspopup="dialog" aria-expanded="false" title="账户与 Agent 授权">
@@ -396,6 +365,38 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
               <div class="user-full-email" id="user-full-email"></div>
               <div class="user-role-tag" id="user-role-tag"></div>
             </div>
+            <div class="user-panel-online" id="panel-vcount-badge" title="当前在线人数">
+              <span class="dot-online"></span>
+              <span id="panel-vcount">1 online</span>
+            </div>
+          </div>
+
+          <!-- Owner Only Session & CU Management Section -->
+          <div class="user-popover-section owner-ctrl-section" id="owner-ctrl-section" style="display:none">
+            <div class="section-title-row">
+              <span class="section-title" id="owner-sec-title">实例运行与算力</span>
+              <span class="badge-role badge-owner">Owner</span>
+            </div>
+            <div class="panel-metrics-grid">
+              <div class="panel-metric-item">
+                <span class="panel-metric-lbl">运行时间</span>
+                <span class="panel-metric-val" id="panel-time">00:00</span>
+              </div>
+              <div class="panel-metric-item">
+                <span class="panel-metric-lbl">CU 消耗</span>
+                <span class="panel-metric-val" id="panel-cu">0.00 CU</span>
+              </div>
+              <div class="panel-metric-item">
+                <span class="panel-metric-lbl">当前预设</span>
+                <span class="panel-metric-val" id="panel-prof">moss-image</span>
+              </div>
+            </div>
+            <button type="button" class="btn-panel-stop" id="panel-stop-btn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
+              </svg>
+              <span id="panel-stop-txt">关机 · 释放 GPU</span>
+            </button>
           </div>
 
           <div class="user-popover-section">
@@ -987,6 +988,7 @@ function render(){
  if($("hprof")){$("hprof").hidden=!curP;$("hprof").textContent=curP||"";}
  const vc=t("online",{count:S.clients||1});
  if($("vcount"))$("vcount").textContent=vc;
+ if($("panel-vcount"))$("panel-vcount").textContent=vc;
  if($("card-vcount"))$("card-vcount").textContent=vc;
  $("title").textContent=st==="sleeping"?t("sleeping_title"):st==="ready"?t("ready_title"):st==="failed"?t("failed_title"):st==="stopping"?t("stopping_title"):st==="switching"?t("switching_title"):t("waking_title");
  const started=S.session_started||S.since;
@@ -1137,17 +1139,25 @@ function render(){
  }
  stopBtn.textContent=t("stop_btn");
 
- const cu=S.cu||{};
- const cuHtml=`
-  <div><small>${t("cu_today")}</small><b>${(cu.today||0).toFixed(2)}</b></div>
-  <div><small>${t("cu_month")}</small><b>${(cu.month||0).toFixed(1)}</b></div>
-  <div><small>${t("cu_balance")}</small><b>${cu.balance!=null?cu.balance.toFixed(1):"—"}</b></div>
- `;
- if(render.cuHtml!==cuHtml){$("meta").innerHTML=cuHtml;render.cuHtml=cuHtml}
+ const isOwner=!!(S&&S.you&&S.you.owner);
+ const metaEl=$("meta");
+ if(metaEl){
+  if(!isOwner||!S.cu){
+   metaEl.style.display="none";
+  }else{
+   metaEl.style.display="grid";
+   const cu=S.cu||{};
+   const cuHtml=`
+    <div><small>${t("cu_today")}</small><b>${(cu.today||0).toFixed(2)}</b></div>
+    <div><small>${t("cu_month")}</small><b>${(cu.month||0).toFixed(1)}</b></div>
+    <div><small>${t("cu_balance")}</small><b>${cu.balance!=null?cu.balance.toFixed(1):"—"}</b></div>
+   `;
+   if(render.cuHtml!==cuHtml){metaEl.innerHTML=cuHtml;render.cuHtml=cuHtml}
+  }
+ }
  document.title=st==="sleeping"?t("title"):`${st==="ready"?t("ready_title"):st==="failed"?t("failed_title"):t("waking_title")} · ${t("title")}`;
 
- const frame=$("comfy-frame"),mainGate=$("gate-main"),footerEl=$("footer-txt");
- const navPill=$("nav-pill"),hBadge=$("h-badge"),hViewers=$("h-viewers"),hStop=$("header-stop");
+ const frame=$("comfy-frame"),mainGate=$("gate-main"),footerEl=$("footer-txt"),hBadge=$("h-badge");
  if(st==="ready"){
   document.body.classList.add("app-ready");
   if(!render.readyMounted){
@@ -1172,25 +1182,7 @@ function render(){
   frame.style.display="block";
   document.title=`ComfyUI · ${curP||"Kit"}`;
 
-  // When ready: Header exhibits status pill, ready badge, stop button and viewers
   if(hBadge){hBadge.className="badge ready";$("h-btext").textContent=t("badge_ready");hBadge.style.display="inline-flex";}
-  if(navPill){navPill.style.display="inline-flex";}
-  $("pill-time").textContent=fmt(Math.max(0,now-started));
-  $("pill-cu").textContent=`${(cu.today||0).toFixed(2)} CU`;
-  $("pill-prof").textContent=curP||"moss-image";
-  if(hViewers){hViewers.style.display="inline-flex";}
-  if(hStop){
-   const canStop = S && S.can_stop !== false;
-   hStop.hidden=false;
-   hStop.disabled=!canStop;
-   hStop.classList.toggle("disabled", !canStop);
-   if (!canStop) {
-    hStop.title = t("stop_disabled_hint");
-   } else {
-    hStop.title = t("header_stop_title");
-   }
-   if(!hStop.classList.contains("confirming"))$("header-stop-txt").textContent=t("header_stop");
-  }
  }else{
   document.body.classList.remove("app-ready");
   render.readyMounted=false;
@@ -1200,12 +1192,30 @@ function render(){
   const b=$("bg"),g=document.querySelector(".grid");
   if(b)b.style.display="";if(g)g.style.display="";
   if(frame){frame.style.display="none";if(frame.src&&frame.src!=="about:blank")frame.src="about:blank";}
-
-  // When sleeping or waking: Header stays pristine & minimal, matching site!
   if(hBadge){hBadge.style.display="none";}
-  if(navPill){navPill.style.display="none";}
-  if(hViewers){hViewers.style.display="none";}
-  if(hStop){hStop.hidden=true;}
+ }
+
+ // Update Owner Session & Metrics panel
+ const ownerSec=$("owner-ctrl-section");
+ if(ownerSec){
+  const isRunning=S&&(S.state==="ready"||S.state==="booting"||S.state==="switching"||S.state==="downloading"||S.state==="smoke_testing");
+  if(isOwner&&isRunning){
+   ownerSec.style.display="flex";
+   const started=S.session_started||S.since||now;
+   if($("panel-time"))$("panel-time").textContent=fmt(Math.max(0,now-started));
+   if($("panel-cu"))$("panel-cu").textContent=S.cu?`${(S.cu.today||0).toFixed(2)} CU`:"-- CU";
+   if($("panel-prof"))$("panel-prof").textContent=curP||"moss-image";
+   const pStopBtn=$("panel-stop-btn");
+   if(pStopBtn){
+    const canStop=S.can_stop!==false;
+    pStopBtn.disabled=!canStop;
+    if(!pStopBtn.classList.contains("confirming")){
+     $("panel-stop-txt").textContent=lang==="zh"?"关机 · 释放 GPU":"Stop · Release GPU";
+    }
+   }
+  }else{
+   ownerSec.style.display="none";
+  }
  }
 }
 
@@ -1236,31 +1246,34 @@ $("stop").onclick=async()=>{
  try{await api("/_gate/stop",{method:"POST"})}catch(e){$("err").textContent=e.message}
 };
 
-let headerConfirmTimer=null;
-function resetHeaderStop(){
- if(headerConfirmTimer){clearTimeout(headerConfirmTimer);headerConfirmTimer=null;}
- const btn=$("header-stop"),txt=$("header-stop-txt");
+let panelConfirmTimer=null;
+function resetPanelStop(){
+ if(panelConfirmTimer){clearTimeout(panelConfirmTimer);panelConfirmTimer=null;}
+ const btn=$("panel-stop-btn"),txt=$("panel-stop-txt");
  if(btn){btn.classList.remove("confirming");btn.disabled=(S&&S.can_stop===false);}
- if(txt){txt.textContent=t("header_stop");}
+ if(txt){txt.textContent=lang==="zh"?"关机 · 释放 GPU":"Stop · Release GPU";}
 }
-$("header-stop").onclick=async(e)=>{
- e.stopPropagation();
- const btn=$("header-stop"),txt=$("header-stop-txt");
- if(btn.disabled||(S&&S.can_stop===false))return;
- if(!btn.classList.contains("confirming")){
-  btn.classList.add("confirming");
-  txt.textContent=t("dock_confirm");
-  headerConfirmTimer=setTimeout(resetHeaderStop,4000);
-  return;
- }
- if(headerConfirmTimer){clearTimeout(headerConfirmTimer);headerConfirmTimer=null;}
- txt.textContent=t("dock_stopping");
- btn.disabled=true;
- try{await api("/_gate/stop",{method:"POST"})}
- catch(err){alert(err.message);resetHeaderStop();}
-};
+const pStopBtn=$("panel-stop-btn");
+if(pStopBtn){
+ pStopBtn.onclick=async(e)=>{
+  e.stopPropagation();
+  const btn=$("panel-stop-btn"),txt=$("panel-stop-txt");
+  if(btn.disabled||(S&&S.can_stop===false))return;
+  if(!btn.classList.contains("confirming")){
+   btn.classList.add("confirming");
+   txt.textContent=lang==="zh"?"再次点击确认关机":"Confirm Stop?";
+   panelConfirmTimer=setTimeout(resetPanelStop,4000);
+   return;
+  }
+  if(panelConfirmTimer){clearTimeout(panelConfirmTimer);panelConfirmTimer=null;}
+  txt.textContent=lang==="zh"?"停机中...":"Stopping...";
+  btn.disabled=true;
+  try{await api("/_gate/stop",{method:"POST"})}
+  catch(err){alert(err.message);resetPanelStop();}
+ };
+}
 document.addEventListener("pointerdown",e=>{
- if(headerConfirmTimer&&!$("header-stop").contains(e.target))resetHeaderStop();
+ if(panelConfirmTimer&&$("panel-stop-btn")&&!$("panel-stop-btn").contains(e.target))resetPanelStop();
 });
 
 function connect(){
