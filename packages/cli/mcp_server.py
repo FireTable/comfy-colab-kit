@@ -29,6 +29,9 @@ import urllib.request
 PROTOCOL_VERSION = "2024-11-05"
 
 
+DEFAULT_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 (ckit/0.1.0)"
+
+
 def _read_file(path: str) -> str:
     if not path:
         return ""
@@ -53,7 +56,7 @@ def call_gate(method: str, path: str, body: dict | None = None) -> tuple[int, di
     base = os.environ.get("CKIT_URL", default_base).rstrip("/")
     url = base + path
     data = json.dumps(body).encode() if body is not None else None
-    req = urllib.request.Request(url, method=method, data=data, headers={"Content-Type": "application/json"})
+    req = urllib.request.Request(url, method=method, data=data, headers={"Content-Type": "application/json", "User-Agent": DEFAULT_UA})
 
     endpoint_cfg = cfg.get("endpoints", {}).get(base, {})
     tok = os.environ.get("CKIT_TOKEN") or _read_file(os.environ.get("CKIT_TOKEN_FILE", "")) or endpoint_cfg.get("token", "")

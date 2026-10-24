@@ -44,6 +44,9 @@ def save_config(cfg):
         json.dump(cfg, f, indent=2, ensure_ascii=False)
 
 
+DEFAULT_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 (ckit/0.1.0)"
+
+
 def call(method, path, body=None):
     cfg = load_config()
     default_endpoint = cfg.get("default_endpoint") or "http://127.0.0.1:8080"
@@ -53,7 +56,7 @@ def call(method, path, body=None):
         base + path,
         method=method,
         data=json.dumps(body).encode() if body is not None else None,
-        headers={"Content-Type": "application/json"}
+        headers={"Content-Type": "application/json", "User-Agent": DEFAULT_UA}
     )
     
     endpoint_cfg = cfg.get("endpoints", {}).get(base, {})
@@ -110,7 +113,7 @@ def do_auth(target_url=None):
     code_req = urllib.request.Request(
         f"{base}/api/auth/device/code",
         data=json.dumps({"client_name": client_name}).encode(),
-        headers={"Content-Type": "application/json"}
+        headers={"Content-Type": "application/json", "User-Agent": DEFAULT_UA}
     )
     try:
         with urllib.request.urlopen(code_req, timeout=15) as r:
@@ -148,7 +151,7 @@ def do_auth(target_url=None):
         poll_req = urllib.request.Request(
             poll_url,
             data=json.dumps({"device_code": device_code}).encode(),
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json", "User-Agent": DEFAULT_UA}
         )
         try:
             with urllib.request.urlopen(poll_req, timeout=10) as r:
