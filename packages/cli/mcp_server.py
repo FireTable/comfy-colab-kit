@@ -52,6 +52,23 @@ def call_gate(method: str, path: str, body: dict | None = None) -> tuple[int, di
         except Exception:
             pass
 
+    agents_env = os.path.expanduser("~/.agents/.env")
+    if os.path.isfile(agents_env):
+        try:
+            with open(agents_env, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith("#") or "=" not in line:
+                        continue
+                    k, v = line.split("=", 1)
+                    k, v = k.strip(), v.strip().strip("'\"")
+                    if k == "CKIT_URL" and not cfg.get("default_endpoint"):
+                        cfg["default_endpoint"] = v
+                    elif k in ("CKIT_TOKEN", "COMFY_AGENT_TOKEN") and not cfg.get("token"):
+                        cfg["token"] = v
+        except Exception:
+            pass
+
     default_base = cfg.get("default_endpoint") or "http://127.0.0.1:8080"
     base = os.environ.get("CKIT_URL", default_base).rstrip("/")
     url = base + path
@@ -59,7 +76,7 @@ def call_gate(method: str, path: str, body: dict | None = None) -> tuple[int, di
     req = urllib.request.Request(url, method=method, data=data, headers={"Content-Type": "application/json", "User-Agent": DEFAULT_UA})
 
     endpoint_cfg = cfg.get("endpoints", {}).get(base, {})
-    tok = os.environ.get("CKIT_TOKEN") or _read_file(os.environ.get("CKIT_TOKEN_FILE", "")) or endpoint_cfg.get("token", "")
+    tok = os.environ.get("CKIT_TOKEN") or _read_file(os.environ.get("CKIT_TOKEN_FILE", "")) or endpoint_cfg.get("token", "") or cfg.get("token", "")
     if tok:
         req.add_header("Authorization", "Bearer " + tok)
 
