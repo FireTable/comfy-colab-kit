@@ -218,10 +218,13 @@ class Downloads:
                     last_t = time.time()  # paused time is not a stall
                     continue
                 size = du(tmp)
+                target = int(m.get("size_gb", 0) * 1e9)
+                is_verifying = target > 0 and size >= int(target * 0.98)
+                max_stall = (self.stall_s * 3) if is_verifying else self.stall_s
                 if size != last:
                     last, last_t = size, time.time()
-                elif time.time() - last_t > self.stall_s:
-                    print(f"  stall: no bytes for {self.stall_s}s on {m['id']}; restarting that file", flush=True)
+                elif time.time() - last_t > max_stall:
+                    print(f"  stall: no bytes for {max_stall}s on {m['id']}; restarting that file", flush=True)
                     p.kill()
                     stalled = True
                     break
@@ -409,6 +412,8 @@ def install_workflows(update_default=True):
     if update_default:
         json.dump({"default_workflow": default_file, "default_view": PLAN.get("default_view", "app")},
                   open(f"{COMFY}/user/default/kit.json", "w"))
+        if default_file and os.path.exists(f"{d}/{default_file}"):
+            shutil.copy(f"{d}/{default_file}", f"{COMFY}/default_workflow.json")
 
 
 def apply_settings():
@@ -433,13 +438,46 @@ async def _hb(request):
 async def _info(request):
     return web.json_response(json.load(open(KIT)) if os.path.exists(KIT) else {})
 NODE_CLASS_MAPPINGS = {}
+WEB_DIRECTORY = "./web"
+'''
+
+KIT_JS = r'''
+import { app } from "../../scripts/app.js";
+
+app.registerExtension({
+  name: "kit.init",
+  async setup() {
+    try {
+      const info = await (await fetch("/kit/info")).json();
+      if (!info.default_workflow) return;
+      if (!sessionStorage.getItem("kit.opened")) {
+        sessionStorage.setItem("kit.opened", "1");
+        const res = await fetch("/api/userdata/" + encodeURIComponent("workflows/" + info.default_workflow));
+        if (res.ok) {
+          const wf = await res.json();
+          await app.loadGraphData(wf, true, true, info.default_workflow);
+          if (info.default_view === "app") {
+            setTimeout(async () => {
+              try {
+                await app.extensionManager.command.execute("Comfy.ToggleLinear");
+              } catch (e) {}
+            }, 350);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("[kit.init]", e);
+    }
+  }
+});
 '''
 
 
 def install_custom_nodes():
     base = f"{COMFY}/custom_nodes"
-    os.makedirs(f"{base}/kit_heartbeat", exist_ok=True)
+    os.makedirs(f"{base}/kit_heartbeat/web", exist_ok=True)
     open(f"{base}/kit_heartbeat/__init__.py", "w").write(HEARTBEAT_NODE)
+    open(f"{base}/kit_heartbeat/web/kit.js", "w").write(KIT_JS)
     for n in PLAN.get("custom_nodes", []):
         dst = f"{base}/{n['id']}"
         if os.path.isdir(dst):
@@ -470,7 +508,7 @@ def start_tunnel():
     with open("/content/.cf_token", "w") as f:
         f.write(tok)
     os.chmod("/content/.cf_token", 0o600)
-    subprocess.Popen(["bash", "-lc", f"nohup cloudflared tunnel --no-autoupdate run --token-file /content/.cf_token "
+    subprocess.Popen(["bash", "-lc", f"nohup cloudflared tunnel --protocol http2 --no-autoupdate run --token-file /content/.cf_token "
                                      f"> {LOG}/cloudflared.log 2>&1 &"])
 
 
