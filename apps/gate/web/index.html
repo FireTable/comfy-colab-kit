@@ -109,6 +109,8 @@ h1{font-size:24px;font-weight:700;letter-spacing:-.01em;margin:14px 0 4px;backgr
 .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--o),var(--y),var(--n));border-radius:9px;transition:width .4s ease;box-shadow:0 0 14px var(--y)}
 .sm{font:11.5px var(--mono);color:var(--muted);margin-top:6px}
 label{display:block;margin:18px 0 6px;font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+#plabel-txt{cursor:pointer;width:fit-content;transition:color .12s}
+#plabel-txt:hover{color:var(--fg)}
 /* shadcn-ui Style Custom Select */
 .sel-backdrop{position:fixed;inset:0;z-index:55;background:transparent;cursor:default}
 .custom-select{position:relative;width:100%}
@@ -125,7 +127,7 @@ label{display:block;margin:18px 0 6px;font:600 11px var(--mono);letter-spacing:.
 .sel-popover.open{display:flex}
 .sel-popover-head{display:flex;align-items:center;justify-content:space-between;padding:4px 8px 6px;border-bottom:1px solid var(--line);margin-bottom:4px}
 .sel-popover-title{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
-.sel-close-btn{background:none;border:0;color:var(--muted);cursor:pointer;padding:2px 4px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:color .12s}
+.sel-close-btn{background:none;border:0;color:var(--muted);cursor:pointer;width:44px;height:44px;margin:-10px -10px -10px 0;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:color .12s}
 .sel-close-btn:hover{color:var(--fg);background:rgba(127,127,127,.15)}
 .sel-items{display:flex;flex-direction:column;gap:2px;max-height:min(56vh,420px);overflow-y:auto;overscroll-behavior:contain}
 .sel-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background-color .12s}
@@ -160,7 +162,7 @@ label{display:block;margin:18px 0 6px;font:600 11px var(--mono);letter-spacing:.
 details{margin-top:14px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.18);transition:border-color .15s}
 details[open]{border-color:var(--line2)}
 :root[data-theme=light] details{background:rgba(255,255,255,.5)}
-summary{cursor:pointer;min-height:42px;display:flex;align-items:center;gap:8px;padding:0 12px;font:12px var(--mono);color:var(--muted);list-style:none;user-select:none}
+summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px;padding:0 12px;font:12px var(--mono);color:var(--muted);list-style:none;user-select:none}
 summary::-webkit-details-marker{display:none}
 .con-chevron{width:14px;height:14px;transition:transform .18s;color:var(--muted)}
 details[open] .con-chevron{transform:rotate(90deg)}
@@ -186,7 +188,10 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
  .chip{display:none}
  header{gap:7px;padding:12px max(14px,env(safe-area-inset-right)) 12px max(14px,env(safe-area-inset-left))}
  header b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
- .lang-btn #ltext{display:none}.lang-btn{padding:0 7px;width:38px;justify-content:center}.lang-btn .chevron-sm{display:none}
+ /* Touch targets: keep every header control at a comfortable 44px */
+ .icon{height:44px;min-width:44px}
+ .icon-sq{width:44px}
+ .lang-btn{padding:0 7px;width:44px;justify-content:center}.lang-btn #ltext{display:none}.lang-btn .chevron-sm{display:none}
  main{place-items:start center;padding:8px 12px calc(24px + env(safe-area-inset-bottom));padding-top:3vh}
  .card{padding:20px 16px 14px;border-radius:20px}
  h1{font-size:clamp(19px,5.6vw,22px);margin:10px 0 4px}
@@ -442,7 +447,7 @@ function dlp(d){if(!d)return null;const G=1e9;
 const gb=b=>(b/1e9).toFixed(b>=1e10?1:2);
 
 // Custom Select Implementation
-const profTrigger=$("prof-trigger"),profPopover=$("prof-popover"),profItems=$("prof-items"),customSelect=$("custom-select");
+const profTrigger=$("prof-trigger"),profPopover=$("prof-popover"),profItems=$("prof-items"),customSelect=$("custom-select"),profLabel=$("plabel-txt");
 let selectOpen=false;
 function toggleSelect(force){
  selectOpen=force!==undefined?force:!selectOpen;
@@ -452,11 +457,14 @@ function toggleSelect(force){
  profTrigger.setAttribute("aria-expanded",selectOpen);
 }
 profTrigger.onclick=(e)=>{e.stopPropagation();toggleSelect()};
+// The "Profile" caption doubles as a tap target for opening the picker.
+profLabel.onclick=(e)=>{e.stopPropagation();toggleSelect()};
 $("pop-close").onclick=(e)=>{e.stopPropagation();toggleSelect(false)};
 
 // Universal outside-click and escape handling
 document.addEventListener("pointerdown",e=>{
- if(selectOpen&&(!e.target||(e.target instanceof Node&&!customSelect.contains(e.target))))toggleSelect(false);
+ const inWidget=(t)=>t instanceof Node&&(customSelect.contains(t)||(profLabel&&profLabel.contains(t)));
+ if(selectOpen&&(!e.target||!inWidget(e.target)))toggleSelect(false);
  if(langOpen&&(!e.target||(e.target instanceof Node&&!langDropdown.contains(e.target))))toggleLangMenu(false);
 });
 window.addEventListener("keydown",e=>{
@@ -531,10 +539,21 @@ function render(){
 
  const stages = (S && S.enable_smoke_test === false) ? STAGES_KEYS.filter(s => s[0] !== "smoke_testing") : STAGES_KEYS;
  const bootKeys = stages.map(s => s[0]);
- const ol=$("stages");ol.hidden=!waking;ol.innerHTML="";const ci=bootKeys.indexOf(st);const d=dlp(S.progress&&S.progress.download);
+ const ol=$("stages");ol.hidden=!waking;const ci=bootKeys.indexOf(st);const d=dlp(S.progress&&S.progress.download);
  const durs=(S&&S.stage_durations)||{};
+ // Rebuild the list only when its shape changes; refresh the per-stage timers in place
+ // so a 1s tick never blows away text selection or focus.
+ const sig=bootKeys.join(",")+"|"+ci+"|"+lang;
+ if(render.stageSig!==sig){
+  ol.innerHTML="";render.stageTimes=[];
+  stages.forEach(([k,lKey],i)=>{
+   const li=document.createElement("li");li.className=i<ci?"done":i===ci?"cur":"";
+   li.innerHTML=`<span class="k">${i<ci?"✓":""}</span><span>${t(lKey)}</span><span class="t"></span>`;
+   ol.appendChild(li);render.stageTimes.push(li.querySelector(".t"));
+  });
+  render.stageSig=sig;
+ }
  stages.forEach(([k,lKey],i)=>{
-  const li=document.createElement("li");li.className=i<ci?"done":i===ci?"cur":"";
   let tStr="";
   const sd=durs[k];
   if(i<ci){
@@ -549,7 +568,7 @@ function render(){
    const dlPct=(d.files_done!=null&&d.files_total!=null&&d.files_done<d.files_total)?Math.min(99,Math.floor(100*d.done/d.total)):Math.min(100,Math.round(100*d.done/d.total));
    tStr=(tStr?tStr+" · ":"")+`${dlPct}%`+(d.paused?` · ${t("paused")}`:"");
   }
-  li.innerHTML=`<span class="k">${i<ci?"✓":""}</span><span>${t(lKey)}</span><span class="t">${tStr}</span>`;ol.appendChild(li)
+  if(render.stageTimes[i])render.stageTimes[i].textContent=tStr;
  });
 
  $("prog").hidden=!waking;
@@ -586,11 +605,13 @@ function render(){
  stopBtn.textContent=t("stop_btn");
 
  const cu=S.cu||{};
- $("meta").innerHTML=`
+ const cuHtml=`
   <div><small>${t("cu_today")}</small><b>${(cu.today||0).toFixed(2)}</b></div>
   <div><small>${t("cu_month")}</small><b>${(cu.month||0).toFixed(1)}</b></div>
   <div><small>${t("cu_balance")}</small><b>${cu.balance!=null?cu.balance.toFixed(1):"—"}</b></div>
  `;
+ if(render.cuHtml!==cuHtml){$("meta").innerHTML=cuHtml;render.cuHtml=cuHtml}
+ document.title=st==="sleeping"?t("title"):`${st==="ready"?t("ready_title"):st==="failed"?t("failed_title"):t("waking_title")} · ${t("title")}`;
 
  if(st==="ready"&&!render.go){render.go=1;setTimeout(()=>card.classList.add("out"),900);setTimeout(()=>location.reload(),1200)}
 }

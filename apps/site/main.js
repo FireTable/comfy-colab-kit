@@ -399,7 +399,7 @@ const I18N = {
 function applyLanguage(lang) {
   window.currentLang = lang;
   const dict = I18N[lang] || I18N.en;
-  root.lang = lang;
+  root.lang = lang === "zh" ? "zh-CN" : "en";
   localStorage.setItem("kit.lang", lang);
 
   // Update document title and meta

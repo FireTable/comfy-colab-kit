@@ -199,6 +199,13 @@ section > .inner { max-width: 1120px; margin: 0 auto; }
 .brand:hover { opacity: .88; color: var(--fg); }
 .brand img { width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0; }
 .brand-text { overflow: hidden; text-overflow: ellipsis; }
+/* Enlarged hit area for the logo link without changing the header metrics. */
+.brand { position: relative; }
+.brand::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
 
 /* Centered Floating Pill Navigation */
 .nav-pill {
@@ -1018,7 +1025,17 @@ ol.steps li.is-ready.is-active::before {
   padding: 4px 10px;
   border-radius: 8px;
   cursor: pointer;
+  position: relative;
   transition: all .2s ease;
+}
+/* Enlarged touch target without changing the visual size of the terminal header. */
+.copy-btn::after {
+  content: "";
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  left: 0;
+  right: 0;
 }
 .copy-btn:hover {
   background: rgba(249, 171, 0, 0.15);
@@ -1301,7 +1318,16 @@ details.card .answer {
   color: var(--muted);
   text-decoration: none;
   font-size: 14px;
+  display: inline-block;
+  padding: 7px 0;
+  position: relative;
   transition: color .15s;
+}
+/* Footer links keep their compact look but reach a 44px touch height. */
+.footer-col ul a::after {
+  content: "";
+  position: absolute;
+  inset: -4px 0;
 }
 .footer-col a:hover {
   color: var(--fg);
@@ -1337,6 +1363,7 @@ details.card .answer {
     flex-wrap: wrap;
     row-gap: 6px;
   }
+  .site-header { padding-top: 8px; padding-bottom: 8px; }
   .nav-pill {
     display: flex;
     order: 3;
@@ -1354,8 +1381,11 @@ details.card .answer {
   }
   .nav-pill::-webkit-scrollbar { display: none; }
   .nav-pill a {
-    padding: 3px 10px;
+    padding: 7px 12px;
     font-size: 12.5px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
   }
   /* Light theme sets its own pill background at higher specificity — reset it here too. */
   :root[data-theme=light] .nav-pill {
@@ -1387,7 +1417,13 @@ details.card .answer {
   .hero .sub { font-size: 15.5px; }
   .flow-h { display: none; }
   .flow-v { display: flex; flex-direction: column; gap: 0; }
-  .site-header { padding-left: 16px; padding-right: 16px; }
+  .site-header { padding: 6px 16px; }
+  .nav-container { row-gap: 4px; }
+  /* Comfortable touch targets for the primary actions. */
+  .btn { min-height: 46px; }
+  .btn-copy-prompt { min-height: 46px; }
+  .terminal-doc-link { min-height: 44px; }
+  .copy-btn { min-height: 34px; padding: 0 12px; }
 }
 
 @media (max-width: 520px) {
@@ -1398,10 +1434,20 @@ details.card .answer {
 @media (max-width: 480px) {
   .lang-btn { padding: 0 8px; }
   .lang-btn #lang-label { display: none; }
+  /* 44px+ hit area for the header buttons without changing their visual size. */
+  .icon-btn { position: relative; }
+  .icon-btn::after {
+    content: "";
+    position: absolute;
+    top: -4px;
+    bottom: -4px;
+    left: -4px;
+    right: -4px;
+  }
 }
 
 @media (max-width: 400px) {
-  .brand-text { display: none; }
+  .site-header .brand-text { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

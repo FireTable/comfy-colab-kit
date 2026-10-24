@@ -85,7 +85,7 @@
   } catch (e) {}
 })();
 </script>
-<link rel="stylesheet" href="styles.css?v=1fd17f55">
+<link rel="stylesheet" href="styles.css?v=d598869d">
 </head>
 <body>
 <canvas id="bg" aria-hidden="true"></canvas>
@@ -219,7 +219,7 @@
         <div class="terminal-right">
           <button class="copy-btn" id="copy-quickstart-btn" aria-label="Copy terminal commands" title="Copy script to clipboard">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-            <span class="copy-text" data-i18n="quickstart.copy">Copy</span>
+            <span class="copy-text" data-i18n="quickstart.copy" aria-live="polite">Copy</span>
           </button>
         </div>
       </div>
@@ -237,7 +237,7 @@ docker compose -f deploy/docker-compose.yml up -d --build
       <div class="terminal-footer">
         <div class="terminal-footer-main">
           <button class="btn btn-primary btn-copy-prompt" id="copy-ai-prompt-btn" type="button" aria-label="Copy AI Deploy Prompt">
-            <span class="prompt-btn-text" data-i18n="quickstart.aiPromptBtn">🤖 Copy AI Deploy Prompt</span>
+            <span class="prompt-btn-text" data-i18n="quickstart.aiPromptBtn" aria-live="polite">🤖 Copy AI Deploy Prompt</span>
           </button>
           <span class="terminal-hint" data-i18n="quickstart.aiPromptHint">Paste into Claude Code, Cursor, or OpenClaw to deploy automatically.</span>
         </div>
@@ -697,6 +697,6 @@ docker compose -f deploy/docker-compose.yml up -d --build
 </footer>
 
 <script src="vendor/lenis.min.js" defer></script>
-<script src="main.js?v=a8b2fb1b" defer></script>
+<script src="main.js?v=f28f921a" defer></script>
 </body>
 </html>
