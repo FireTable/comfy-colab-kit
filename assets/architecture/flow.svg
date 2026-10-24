@@ -1,0 +1,410 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 900" width="100%" height="100%">
+  <defs>
+    <style>
+      :root {
+        --bg-canvas: #faf8f5;
+        --bg-card: #ffffff;
+        --bg-raise: #f5f1ea;
+        --border-card: #e7e5e4;
+        --ink-primary: #1c1917;
+        --ink-secondary: #78716c;
+        --ink-muted: #a8a29e;
+        --amber: #f9ab00;
+        --lime: #f2ff59;
+        --orange: #e8710a;
+        --plum: #211927;
+        --green: #86efac;
+        --blue: #93c5fd;
+        --rose: #fda4af;
+        --yellow: #fde047;
+        --grid-color: rgba(28, 25, 23, 0.055);
+        --flow: #f9ab00;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg-canvas: #141416;
+          --bg-card: #1c1c1f;
+          --bg-raise: #242428;
+          --border-card: #2e2e32;
+          --ink-primary: #f5f5f4;
+          --ink-secondary: #a8a29e;
+          --ink-muted: #78716c;
+          --grid-color: rgba(255, 255, 255, 0.055);
+          --flow: #f2ff59;
+        }
+      }
+      text {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        text-rendering: geometricPrecision;
+        -webkit-font-smoothing: antialiased;
+      }
+      .code-text {
+        font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      }
+      @keyframes dash { to { stroke-dashoffset: -28; } }
+      @keyframes dashRev { to { stroke-dashoffset: 28; } }
+      @keyframes pulse { 0%,100% { opacity: .35; } 50% { opacity: .9; } }
+      @keyframes breathe {
+        0%,100% { opacity: .85; }
+        50% { opacity: 1; }
+      }
+      @keyframes chip { 0%,100% { opacity: .45; } 50% { opacity: 1; } }
+      @keyframes sweep { 0% { transform: translateX(0); } 100% { transform: translateX(320px); } }
+      .flow-out { stroke-dasharray: 7 7; animation: dash 1.6s linear infinite; }
+      .flow-in  { stroke-dasharray: 7 7; animation: dashRev 1.6s linear infinite; }
+      .pulse { animation: pulse 2.6s ease-in-out infinite; }
+      .breathe { animation: breathe 3.4s ease-in-out infinite; }
+      .chip { animation: chip 3.2s ease-in-out infinite; }
+      .sweep { animation: sweep 5.5s linear infinite; }
+    </style>
+    <pattern id="dot-grid" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.2" fill="var(--grid-color)" />
+    </pattern>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--amber)" />
+    </marker>
+    <marker id="arrow-plum" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--ink-muted)" />
+    </marker>
+    <linearGradient id="g-amber" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f9ab00" /><stop offset="1" stop-color="#e8710a" />
+    </linearGradient>
+    <linearGradient id="g-lime" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f2ff59" /><stop offset="1" stop-color="#f9ab00" />
+    </linearGradient>
+  </defs>
+
+  <!-- ══ canvas ══ -->
+  <rect width="1180" height="900" fill="var(--bg-canvas)" />
+  <rect width="1180" height="900" fill="url(#dot-grid)" />
+
+  <!-- ══ header ══ -->
+  <g transform="translate(40,34)">
+    <rect x="0" y="0" width="6" height="46" rx="3" fill="url(#g-amber)" />
+    <text x="20" y="22" font-size="23" font-weight="700" fill="var(--ink-primary)">Comfy Colab Kit</text>
+    <text x="20" y="44" font-size="14" fill="var(--ink-secondary)">按需唤醒的 ComfyUI 网关 · 从请求到算力回收的完整链路</text>
+  </g>
+  <g transform="translate(880,40)">
+    <rect x="0" y="0" width="260" height="30" rx="15" fill="var(--bg-raise)" stroke="var(--border-card)" stroke-width="1.2" />
+    <circle cx="17" cy="15" r="5" fill="#3ddc84" class="pulse" />
+    <text x="30" y="20" font-size="12.5" fill="var(--ink-secondary)">Zero-GPU idle · 单实例幂等 · 自动停机</text>
+  </g>
+
+  <!-- ══ section 1 label ══ -->
+  <g transform="translate(40,104)">
+    <rect x="0" y="0" width="126" height="24" rx="4" fill="var(--yellow)" opacity="0.9" />
+    <text x="63" y="17" font-size="12.5" font-weight="700" fill="#0f172a" text-anchor="middle">① 请求链路</text>
+    <text x="140" y="17" font-size="12.5" fill="var(--ink-muted)">Agent 与浏览器走同一条网关路径</text>
+  </g>
+
+  <!-- ══ request path row ══ -->
+  <!-- client chips -->
+  <g transform="translate(40,140)">
+    <rect x="0" y="0" width="150" height="52" rx="10" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />
+    <rect x="0" y="0" width="4" height="52" rx="2" fill="var(--blue)" />
+    <text x="16" y="22" font-size="13.5" font-weight="650" fill="var(--ink-primary)">AI Agent</text>
+    <text x="16" y="40" font-size="11" class="code-text" fill="var(--ink-secondary)">MCP / REST</text>
+    <rect x="0" y="62" width="150" height="52" rx="10" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />
+    <rect x="0" y="62" width="4" height="52" rx="2" fill="var(--green)" />
+    <text x="16" y="84" font-size="13.5" font-weight="650" fill="var(--ink-primary)">浏览器</text>
+    <text x="16" y="102" font-size="11" class="code-text" fill="var(--ink-secondary)">SSE / WS</text>
+  </g>
+
+  <!-- arrow client -> CF -->
+  <path d="M196 166 H246" stroke="var(--amber)" stroke-width="2.4" fill="none" class="flow-out" marker-end="url(#arrow-amber)" />
+  <text x="196" y="156" font-size="10" class="code-text" fill="var(--ink-muted)">Bearer</text>
+
+  <!-- Cloudflare Access -->
+  <g transform="translate(240,132)">
+    <rect x="0" y="6" width="182" height="100" rx="12" fill="#000000" opacity="0.07" />
+    <rect x="0" y="0" width="182" height="100" rx="12" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />
+    <rect x="0" y="0" width="182" height="26" rx="12" fill="url(#g-lime)" opacity="0.92" />
+    <rect x="0" y="16" width="182" height="10" fill="url(#g-lime)" opacity="0.92" />
+    <text x="91" y="18" font-size="12.5" font-weight="700" fill="#0f172a" text-anchor="middle">Cloudflare Access</text>
+    <text x="14" y="46" font-size="11" fill="var(--ink-secondary)">Zero Trust · RS256 JWT</text>
+    <text x="14" y="64" font-size="11" fill="var(--ink-secondary)">邮箱 OTP / OAuth / 服务令牌</text>
+    <text x="14" y="82" font-size="9.5" class="code-text" fill="var(--ink-muted)">Cf-Access-Jwt-Assertion</text>
+    <g transform="translate(14,86)">
+      <rect x="0" y="0" width="58" height="0" rx="3" fill="none" />
+    </g>
+  </g>
+
+  <!-- arrow CF -> gate -->
+  <path d="M428 182 H470" stroke="var(--amber)" stroke-width="2.4" fill="none" class="flow-out" marker-end="url(#arrow-amber)" />
+
+  <!-- comfy-gate -->
+  <g transform="translate(476,118)">
+    <rect x="0" y="10" width="266" height="148" rx="14" fill="#000000" opacity="0.08" />
+    <rect x="0" y="0" width="266" height="148" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.6" />
+    <rect x="0" y="0" width="266" height="30" rx="14" fill="var(--plum)" />
+    <rect x="0" y="18" width="266" height="12" fill="var(--plum)" />
+    <text x="16" y="21" font-size="13" font-weight="700" fill="#f9ab00">comfy-gate</text>
+    <text x="116" y="21" font-size="10.5" class="code-text" fill="#a8a29e">aiohttp · :8080</text>
+
+    <!-- inner modules -->
+    <g transform="translate(14,42)">
+      <rect x="0" y="0" width="118" height="30" rx="7" fill="var(--bg-raise)" stroke="var(--border-card)" stroke-width="1" />
+      <text x="59" y="19" font-size="11" text-anchor="middle" fill="var(--ink-primary)">鉴权 · owner 判定</text>
+      <rect x="126" y="0" width="122" height="30" rx="7" fill="var(--bg-raise)" stroke="var(--border-card)" stroke-width="1" />
+      <text x="187" y="19" font-size="11" text-anchor="middle" fill="var(--ink-primary)">10 态状态机</text>
+      <rect x="0" y="38" width="118" height="30" rx="7" fill="var(--bg-raise)" stroke="var(--border-card)" stroke-width="1" />
+      <text x="59" y="57" font-size="11" text-anchor="middle" fill="var(--ink-primary)">SSE 进度广播</text>
+      <rect x="126" y="38" width="122" height="30" rx="7" fill="var(--bg-raise)" stroke="var(--border-card)" stroke-width="1" />
+      <text x="187" y="57" font-size="11" text-anchor="middle" fill="var(--ink-primary)">CU 账本 · 预算闸</text>
+      <rect x="0" y="76" width="248" height="30" rx="7" fill="var(--bg-raise)" stroke="var(--border-card)" stroke-width="1" />
+      <text x="124" y="95" font-size="10.5" text-anchor="middle" fill="var(--ink-primary)">反向代理 /prompt · /history · /view · /ws</text>
+    </g>
+  </g>
+
+  <!-- arrow gate -> colab -->
+  <path d="M748 182 H778" stroke="var(--amber)" stroke-width="2.4" fill="none" class="flow-out" marker-end="url(#arrow-amber)" />
+  <text x="763" y="166" font-size="9" class="code-text" fill="var(--ink-muted)" text-anchor="middle">exec</text>
+
+  <!-- Colab L4 -->
+  <g transform="translate(782,118)">
+    <rect x="0" y="10" width="244" height="148" rx="14" fill="#000000" opacity="0.08" />
+    <rect x="0" y="0" width="244" height="148" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.6" />
+    <rect x="0" y="0" width="244" height="30" rx="14" fill="url(#g-amber)" />
+    <rect x="0" y="18" width="244" height="12" fill="url(#g-amber)" />
+    <text x="16" y="21" font-size="13" font-weight="700" fill="#0f172a">Colab L4 Runtime</text>
+    
+
+    <g transform="translate(14,40)">
+      <rect x="0" y="0" width="216" height="110" rx="10" fill="var(--bg-raise)" stroke="var(--border-card)" stroke-width="1" />
+      <rect x="0" y="0" width="216" height="22" rx="10" fill="var(--bg-canvas)" opacity="0.6" />
+      <text x="10" y="15" font-size="10.5" class="code-text" fill="var(--ink-secondary)">/content · 易失</text>
+      <g transform="translate(10,30)">
+        <rect x="0" y="0" width="94" height="20" rx="5" fill="#fda4af" opacity="0.9" />
+        <text x="47" y="14" font-size="9.5" text-anchor="middle" fill="#0f172a">模型 24.9 GB</text>
+        <rect x="102" y="0" width="94" height="20" rx="5" fill="#93c5fd" opacity="0.9" />
+        <text x="149" y="14" font-size="9.5" text-anchor="middle" fill="#0f172a">工作流 · 节点</text>
+        <rect x="0" y="26" width="94" height="20" rx="5" fill="#86efac" opacity="0.9" />
+        <text x="47" y="40" font-size="9.5" text-anchor="middle" fill="#0f172a">ComfyUI :8188</text>
+        <rect x="102" y="26" width="94" height="20" rx="5" fill="#fde047" opacity="0.9" />
+        <text x="149" y="40" font-size="9.5" text-anchor="middle" fill="#0f172a">出图 output/</text>
+      </g>
+      <text x="10" y="86" font-size="9.5" fill="var(--ink-muted)">watchdog · 心跳 20 min 自毁</text>
+      <text x="10" y="100" font-size="9.5" class="code-text" fill="var(--ink-muted)">计费中 1.71 CU/h</text>
+    </g>
+  </g>
+
+  <!-- ══ section 2 label ══ -->
+  <g transform="translate(40,300)">
+    <rect x="0" y="0" width="126" height="24" rx="4" fill="var(--green)" opacity="0.9" />
+    <text x="63" y="17" font-size="12.5" font-weight="700" fill="#0f172a" text-anchor="middle">② 状态机</text>
+    <text x="140" y="17" font-size="12.5" fill="var(--ink-muted)">10 态生命周期 · 虚线为异常回退路径</text>
+  </g>
+
+  <!-- ══ state machine ══ -->
+  <g transform="translate(40,336)">
+    <!-- main boot chain background rail -->
+    <rect x="0" y="26" width="1100" height="172" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.3" />
+
+    <!-- animated sweep inside rail -->
+    <g clip-path="url(#clip-sweep)">
+      <rect x="0" y="0" width="1100" height="150" fill="none" />
+    </g>
+    <defs>
+      <clipPath id="clip-sweep"><rect x="0" y="26" width="1100" height="172" rx="14" /></clipPath>
+    </defs>
+    <g clip-path="url(#clip-sweep)" opacity="0.5">
+      <rect x="-320" y="26" width="320" height="172" fill="url(#g-lime)" opacity="0.07" class="sweep" />
+    </g>
+
+    <!-- states -->
+    <g font-size="11.5" text-anchor="middle">
+      <!-- sleeping -->
+      <g transform="translate(24,58)">
+        <rect x="0" y="0" width="104" height="36" rx="9" fill="var(--bg-raise)" stroke="var(--ink-muted)" stroke-width="1.5" />
+        <text x="52" y="23" font-weight="650" fill="var(--ink-secondary)">sleeping</text>
+      </g>
+      <!-- allocating -->
+      <g transform="translate(166,58)">
+        <rect x="0" y="0" width="104" height="36" rx="9" fill="#fde047" opacity="0.92" />
+        <text x="52" y="23" font-weight="650" fill="#0f172a">allocating</text>
+      </g>
+      <!-- installing -->
+      <g transform="translate(308,58)">
+        <rect x="0" y="0" width="104" height="36" rx="9" fill="#fde047" opacity="0.92" />
+        <text x="52" y="23" font-weight="650" fill="#0f172a">installing</text>
+      </g>
+      <!-- downloading -->
+      <g transform="translate(450,58)">
+        <rect x="0" y="0" width="110" height="36" rx="9" fill="#fde047" opacity="0.92" />
+        <text x="55" y="23" font-weight="650" fill="#0f172a">downloading</text>
+      </g>
+      <!-- booting -->
+      <g transform="translate(598,58)">
+        <rect x="0" y="0" width="96" height="36" rx="9" fill="#fde047" opacity="0.92" />
+        <text x="48" y="23" font-weight="650" fill="#0f172a">booting</text>
+      </g>
+      <!-- smoke -->
+      <g transform="translate(732,58)">
+        <rect x="0" y="0" width="118" height="36" rx="9" fill="#fde047" opacity="0.92" />
+        <text x="59" y="23" font-weight="650" fill="#0f172a">smoke_testing</text>
+      </g>
+      <!-- ready -->
+      <g transform="translate(888,58)" class="breathe">
+        <rect x="0" y="0" width="96" height="36" rx="9" fill="#86efac" />
+        <text x="48" y="23" font-weight="700" fill="#0f172a">ready</text>
+      </g>
+    </g>
+
+    <!-- boot chain arrows -->
+    <g stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)">
+      <path d="M128 76 H162" class="flow-out" />
+      <path d="M270 76 H304" class="flow-out" />
+      <path d="M412 76 H446" class="flow-out" />
+      <path d="M560 76 H594" class="flow-out" />
+      <path d="M694 76 H728" class="flow-out" />
+      <path d="M850 76 H884" class="flow-out" />
+    </g>
+    <g font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="middle">
+      <text x="145" y="66">wake</text>
+      <text x="287" y="66">setup</text>
+      <text x="429" y="66">24.9GB</text>
+      <text x="577" y="66">tunnel</text>
+      <text x="711" y="66">smoke</text>
+      <text x="867" y="66">serve</text>
+    </g>
+
+    <!-- failed / stopping row -->
+    <g font-size="11.5" text-anchor="middle">
+      <g transform="translate(548,136)">
+        <rect x="0" y="0" width="96" height="34" rx="9" fill="#fda4af" opacity="0.92" />
+        <text x="48" y="22" font-weight="650" fill="#0f172a">failed</text>
+      </g>
+      <g transform="translate(742,132)">
+        <rect x="0" y="0" width="104" height="34" rx="9" fill="#93c5fd" opacity="0.92" />
+        <text x="52" y="22" font-weight="650" fill="#0f172a">stopping</text>
+      </g>
+      <g transform="translate(900,132)">
+        <rect x="0" y="0" width="120" height="34" rx="9" fill="#c4b5fd" opacity="0.92" />
+        <text x="60" y="22" font-weight="650" fill="#0f172a">switching</text>
+      </g>
+    </g>
+
+    <!-- failure fallbacks -->
+    <g stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)">
+      <path d="M218 94 V118 H544" />
+      <path d="M360 94 V118 H544" />
+      <path d="M505 94 V118 H544" />
+      <path d="M646 94 V118 H544" />
+      <path d="M790 94 V118 H544" />
+      <path d="M544 118 V132" />
+    </g>
+    <text x="330" y="114" font-size="9.5" class="code-text" fill="var(--ink-muted)">任一开机态失败 → failed → retry allocating</text>
+
+    <!-- stop path -->
+    <path d="M644 143 Q697 143 697 149 H738" stroke="var(--ink-muted)" stroke-width="1.6" fill="none" marker-end="url(#arrow-plum)" />
+    <path d="M794 149 V186 Q794 196 782 196 H112 Q100 196 100 186 V100" stroke="var(--ink-muted)" stroke-width="1.6" fill="none" marker-end="url(#arrow-plum)" />
+    <text x="697" y="144" font-size="9.5" class="code-text" fill="var(--ink-muted)">stop</text>
+    <text x="446" y="192" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="middle">任一非睡眠态均可 stop → 释放 VM</text>
+
+    <!-- switching loop -->
+    <path d="M984 94 V112 Q984 120 976 120 H966 Q960 120 960 126 V130" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
+    <text x="978" y="106" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="end">switch 冷切换</text>
+
+    <!-- billing band -->
+    <g transform="translate(166,208)">
+      <rect x="0" y="0" width="842" height="24" rx="6" fill="#fda4af" opacity="0.2" />
+      <text x="421" y="16" font-size="10.5" text-anchor="middle" fill="var(--ink-secondary)">计费区间 BILLING_STATES · 五个开机态 + ready + switching + failed</text>
+    </g>
+  </g>
+
+  <!-- ══ section 3 label ══ -->
+  <g transform="translate(40,566)">
+    <rect x="0" y="0" width="126" height="24" rx="4" fill="var(--rose)" opacity="0.9" />
+    <text x="63" y="17" font-size="12.5" font-weight="700" fill="#0f172a" text-anchor="middle">③ 自动停机</text>
+    <text x="140" y="17" font-size="12.5" fill="var(--ink-muted)">五道闸门 · 任意一条命中即释放 GPU 与 CU</text>
+  </g>
+
+  <!-- auto-stop gates -->
+  <g transform="translate(40,602)">
+    <g font-size="12">
+      <g transform="translate(0,0)">
+        <rect x="0" y="0" width="212" height="74" rx="11" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />
+        <rect x="0" y="0" width="212" height="4" rx="2" fill="#f9ab00" />
+        <text x="14" y="26" font-size="13" font-weight="650" fill="var(--ink-primary)">空闲超时</text>
+        <text x="14" y="45" font-size="11.5" class="code-text" fill="var(--ink-secondary)">IDLE_TIMEOUT_MIN = 30</text>
+        <text x="14" y="62" font-size="10.5" fill="var(--ink-muted)">队列非空时跳过</text>
+      </g>
+      <g transform="translate(224,0)">
+        <rect x="0" y="0" width="212" height="74" rx="11" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />
+        <rect x="0" y="0" width="212" height="4" rx="2" fill="#e8710a" />
+        <text x="14" y="26" font-size="13" font-weight="650" fill="var(--ink-primary)">会话上限</text>
+        <text x="14" y="45" font-size="11.5" class="code-text" fill="var(--ink-secondary)">MAX_SESSION_HOURS = 6</text>
+        <text x="14" y="62" font-size="10.5" fill="var(--ink-muted)">可 extend 一次 +1h</text>
+      </g>
+      <g transform="translate(448,0)">
+        <rect x="0" y="0" width="212" height="74" rx="11" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />
+        <rect x="0" y="0" width="212" height="4" rx="2" fill="#7b4ba8" />
+        <text x="14" y="26" font-size="13" font-weight="650" fill="var(--ink-primary)">CU 预算</text>
+        <text x="14" y="45" font-size="11.5" class="code-text" fill="var(--ink-secondary)">日 12 / 月 150 CU</text>
+        <text x="14" y="62" font-size="10.5" fill="var(--ink-muted)">余额 &lt; 5 CU 拒绝开机</text>
+      </g>
+      <g transform="translate(672,0)">
+        <rect x="0" y="0" width="212" height="74" rx="11" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />
+        <rect x="0" y="0" width="212" height="4" rx="2" fill="#0ea5e9" />
+        <text x="14" y="26" font-size="13" font-weight="650" fill="var(--ink-primary)">看门狗</text>
+        <text x="14" y="45" font-size="11.5" class="code-text" fill="var(--ink-secondary)">WATCHDOG_GATE_LOST_MIN = 20</text>
+        <text x="14" y="62" font-size="10.5" fill="var(--ink-muted)">网关失联 VM 自毁</text>
+      </g>
+      <g transform="translate(896,0)">
+        <rect x="0" y="0" width="204" height="74" rx="11" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />
+        <rect x="0" y="0" width="204" height="4" rx="2" fill="#3ddc84" />
+        <text x="14" y="26" font-size="13" font-weight="650" fill="var(--ink-primary)">显式停机</text>
+        <text x="14" y="45" font-size="11.5" class="code-text" fill="var(--ink-secondary)">POST /_gate/stop</text>
+        <text x="14" y="62" font-size="10.5" fill="var(--ink-muted)">Agent 完成即释放</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ══ footer ══ -->
+  <g transform="translate(40,712)">
+    <rect x="0" y="0" width="1100" height="150" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.3" />
+    <text x="18" y="26" font-size="13" font-weight="700" fill="var(--ink-primary)">三条关键性质</text>
+
+    <g transform="translate(18,42)">
+      <rect x="0" y="0" width="340" height="88" rx="10" fill="var(--bg-raise)" />
+      <rect x="12" y="14" width="6" height="6" rx="3" fill="#f9ab00" />
+      <text x="28" y="20" font-size="12.5" font-weight="650" fill="var(--ink-primary)">单实例幂等</text>
+      <text x="12" y="42" font-size="11" fill="var(--ink-secondary)">并发唤醒只会加入同一个</text>
+      <text x="12" y="58" font-size="11" fill="var(--ink-secondary)">in-flight 启动，不新开 VM</text>
+      <text x="12" y="76" font-size="10.5" class="code-text" fill="var(--ink-muted)">Session.lock</text>
+    </g>
+    <g transform="translate(380,42)">
+      <rect x="0" y="0" width="340" height="88" rx="10" fill="var(--bg-raise)" />
+      <rect x="12" y="14" width="6" height="6" rx="3" fill="#e8710a" />
+      <text x="28" y="20" font-size="12.5" font-weight="650" fill="var(--ink-primary)">状态持久化</text>
+      <text x="12" y="42" font-size="11" fill="var(--ink-secondary)">网关重启后接管会话</text>
+      <text x="12" y="58" font-size="11" fill="var(--ink-secondary)">并回放日志与进度</text>
+      <text x="12" y="76" font-size="10.5" class="code-text" fill="var(--ink-muted)">STATE_DIR/session.json</text>
+    </g>
+    <g transform="translate(742,42)">
+      <rect x="0" y="0" width="340" height="88" rx="10" fill="var(--bg-raise)" />
+      <rect x="12" y="14" width="6" height="6" rx="3" fill="#3ddc84" />
+      <text x="28" y="20" font-size="12.5" font-weight="650" fill="var(--ink-primary)">密钥不出网关</text>
+      <text x="12" y="42" font-size="11" fill="var(--ink-secondary)">Colab token 仅存网关</text>
+      <text x="12" y="58" font-size="11" fill="var(--ink-secondary)">经 stdin 传给内核，不落盘</text>
+      <text x="12" y="76" font-size="10.5" class="code-text" fill="var(--ink-muted)">secrets/ · *_FILE 指针</text>
+    </g>
+  </g>
+
+  <!-- legend -->
+  <g transform="translate(40,874)">
+    <circle cx="5" cy="-4" r="4" fill="#3ddc84" />
+    <text x="16" y="0" font-size="10.5" fill="var(--ink-muted)">运行中</text>
+    <circle cx="82" cy="-4" r="4" fill="#fde047" />
+    <text x="93" y="0" font-size="10.5" fill="var(--ink-muted)">开机中</text>
+    <circle cx="166" cy="-4" r="4" fill="#fda4af" />
+    <text x="177" y="0" font-size="10.5" fill="var(--ink-muted)">异常</text>
+    <circle cx="228" cy="-4" r="4" fill="#93c5fd" />
+    <text x="239" y="0" font-size="10.5" fill="var(--ink-muted)">停机中</text>
+    <circle cx="300" cy="-4" r="4" fill="#c4b5fd" />
+    <text x="311" y="0" font-size="10.5" fill="var(--ink-muted)">切换中</text>
+    <path d="M400 -8 H428" stroke="var(--ink-muted)" stroke-width="1.5" stroke-dasharray="4 4" fill="none" />
+    <text x="436" y="0" font-size="10.5" fill="var(--ink-muted)">异常回退路径</text>
+    <text x="1100" y="0" font-size="10.5" class="code-text" fill="var(--ink-muted)" text-anchor="end">comfy-colab-kit</text>
+  </g>
+</svg>
