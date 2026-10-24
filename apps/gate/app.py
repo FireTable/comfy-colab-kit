@@ -521,7 +521,7 @@ async def background(app: web.Application) -> None:
                 probe_ok = await proxy.probe()
                 if not probe_ok:
                     consecutive_probe_failures += 1
-                    if consecutive_probe_failures >= 5:
+                    if consecutive_probe_failures >= 3:
                         log.warning("backend probe failed %d times; reconciling with colab", consecutive_probe_failures)
                         await s.reconcile()
                 else:

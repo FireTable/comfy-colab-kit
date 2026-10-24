@@ -27,6 +27,7 @@ class ColabRunner(Protocol):
     def exec_stream(self, name: str, code: str, timeout_s: int) -> AsyncIterator[str]: ...
     async def stop(self, name: str) -> None: ...
     async def ccu_info(self) -> float | None: ...
+    async def touch_heartbeat(self, name: str) -> bool: ...
 
 
 class ColabCLI:
@@ -101,6 +102,15 @@ class ColabCLI:
         except ColabError:
             return None
         return parse_ccu_balance(out)
+
+    async def touch_heartbeat(self, name: str) -> bool:
+        try:
+            code = "import time; open('/content/kit_heartbeat', 'w').write(str(time.time()))\n"
+            await self._run("exec", "-s", name, "--timeout", "20", stdin=code, timeout=25)
+            return True
+        except Exception as e:
+            log.warning("touch_heartbeat via colab exec failed: %s", e)
+            return False
 
 
 def parse_sessions(text: str) -> list[str]:

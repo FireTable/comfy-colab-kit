@@ -246,9 +246,14 @@ class Session:
         if self.settings.colab_session_name not in names:
             async with self.lock:
                 self._force(State.SLEEPING, "VM gone (released outside the gate)")
-        elif self.machine.is_booting:
-            # setup output stream is lost on restart; the VM keeps booting, readiness is probed via the tunnel
-            self.bus.publish("log", "gate restarted during boot; re-attaching and probing backend")
+        else:
+            try:
+                await self.colab.touch_heartbeat(self.settings.colab_session_name)
+            except Exception as e:
+                log.warning("colab touch_heartbeat failed: %s", e)
+            if self.machine.is_booting:
+                # setup output stream is lost on restart; the VM keeps booting, readiness is probed via the tunnel
+                self.bus.publish("log", "gate restarted during boot; re-attaching and probing backend")
 
     def _force(self, st: State, reason: str) -> None:
         m = self.machine

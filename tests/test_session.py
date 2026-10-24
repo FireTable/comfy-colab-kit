@@ -79,6 +79,7 @@ async def test_state_persisted_and_restored_no_duplicate_vm(tmp_path):
     s2 = make(tmp_path, colab)
     s2.restore()
     await s2.reconcile()
+    assert "touch_heartbeat" in colab.calls
     assert s2.machine.state == State.INSTALLING
     r = await s2.wake(None, by="b@x.com")
     assert r.joined

@@ -42,3 +42,7 @@ class FakeColab:
 
     async def ccu_info(self):
         return None
+
+    async def touch_heartbeat(self, name: str) -> bool:
+        self.calls.append("touch_heartbeat")
+        return name in self.live
