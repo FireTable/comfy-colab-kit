@@ -63,7 +63,7 @@ Traditional Colab forces you to sit in front of a computer, manually run noteboo
 - **Dual-Mode Access Control (Mode B Default)** — `OWNER_ONLY_CONTROL=true` restricts wake, stop, profile switch, and extension to administrators (`OWNER_EMAILS`), safeguarding Colab compute units while allowing all authenticated team members to share ComfyUI once ready. Switchable to Mode A collaborative control ("who wakes can stop").
 - **Multi-IdP & Access-verified identity** — Supports Google & GitHub OAuth alongside Email OTP. Every request verifies `Cf-Access-Jwt-Assertion` (RS256, AUD, issuer).
 - **Backend locked to a service token** — the Colab tunnel hostname only admits the gate's Access service token.
-- **Fast cold start** — parallel `hf_xet` downloads, `uv` installs, tunnel started first, ComfyUI booted as soon as
+- **Fast cold start** — parallel `hf-transfer` Rust chunked downloads, `uv` installs, 30s stall watchdog, tunnel started first, ComfyUI booted as soon as core weights land (`FAST_START`).
   core models land (`FAST_START`).
 - **App mode first** — workflows get ComfyUI App-mode metadata; the injected overlay toggles App ⇄ Graph.
 - **ComfyUI passthrough** — per-profile CLI args, frontend settings, env vars and `extra_model_paths`.

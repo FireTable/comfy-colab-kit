@@ -57,25 +57,18 @@ The script will automatically configure the tunnel, create the DNS CNAME, genera
 
 ---
 
-## 4. How to Bypass Cloudflare Access (Dual-Host Bypass)
+## 4. How to Bypass Cloudflare Access
 
-If you want to completely disable login prompts (for friends, internal testing, or open access), you **MUST** configure Bypass on **BOTH** Access Applications:
-
-### Why Both Applications Must Be Bypassed:
-1. **Frontend App (`PUBLIC_HOST`, e.g. `comfy-colab-kit`)**: Protects the gateway wake card. If not bypassed, users see the email OTP login prompt when first opening the site.
-2. **Backend App (`COLAB_TUNNEL_HOST`, e.g. `comfy-colab-kit-backend`)**: Protects the Colab VM tunnel. Once ComfyUI boots (`state: ready`), the gateway embeds ComfyUI via an `<iframe>` pointing to `COLAB_TUNNEL_HOST`. If this backend app is not bypassed, the browser will be blocked from loading ComfyUI inside the iframe!
+If you want to completely disable login prompts (for friends, internal testing, or open access), configure Bypass on your Cloudflare Access Application and the VPS gateway:
 
 ### Step-by-Step Configuration:
 1. **Cloudflare Zero Trust Dashboard**:
    - Go to **Access** > **Applications**.
-   - Open **App 1 (`comfy-colab-kit`)** > **Policies** > Add Policy:
+   - Open your Multi-Domain application (`comfy-colab-kit`) > **Policies** > Add Policy:
      - Name: `Bypass-All`
      - Action: `Bypass`
-     - Include: `Everyone` (Order: 1st)
-   - Open **App 2 (`comfy-colab-kit-backend`)** > **Policies** > Add Policy:
-     - Name: `Bypass-All`
-     - Action: `Bypass`
-     - Include: `Everyone` (Order: 1st)
+     - Include: `Everyone` (Order: 1st priority)
+   - Save policy. *(Alternative: Click `...` next to the application in the list and select **Disable**).*
 2. **VPS Gateway Configuration**:
    - In `.env` on your VPS, enable `AUTH_DISABLED=true`:
      ```bash

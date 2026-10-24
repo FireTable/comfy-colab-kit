@@ -136,7 +136,7 @@ A key architectural principle of this project is separation of concerns:
 3. **Piped Bootstrap on Stdin**: `colab exec` runs the setup runner with secrets passed as JSON strictly over **stdin** (never written to disk or argv).
 4. **Setup Stages**:
    - `bootstrap` -> `deps` (via `uv`) -> `install_workflows`
-   - `download`: Parallel model weight streaming (`hf_xet` high-performance mode). If `FAST_START=true`, ComfyUI boots as soon as core weights land while non-essential models download in the background.
+   - `download`: Parallel model weight streaming (`hf-transfer` Rust chunked downloads with 30s stall watchdog). If `FAST_START=true`, ComfyUI boots as soon as core weights land while non-essential models download in the background.
    - `comfy_boot`: Port 8188 opens; `cloudflared` named tunnel connects.
    - `smoke`: Submits an empty graph or smoke prompt to verify model loading.
    - Prints `KIT_READY` and transitions to `ready`.
