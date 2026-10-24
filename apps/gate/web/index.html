@@ -90,7 +90,8 @@ body.app-ready{height:100vh;height:100dvh;overflow:hidden}
 .badge-owner{background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3)}
 .badge-member{background:rgba(156,163,175,0.15);color:#9ca3af;border:1px solid rgba(156,163,175,0.3)}
 .user-open .chevron-sm{transform:rotate(180deg)}
-.user-popover{min-width:320px;max-width:360px;padding:14px;gap:12px}
+.dropdown-backdrop{position:fixed;inset:0;z-index:90;background:transparent;cursor:default;-webkit-tap-highlight-color:transparent}
+.user-popover{min-width:320px;max-width:360px;padding:12px;gap:10px}
 .user-popover-header{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line2)}
 .user-avatar-circle{width:34px;height:34px;border-radius:50%;background:rgba(127,127,127,0.15);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
 .user-details{overflow:hidden;flex:1;min-width:0}
@@ -103,37 +104,38 @@ body.app-ready{height:100vh;height:100dvh;overflow:hidden}
 .panel-metric-item{background:rgba(0,0,0,0.25);border:1px solid var(--line2);border-radius:8px;padding:6px 8px;display:flex;flex-direction:column;gap:2px}
 :root[data-theme=light] .panel-metric-item{background:rgba(0,0,0,0.03)}
 .panel-metric-lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;font-family:var(--mono);letter-spacing:0.04em}
-.panel-metric-val{font-size:12px;font-weight:700;color:var(--fg);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.btn-panel-stop{width:100%;padding:8px 12px;background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.25);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
+.panel-metric-val{font-size:12.5px;font-weight:700;color:var(--fg);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn-panel-stop{width:100%;padding:7px 12px;background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.25);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
 .btn-panel-stop:hover{background:rgba(239,68,68,0.25);border-color:rgba(239,68,68,0.4)}
 .btn-panel-stop.confirming{background:var(--bad);color:#fff;border-color:var(--bad);box-shadow:0 4px 16px rgba(255,107,74,.5);animation:pulse-red 1.5s infinite}
 .btn-panel-stop:disabled{opacity:0.4;cursor:not-allowed !important}
 .user-popover-section{display:flex;flex-direction:column;gap:6px}
 .section-title-row{display:flex;align-items:center;justify-content:space-between}
-.section-title{font-size:11.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
+.section-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
 .refresh-tokens-btn{background:transparent;border:0;color:var(--muted);cursor:pointer;padding:2px 4px;border-radius:4px;display:flex;align-items:center}
 .refresh-tokens-btn:hover{color:var(--fg);background:rgba(127,127,127,0.15)}
-.agent-tokens-list{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;padding-right:2px}
-.empty-tokens{font-size:12px;color:var(--muted);text-align:center;padding:12px 0}
-.token-card{background:rgba(127,127,127,0.06);border:1px solid var(--line2);border-radius:8px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.agent-tokens-list{display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;padding-right:2px}
+.empty-tokens{font-size:11.5px;color:var(--muted);text-align:center;padding:10px 12px;border:1px dashed var(--line2);border-radius:8px;background:rgba(127,127,127,0.02)}
+.token-card{background:rgba(127,127,127,0.06);border:1px solid var(--line2);border-radius:8px;padding:7px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
 .token-info{overflow:hidden;flex:1}
 .token-name{font-size:12.5px;font-weight:600;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .token-time{font-size:10.5px;color:var(--muted);margin-top:2px}
-.btn-revoke{background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:4px 8px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;transition:all .15s}
+.btn-revoke{background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:3px 7px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;transition:all .15s}
 .btn-revoke:hover{background:rgba(239,68,68,0.25)}
 .token-card.revoked{opacity:0.5;background:transparent}
 .token-card.revoked .btn-revoke{display:none}
 .token-revoked-label{font-size:11px;color:var(--muted)}
-.cli-section{background:rgba(127,127,127,0.05);border:1px solid var(--line2);border-radius:8px;padding:10px}
-.cli-connect-title{font-size:11.5px;font-weight:600;color:var(--fg);margin-bottom:6px}
+.cli-section{background:rgba(127,127,127,0.04);border:1px solid var(--line2);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.cli-connect-title{font-size:11.5px;font-weight:600;color:var(--fg);margin:0}
 .cli-cmd-box{display:flex;align-items:center;background:rgba(0,0,0,0.3);border:1px solid var(--line2);border-radius:6px;padding:4px 6px;gap:6px}
-.cli-cmd-box code{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--y);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:root[data-theme=light] .cli-cmd-box{background:rgba(0,0,0,0.03)}
+.cli-cmd-box code{font-family:var(--mono);font-size:11px;color:var(--y);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .copy-cmd-btn{background:rgba(127,127,127,0.2);color:var(--fg);border:0;border-radius:4px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0}
 .copy-cmd-btn:hover{background:var(--y);color:#000}
-.cli-help-tip{font-size:10.5px;color:var(--muted);margin-top:4px}
+.cli-help-tip{font-size:10.5px;color:var(--muted);line-height:1.4;margin:0}
 .btn-create-token{background:rgba(249,171,0,0.12);color:var(--y);border:1px solid rgba(249,171,0,0.25);border-radius:5px;padding:2px 7px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s}
 .btn-create-token:hover{background:var(--y);color:#000}
-.token-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:90;display:flex;align-items:center;justify-content:center;padding:16px}
+.token-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
 .token-modal-box{background:var(--card);border:1px solid var(--line2);border-radius:16px;width:100%;max-width:440px;padding:20px;box-shadow:0 24px 48px rgba(0,0,0,0.5);display:flex;flex-direction:column;gap:12px}
 :root[data-theme=light] .token-modal-box{background:#FFFFFF;border-color:rgba(15,23,42,0.14);box-shadow:0 24px 48px rgba(15,23,42,0.15)}
 .token-modal-head{display:flex;align-items:center;justify-content:space-between}
@@ -329,6 +331,7 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
 </head>
 <body>
 <canvas id="bg" aria-hidden="true"></canvas><div class="grid" aria-hidden="true"></div>
+<div id="dropdown-backdrop" class="dropdown-backdrop" style="display:none"></div>
 <header class="site-header">
   <div class="nav-container">
     <div class="header-left">
@@ -411,7 +414,7 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
             </div>
           </div>
 
-          <div class="user-popover-section cli-section">
+          <div class="cli-section">
             <div class="cli-connect-title">连接本机 Agent (CLI)</div>
             <div class="cli-cmd-box">
               <code id="cli-auth-cmd">ckit auth ...</code>
@@ -482,6 +485,7 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
         </div>
         <svg class="sel-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
       </button>
+      <div class="sel-backdrop" id="sel-backdrop" style="display:none"></div>
       <div class="sel-popover" id="prof-popover" role="listbox">
         <div class="sel-popover-head">
           <span class="sel-popover-title" id="pop-title">Profile</span>
@@ -666,15 +670,41 @@ window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener("change",(e
 });
 $("theme").onclick=()=>{const n=root.dataset.theme==="dark"?"light":"dark";root.dataset.theme=n;localStorage.setItem("kit.theme",n);window.kitBg&&kitBg.set({})};
 
+// Unified Menu State & Backdrop Management
+let langOpen=false,userOpen=false,selectOpen=false;
+const dropdownBackdrop=$("dropdown-backdrop");
+
+function updateMenuBackdrop(){
+ const anyHeaderOpen=langOpen||userOpen;
+ if(dropdownBackdrop)dropdownBackdrop.style.display=anyHeaderOpen?"block":"none";
+ const f=$("comfy-frame");
+ if(f)f.style.pointerEvents=anyHeaderOpen?"none":"";
+}
+function closeAllMenus(){
+ if(selectOpen)toggleSelect(false);
+ if(langOpen)toggleLangMenu(false);
+ if(userOpen)toggleUserMenu(false);
+}
+if(dropdownBackdrop){
+ dropdownBackdrop.addEventListener("pointerdown",e=>{
+  e.preventDefault();
+  toggleLangMenu(false);
+  toggleUserMenu(false);
+ });
+}
+
 // Language Dropdown Menu Implementation
 const langBtn=$("lang-btn"),langPopover=$("lang-popover"),langDropdown=$("lang-dropdown");
-let langOpen=false;
 function toggleLangMenu(force){
  langOpen=force!==undefined?force:!langOpen;
- if(langOpen&&selectOpen)toggleSelect(false);
+ if(langOpen){
+  if(selectOpen)toggleSelect(false);
+  if(userOpen)toggleUserMenu(false);
+ }
  langPopover.classList.toggle("open",langOpen);
  langDropdown.classList.toggle("lang-open",langOpen);
  langBtn.setAttribute("aria-expanded",langOpen);
+ updateMenuBackdrop();
 }
 function setLanguage(l){
  lang=l;
@@ -695,7 +725,7 @@ updateLanguageUI();
 
 // User Account & Connected Agents Popover Implementation
 const userBtn=$("user-btn"),userPopover=$("user-popover"),userDropdown=$("user-dropdown");
-let userOpen=false,currentUser=null;
+let currentUser=null;
 function toggleUserMenu(force){
  userOpen=force!==undefined?force:!userOpen;
  if(userOpen){
@@ -706,6 +736,7 @@ function toggleUserMenu(force){
  userPopover.classList.toggle("open",userOpen);
  userDropdown.classList.toggle("user-open",userOpen);
  userBtn.setAttribute("aria-expanded",userOpen);
+ updateMenuBackdrop();
 }
 function updateUserUI(you){
  if(!you||!you.email)return;
@@ -892,29 +923,41 @@ function formatBytes(b){
 const gb=b=>formatBytes(b);
 
 // Custom Select Implementation
-const profTrigger=$("prof-trigger"),profPopover=$("prof-popover"),profItems=$("prof-items"),customSelect=$("custom-select"),profLabel=$("plabel-txt");
-let selectOpen=false;
+const profTrigger=$("prof-trigger"),profPopover=$("prof-popover"),profItems=$("prof-items"),customSelect=$("custom-select"),profLabel=$("plabel-txt"),selBackdrop=$("sel-backdrop");
 function toggleSelect(force){
  selectOpen=force!==undefined?force:!selectOpen;
- if(selectOpen&&langOpen)toggleLangMenu(false);
+ if(selectOpen){
+  if(langOpen)toggleLangMenu(false);
+  if(userOpen)toggleUserMenu(false);
+ }
  profPopover.classList.toggle("open",selectOpen);
  customSelect.classList.toggle("sel-open",selectOpen);
  profTrigger.setAttribute("aria-expanded",selectOpen);
+ if(selBackdrop)selBackdrop.style.display=selectOpen?"block":"none";
 }
 profTrigger.onclick=(e)=>{e.stopPropagation();toggleSelect()};
 // The "Profile" caption doubles as a tap target for opening the picker.
 profLabel.onclick=(e)=>{e.stopPropagation();toggleSelect()};
 $("pop-close").onclick=(e)=>{e.stopPropagation();toggleSelect(false)};
+if(selBackdrop){
+ selBackdrop.addEventListener("pointerdown",e=>{
+  e.preventDefault();
+  toggleSelect(false);
+ });
+}
 
 // Universal outside-click and escape handling
 document.addEventListener("pointerdown",e=>{
- const inWidget=(t)=>t instanceof Node&&(customSelect.contains(t)||(profLabel&&profLabel.contains(t)));
+ const inWidget=(t)=>t instanceof Node&&(customSelect&&(customSelect.contains(t)||(profLabel&&profLabel.contains(t))));
  if(selectOpen&&(!e.target||!inWidget(e.target)))toggleSelect(false);
  if(langOpen&&(!e.target||(e.target instanceof Node&&!langDropdown.contains(e.target))))toggleLangMenu(false);
  if(userOpen&&(!e.target||(e.target instanceof Node&&!userDropdown.contains(e.target))))toggleUserMenu(false);
 });
+window.addEventListener("blur",()=>{
+ closeAllMenus();
+});
 window.addEventListener("keydown",e=>{
- if(e.key==="Escape"){toggleSelect(false);toggleLangMenu(false);toggleUserMenu(false)}
+ if(e.key==="Escape")closeAllMenus();
 });
 
 function renderCustomSelect(){
