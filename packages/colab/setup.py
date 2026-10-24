@@ -480,15 +480,24 @@ import { app } from "../../scripts/app.js";
 app.registerExtension({
   name: "kit.init",
   async setup() {
-    try {
-      const info = await (await fetch("/kit/info")).json();
-      if (!info.default_workflow) return;
-      if (sessionStorage.getItem("kit.loaded_wf") !== info.default_workflow) {
+    // Defer execution so ComfyUI can finish constructing LGraphCanvas and mounting the DOM
+    setTimeout(async () => {
+      try {
+        const info = await (await fetch("/kit/info")).json();
+        if (!info.default_workflow) return;
+        if (sessionStorage.getItem("kit.loaded_wf") === info.default_workflow) return;
+
+        // Poll until canvas and graph are fully initialized by ComfyUI
+        for (let i = 0; i < 60; i++) {
+          if (app.canvas && app.graph && (app.canvas.canvas || document.querySelector("canvas"))) break;
+          await new Promise(r => setTimeout(r, 100));
+        }
+        if (!app.canvas || !app.graph) return;
+
         let res = await fetch("/kit/workflow");
         if (!res.ok) res = await fetch("/kit/workflows/" + encodeURIComponent(info.default_workflow));
         if (!res.ok) res = await fetch("/default_workflow");
         if (!res.ok) res = await fetch("/api/userdata/workflows/" + encodeURIComponent(info.default_workflow));
-        if (!res.ok) res = await fetch("/api/userdata/" + encodeURIComponent("workflows/" + info.default_workflow));
         if (res.ok) {
           const wf = await res.json();
           await app.loadGraphData(wf, true, true, info.default_workflow);
@@ -496,15 +505,18 @@ app.registerExtension({
           if (info.default_view === "app") {
             setTimeout(async () => {
               try {
-                await app.extensionManager.command.execute("Comfy.ToggleLinear");
+                const isLinear = !!document.querySelector('[data-testid="linear-mode"], .linear-mode, [class*="linear"]');
+                if (!isLinear) {
+                  await app.extensionManager.command.execute("Comfy.ToggleLinear");
+                }
               } catch (e) {}
-            }, 350);
+            }, 300);
           }
         }
+      } catch (e) {
+        console.warn("[kit.init]", e);
       }
-    } catch (e) {
-      console.warn("[kit.init]", e);
-    }
+    }, 600);
   }
 });
 '''
