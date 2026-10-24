@@ -139,6 +139,7 @@ class Downloads:
         self.bg_pool = ThreadPoolExecutor(max_workers=max(1, concurrency))
         self.core_done = threading.Event()
         self.futures = {}
+        self.t0 = time.time()
 
     def start(self):
         # core first, biggest first: the critical path is the largest core file
@@ -297,13 +298,15 @@ class Downloads:
             self._max_cb = max(self._max_cb, cur_cb)
             return (self._max_b, self._max_cb)
 
-    def progress(self, rate):
+    def progress(self, rate, eta=None):
         b, cb = self.snapshot()
         left = max(0, self.total - b)
+        if eta is None and rate > 1e5 and not self.paused:
+            eta = int(left / rate)
         return {
             "bytes_done": b, "bytes_total": self.total,
             "core_bytes_done": cb, "core_bytes_total": self.core_total,
-            "bytes_per_s": int(rate), "eta_s": int(left / rate) if rate > 1e5 and not self.paused else None,
+            "bytes_per_s": int(rate), "eta_s": eta,
             "files_done": self.files_done, "files_total": len(self.models),
             "core_done": self.core_done.is_set(), "paused": self.paused, "restarts": self.restarts,
             # legacy, file-granular
@@ -318,8 +321,12 @@ class Downloads:
             inst = max(0.0, (b - last_b) / max(1e-6, now - last_t))
             rate = inst if rate == 0 else 0.6 * rate + 0.4 * inst  # smoothed for a steady ETA
             last_b, last_t = b, now
-            print("KIT_PROGRESS download " + json.dumps(self.progress(rate)), flush=True)
-        print("KIT_PROGRESS download " + json.dumps(self.progress(0)), flush=True)
+            avg_rate = b / max(1.0, now - self.t0)
+            effective_eta_rate = max(rate, 0.4 * avg_rate)
+            left = max(0, self.total - b)
+            eta = int(left / effective_eta_rate) if effective_eta_rate > 1e5 and not self.paused else None
+            print("KIT_PROGRESS download " + json.dumps(self.progress(rate, eta=eta)), flush=True)
+        print("KIT_PROGRESS download " + json.dumps(self.progress(0, eta=0)), flush=True)
 
     def wait(self, ids):
         for i in ids:

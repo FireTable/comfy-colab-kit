@@ -613,7 +613,11 @@ function render(){
 
   let eta=null;
   if(st==="downloading"&&d&&d.eta!=null){
-   eta=d.eta+30;
+   let dEta=d.eta;
+   if(d.total>0&&(d.done/d.total)>0.8){
+    dEta=Math.min(dEta,90);
+   }
+   eta=dEta+25;
   }else if(st==="allocating"){
    eta=Math.max(15,360-Math.round(now-started));
   }else if(st==="installing"){
