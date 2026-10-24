@@ -838,10 +838,30 @@ function generateAIPrompt(token,clientName){
 
 ---
 
-## 2. 推荐接入方式 A: 配置为 MCP 工具 (Cursor / Claude Desktop / Windsurf)
-如果你支持 MCP 工具协议，请将以下配置写入你的 MCP 配置文件：
+## 2. 通用 Agent 接入与持久化配置 (Universal Agent Configuration)
 
-### Cursor (\`~/.cursor/mcp.json\`) 或 Claude Desktop (\`claude_desktop_config.json\`)
+### 方案 A: 保存至通用 Agent 配置 (推荐，跨终端跨 Agent 通用)
+建议优先将网关凭据写入通用 Agent 目录或全局 CLI 配置，全系统所有 Agent、脚本与命令行即可自动识别与共享授权：
+
+- **选项 1 (通用 Agent 环境)**：将环境变量追加至 \`~/.agents/.env\`：
+\`\`\`bash
+CKIT_URL="${origin}"
+CKIT_TOKEN="${token}"
+\`\`\`
+
+- **选项 2 (CLI 全局配置)**：写入全局配置 \`~/.config/ckit/config.json\`：
+\`\`\`json
+{
+  "default_endpoint": "${origin}",
+  "token": "${token}"
+}
+\`\`\`
+
+---
+
+### 方案 B: 配置为 MCP 工具 (支持 MCP 协议的 Agent / IDE)
+如果你支持 Model Context Protocol，请将以下服务配置添加到你的 MCP 配置文件中（例如写入通用的 \`~/.agents/mcp.json\`，或当前宿主环境的 MCP 配置文件）：
+
 \`\`\`json
 {
   "mcpServers": {
@@ -857,15 +877,19 @@ function generateAIPrompt(token,clientName){
 }
 \`\`\`
 
-> **提示 (CLI 安装)**:
-> 若本地未安装 \`ckit\`，可直接运行：
+> **远程 HTTP MCP 端点 (若客户端支持 SSE / Streamable MCP)**:
+> - **Endpoint**: \`${origin}/mcp\`
+> - **HTTP Header**: \`Authorization: Bearer ${token}\`
+
+> **CLI 安装依赖**: 若本地未安装 \`ckit\`，可直接运行：
 > \`\`\`bash
 > pip install "git+https://github.com/FireTable/comfy-colab-kit.git#subdirectory=packages/cli"
 > \`\`\`
 
-### 远程 HTTP MCP (若客户端支持 SSE / Streamable MCP):
-- **Endpoint**: \`${origin}/mcp\`
-- **HTTP Header**: \`Authorization: Bearer ${token}\`
+---
+
+### 方案 C: 安装为 Agent Skill (支持 Agent Skills 标准的助手)
+可在通用技能库目录 \`~/.agents/skills/comfy-colab/SKILL.md\` 中记录本网关说明，无需 MCP 也能通过 Python 脚本或 \`ckit\` 命令行直接唤醒 GPU 与生成图像。
 
 ---
 

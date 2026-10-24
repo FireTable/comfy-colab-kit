@@ -27,14 +27,32 @@ def _read(path):
 
 
 def load_config():
+    cfg = {}
     p = os.path.expanduser("~/.config/ckit/config.json")
     if os.path.isfile(p):
         try:
             with open(p, "r", encoding="utf-8") as f:
-                return json.load(f)
+                cfg = json.load(f)
         except Exception:
-            return {}
-    return {}
+            cfg = {}
+
+    agents_env = os.path.expanduser("~/.agents/.env")
+    if os.path.isfile(agents_env):
+        try:
+            with open(agents_env, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith("#") or "=" not in line:
+                        continue
+                    k, v = line.split("=", 1)
+                    k, v = k.strip(), v.strip().strip("'\"")
+                    if k == "CKIT_URL" and not cfg.get("default_endpoint"):
+                        cfg["default_endpoint"] = v
+                    elif k in ("CKIT_TOKEN", "COMFY_AGENT_TOKEN") and not cfg.get("token"):
+                        cfg["token"] = v
+        except Exception:
+            pass
+    return cfg
 
 
 def save_config(cfg):
@@ -42,6 +60,37 @@ def save_config(cfg):
     os.makedirs(os.path.dirname(p), exist_ok=True)
     with open(p, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2, ensure_ascii=False)
+
+    agents_dir = os.path.expanduser("~/.agents")
+    if os.path.isdir(agents_dir):
+        env_file = os.path.join(agents_dir, ".env")
+        try:
+            lines = []
+            if os.path.isfile(env_file):
+                with open(env_file, "r", encoding="utf-8") as f:
+                    lines = f.readlines()
+            url = cfg.get("default_endpoint") or ""
+            tok = cfg.get("token") or ""
+            found_url, found_tok = False, False
+            new_lines = []
+            for line in lines:
+                stripped = line.strip()
+                if stripped.startswith("CKIT_URL="):
+                    new_lines.append(f'CKIT_URL="{url}"\n')
+                    found_url = True
+                elif stripped.startswith("CKIT_TOKEN="):
+                    new_lines.append(f'CKIT_TOKEN="{tok}"\n')
+                    found_tok = True
+                else:
+                    new_lines.append(line)
+            if not found_url and url:
+                new_lines.append(f'CKIT_URL="{url}"\n')
+            if not found_tok and tok:
+                new_lines.append(f'CKIT_TOKEN="{tok}"\n')
+            with open(env_file, "w", encoding="utf-8") as f:
+                f.writelines(new_lines)
+        except Exception:
+            pass
 
 
 DEFAULT_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 (ckit/0.1.0)"
