@@ -50,9 +50,16 @@ Cloudflare Zero Trust supports multiple simultaneous login methods on the login 
 > - **Explicit Email List**: To strictly restrict to designated addresses:
 >   - **Include**: `Emails: alice@example.com, bob@example.com`
 
-### 1.3 The Dual-Host Rule for Browsers
-Remember that `PUBLIC_HOST` embeds `COLAB_TUNNEL_HOST` inside an `<iframe>` once ComfyUI is `ready`.
-**Both Cloudflare Access Applications must enable the same Identity Providers and have matching `Allow` policies**; otherwise, the browser will authenticate on the front page, but fail with `403 Forbidden` inside the ComfyUI iframe!
+### 1.3 Unified Multi-Domain Application (Eager Redirect Cookie)
+When ComfyUI reaches `state: ready`, `PUBLIC_HOST` (e.g. `comfy.yourdomain.com`) embeds `COLAB_TUNNEL_HOST` (e.g. `comfy-colab.yourdomain.com`) inside an `<iframe>`.
+Instead of creating two separate Cloudflare Access applications (which causes cross-subdomain cookie isolation and CSP `frame-ancestors 'none'` blocks in modern browsers), **group both hostnames under a single Multi-Domain Access Application** with **Eager redirect cookie** enabled:
+1. In Cloudflare Zero Trust (**Access** > **Applications**), open your app (`comfy-colab-kit`).
+2. Under **Public hostnames**, add both hostnames:
+   - `comfy.yourdomain.com`
+   - `comfy-colab.yourdomain.com`
+3. Ensure **Eager redirect cookie** is enabled (`true`).
+
+When any user logs into `comfy.yourdomain.com`, Cloudflare automatically chains a background redirect to set authorization cookies on both hostnames simultaneously. When ComfyUI becomes ready, the iframe renders smoothly without triggering secondary login prompts!
 
 ### 1.4 Gateway Access Control Modes (Mode B Default vs. Mode A)
 
@@ -102,29 +109,20 @@ If you want to share access with a colleague or friend without adding their emai
 
 ---
 
-## 3. Disabling Authentication & Complete Bypass (Dual-Host Bypass)
+## 3. Disabling Authentication & Complete Bypass
 
-If you want to completely disable login prompts so that anyone (or friends on your network) can access the gateway without entering an email OTP, you **MUST configure Bypass on BOTH Cloudflare Access Applications and the VPS gateway**.
-
-### ⚠️ Why Both Cloudflare Applications Must Be Configured:
-Comfy Colab Kit utilizes a dual-hostname architecture:
-1. **Frontend Gateway (`PUBLIC_HOST`, e.g. `comfy-colab-kit`)**: Serves the wake-on-demand card and telemetry. If this is not bypassed, visitors are stopped by the email OTP login screen when opening the site.
-2. **Backend Tunnel (`COLAB_TUNNEL_HOST`, e.g. `comfy-colab-kit-backend`)**: Where the Colab VM's ComfyUI instance runs. When `state: ready`, the gateway embeds ComfyUI into the page via an `<iframe>` pointing directly to this backend host. **If this backend host is not also bypassed, the browser will be blocked from loading ComfyUI inside the iframe** (resulting in a blank iframe, 403 Forbidden, or login prompts inside the iframe).
+If you want to completely disable login prompts so that anyone (or friends on your network) can access the gateway without entering an email OTP, configure Bypass on your Cloudflare Access Application and the VPS gateway:
 
 ### 🛠️ Step-by-Step Setup:
 
-#### Step 1: Cloudflare Zero Trust (Configure Both Apps)
+#### Step 1: Cloudflare Zero Trust (Configure Bypass Policy)
 In [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) > **Access** > **Applications**:
-1. **Frontend App (`comfy-colab-kit` / `PUBLIC_HOST`)**:
+1. Open your Multi-Domain application (`comfy-colab-kit`):
    - Go to **Policies** > **Add a policy**.
-   - Name: `Bypass-All` · Action: **Bypass** · Include: **Everyone**.
-   - Save and ensure it has top priority.
-2. **Backend App (`comfy-colab-kit-backend` / `COLAB_TUNNEL_HOST`)**:
-   - Go to **Policies** > **Add a policy**.
-   - Name: `Bypass-All` · Action: **Bypass** · Include: **Everyone**.
-   - Save and ensure it has top priority.
+   - Name: `Bypass-All` · Action: **Bypass** · Include: **Everyone** (Order: 1st priority).
+   - Save policy.
 
-*(Alternative: You can simply click `...` next to both applications in the Cloudflare application list and select **Disable**).*
+*(Alternative: You can simply click `...` next to the application in the Cloudflare application list and select **Disable**).*
 
 #### Step 2: VPS Gateway (Allow Unsigned Requests)
 In `.env` on your VPS, activate `AUTH_DISABLED=true`:
@@ -136,15 +134,13 @@ cd /opt/comfy-colab-kit && docker compose --env-file .env -f deploy/docker-compo
 All incoming requests will be automatically authorized as the default owner (`dev@localhost`).
 
 > [!WARNING]
-> Bypassing both applications allows anyone with the URL to wake the Colab VM and consume Compute Units. For public instances, it is strongly recommended to keep Cloudflare Access enabled or use the [Shareable Token Link](#2-guest--friend-access-via-url-token-token) pattern instead.
+> Bypassing access allows anyone with the URL to wake the Colab VM and consume Compute Units. For public instances, it is strongly recommended to keep Cloudflare Access enabled or use the [Shareable Token Link](#2-guest--friend-access-via-url-token-token) pattern instead.
 
-### 🔄 The Symmetry Rule (Restoring Protection)
-Just as turning off authentication requires bypassing **both** applications, **restoring full Zero Trust protection also requires configuring both applications**:
-1. **Frontend App (`comfy-colab-kit`)**: Remove or disable the `Bypass-All` policy. Ensure an `Allow` policy exists for `ALLOWED_EMAILS`.
-2. **Backend App (`comfy-colab-kit-backend`)**: Remove or disable the `Bypass-All` policy. Ensure it has:
-   - Policy 1 (`Service Auth`): Permits the gateway's Cloudflare Service Token.
-   - Policy 2 (`Allow`): Permits `ALLOWED_EMAILS` so the browser's iframe is allowed to render ComfyUI.
-3. **VPS Gateway**: Set `AUTH_DISABLED=false` (or remove it) in `.env` and restart the container (`docker compose up -d`).
+### 🔄 Restoring Zero Trust Protection
+1. In your Multi-Domain Access Application (`comfy-colab-kit`), remove or disable the `Bypass-All` policy. Ensure your standard policies exist:
+   - **Policy 1** (`Service Auth`): `gate service token only` (non-identity for the gateway's service token).
+   - **Policy 2** (`Allow`): `Everyone Authenticated` (or restricted to `ALLOWED_EMAILS`).
+2. **VPS Gateway**: Set `AUTH_DISABLED=false` (or remove it) in `.env` and restart the container (`docker compose up -d`).
 
 ---
 
