@@ -59,7 +59,8 @@ VPS 上运行一个轻量网关 **comfy-gate**（Python / aiohttp），前端受
 - **全局唯一共享会话**：唤醒是幂等的，第二个访客（或 Agent）会加入正在进行的启动，不会再开一台 VM；状态写入
   `STATE_DIR/session.json`，网关重启后自动接管。
 - **所有人看到同一份实时进度**：SSE 广播状态、下载 GB / 速度、初始化日志。
-- **校验 Access 身份**：验证 `Cf-Access-Jwt-Assertion`（RS256、AUD、issuer）；`OWNER_EMAILS` / `OWNER_ONLY_ACTIONS` 限制切换、停机、续期。
+- **权限双模式控制（默认 Mode B 管理员独占）**：默认 `OWNER_ONLY_CONTROL=true`，仅 `OWNER_EMAILS` 可唤醒与停机 GPU，避免点数被误开或误关；就绪后全员无感并发使用 ComfyUI 生图。亦可切为 Mode A 团队协同模式（支持谁开谁关）。
+- **校验 Access 身份与多 IdP 支持**：支持 Google、GitHub 一键登录与邮箱验证码（OTP），严格验证 `Cf-Access-Jwt-Assertion`（RS256、AUD、issuer）。
 - **后端只认服务令牌**：Colab 隧道主机名只放行网关的 Access 服务令牌。
 - **极速冷启动**：`hf_xet` 并行下载、`uv` 安装、隧道最先启动、核心模型到位即启动 ComfyUI（`FAST_START`）。
 - **App 模式优先**：工作流写入 ComfyUI App 模式元数据；注入的浮层可在 App ⇄ 节点图之间切换。

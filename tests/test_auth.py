@@ -46,9 +46,20 @@ def test_valid_owner(keypair):
     assert i.email == "a@x.com" and i.is_owner
 
 
-def test_valid_non_owner_cannot_stop_but_can_wake(keypair):
+def test_valid_non_owner_cannot_wake_or_stop_by_default(keypair):
     key, jwks = keypair
     s = settings()
+    i = ident(key, jwks, token(key, email="B@x.com"), s)
+    assert not i.is_owner
+    for action in ("wake", "stop", "switch", "extend"):
+        with pytest.raises(AuthError) as e:
+            authorize(i, action, s)
+        assert e.value.status == 403
+
+
+def test_collaborative_mode_allows_non_owner_wake(keypair):
+    key, jwks = keypair
+    s = settings(OWNER_ONLY_CONTROL="false")
     i = ident(key, jwks, token(key, email="B@x.com"), s)
     assert not i.is_owner
     authorize(i, "wake", s)
@@ -60,7 +71,7 @@ def test_valid_non_owner_cannot_stop_but_can_wake(keypair):
 
 def test_owner_only_actions_configurable(keypair):
     key, jwks = keypair
-    s = settings(OWNER_ONLY_ACTIONS="wake")
+    s = settings(OWNER_ONLY_CONTROL="false", OWNER_ONLY_ACTIONS="wake")
     i = ident(key, jwks, token(key, email="b@x.com"), s)
     authorize(i, "stop", s)
     with pytest.raises(AuthError):

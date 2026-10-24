@@ -182,7 +182,8 @@ async def test_mcp_endpoint(tmp_path):
 
 
 async def test_stop_restricted_to_initiator_and_owner(tmp_path):
-    c, app = await client(tmp_path, OWNER_EMAILS="boss@firetable.tech")
+    # Mode A (collaborative): non-owners can wake, but only the initiator or owner can stop
+    c, app = await client(tmp_path, OWNER_ONLY_CONTROL="false", OWNER_EMAILS="boss@firetable.tech")
     try:
         # Wake from IP 1.1.1.1
         r = await c.post("/_gate/wake", json={}, headers={"CF-Connecting-IP": "1.1.1.1"})

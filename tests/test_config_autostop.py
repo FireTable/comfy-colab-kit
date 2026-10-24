@@ -15,8 +15,14 @@ def test_defaults():
     assert (a.idle_timeout_min, a.max_session_hours, a.extend_max_times, a.boot_timeout_min) == (30, 6.0, 1, 40)
     assert (a.daily_cu_budget, a.monthly_cu_budget, a.min_cu_balance) == (12.0, 150.0, 5.0)
     assert a.wake_on_visit is False and a.quiet_hours is None
-    assert s.owner_only_actions == ("switch", "stop", "extend")
+    assert s.owner_only_actions == ("wake", "stop", "switch", "extend")
+    assert s.owner_only_control is True
     assert s.default_view == "app"
+
+    # Test collaborative mode override (Mode A)
+    s_collab = Settings.from_env({**BASE, "OWNER_ONLY_CONTROL": "false"})
+    assert s_collab.owner_only_control is False
+    assert s_collab.owner_only_actions == ("switch", "stop", "extend")
 
 
 def test_env_overrides_and_hosts():

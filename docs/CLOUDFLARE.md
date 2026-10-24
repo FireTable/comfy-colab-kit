@@ -98,3 +98,9 @@ Just as **disabling** access requires updating both applications, **enabling (or
 
 > [!IMPORTANT]
 > **Common Pitfall when Enabling**: If you forget to add Policy 2 (`Allow` for your email) on the Backend App, Cloudflare will accept the gateway's service token on the backend proxy, but the **browser's iframe will be rejected with 403 Forbidden** because Cloudflare Access will block the browser from loading the iframe! Always ensure the Backend App permits BOTH the Service Token and the authorized user emails.
+>
+> **Identity Providers (Google, GitHub, OTP)**:
+> In Cloudflare Zero Trust (**Settings** > **Authentication**), you can connect Google OAuth and GitHub OAuth alongside the default One-Time PIN (OTP). When configuring Access Policies:
+> - Setting Policy Include to `Everyone` allows any user with a valid Google, GitHub, or Email account to log in.
+> - OTP emails to QQ Mail, 163, and others will only be sent if the address matches an Access policy (anti-enumeration protection).
+> - On the gateway side, Mode B (`OWNER_ONLY_CONTROL=true`, default) ensures that only addresses listed in `OWNER_EMAILS` can wake or stop the GPU, while all authenticated team members can share access once ready.
