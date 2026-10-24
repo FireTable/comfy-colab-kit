@@ -44,7 +44,8 @@
 *{box-sizing:border-box}[hidden]{display:none!important}html,body{height:100%}
 :root{--header-h:52px}
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 Inter,system-ui,-apple-system,"Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif;
- height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+ min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
+body.app-ready{height:100vh;height:100dvh;overflow:hidden}
 #bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;transform:scaleY(-1)}
 .grid{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
  background-size:44px 44px;mask-image:radial-gradient(ellipse at 50% 45%,#000 10%,transparent 70%);-webkit-mask-image:radial-gradient(ellipse at 50% 45%,#000 10%,transparent 70%);opacity:.55}
@@ -239,8 +240,10 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 /* ComfyUI Iframe & Gate Main Layout */
 #comfy-frame{display:none;width:100%;height:calc(100vh - var(--header-h));height:calc(100dvh - var(--header-h));border:none;background:var(--bg);flex:1}
-.gate-main{position:relative;z-index:1;flex:1;display:grid;grid-template-columns:minmax(0,1fr);place-items:center;padding:16px;min-height:calc(100vh - var(--header-h));min-height:calc(100dvh - var(--header-h));overflow-y:auto;box-sizing:border-box}
-footer{font:12px var(--mono);color:var(--muted);text-align:center;margin-top:20px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+.gate-main{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;align-items:center;
+ padding:max(24px,calc(46vh - 270px)) 16px 24px;box-sizing:border-box;width:100%}
+footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color:var(--muted);
+ padding:12px 16px calc(18px + env(safe-area-inset-bottom));margin-top:auto}
 @media (max-width:768px){
  #pill-stat-prof,#pill-div-2{display:none}
 }
@@ -265,10 +268,10 @@ footer{font:12px var(--mono);color:var(--muted);text-align:center;margin-top:20p
         <img src="/_gate/static/logo.svg" alt="" width="28" height="28">
         <span class="brand-text">Comfy Colab Kit</span>
       </a>
-      <span class="badge" id="h-badge"><span class="dot"></span><span id="h-btext">…</span></span>
+      <span class="badge" id="h-badge" style="display:none"><span class="dot"></span><span id="h-btext">…</span></span>
     </div>
 
-    <div class="nav-pill" id="nav-pill">
+    <div class="nav-pill" id="nav-pill" style="display:none">
       <span class="pill-stat" id="pill-stat-time" title="Running Time">
         <svg class="pill-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         <span id="pill-time">00:00</span>
@@ -293,7 +296,7 @@ footer{font:12px var(--mono);color:var(--muted);text-align:center;margin-top:20p
         <span id="header-stop-txt" class="header-stop-label">关机</span>
       </button>
 
-      <span class="viewers" id="viewers">
+      <span class="viewers" id="h-viewers" style="display:none">
         <svg class="user-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span id="vcount">1 online</span>
       </span>
@@ -340,9 +343,9 @@ footer{font:12px var(--mono);color:var(--muted);text-align:center;margin-top:20p
   <div class="card-glow"></div>
   <div class="top">
     <span class="badge" id="badge"><span class="dot"></span><span id="btext">…</span></span>
-    <span class="viewers" id="viewers">
+    <span class="viewers" id="card-viewers">
       <svg class="user-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <span id="vcount">1 online</span>
+      <span id="card-vcount">1 online</span>
     </span>
   </div>
   <div class="hero"><img src="/_gate/static/logo.svg" alt=""><h1 id="title">ComfyUI is sleeping</h1><div class="muted sub" id="sub"></div></div>
@@ -394,8 +397,8 @@ footer{font:12px var(--mono);color:var(--muted);text-align:center;margin-top:20p
     <pre id="log"></pre>
   </details>
 </section>
-  <footer id="footer-txt">shared session · GPU sleeps when idle</footer>
 </main>
+<footer id="footer-txt">shared session · GPU sleeps when idle</footer>
 <iframe id="comfy-frame" title="ComfyUI" allow="clipboard-read; clipboard-write" style="display:none"></iframe>
 <script src="/_gate/static/bg.js" defer></script>
 <script>
@@ -622,8 +625,10 @@ function render(){
  $("badge").className="badge "+cls;
  $("btext").textContent={sleeping:t("badge_sleeping"),ready:t("badge_ready"),failed:t("badge_failed"),stopping:t("badge_stopping"),switching:t("badge_switching")}[st]||t("badge_waking");
  const curP=(S.state==="ready"||S.state==="switching"||BOOT.includes(S.state))?(S.profile||selectedProfileId):(selectedProfileId||S.profile);
- $("hprof").hidden=!curP;$("hprof").textContent=curP||"";
- $("vcount").textContent=t("online",{count:S.clients||1});
+ if($("hprof")){$("hprof").hidden=!curP;$("hprof").textContent=curP||"";}
+ const vc=t("online",{count:S.clients||1});
+ if($("vcount"))$("vcount").textContent=vc;
+ if($("card-vcount"))$("card-vcount").textContent=vc;
  $("title").textContent=st==="sleeping"?t("sleeping_title"):st==="ready"?t("ready_title"):st==="failed"?t("failed_title"):st==="stopping"?t("stopping_title"):st==="switching"?t("switching_title"):t("waking_title");
  const started=S.session_started||S.since;
  $("sub").textContent=st==="sleeping"?(S.reason?t("sleeping_last_stop",{reason:formatReason(S.reason)}):t("sleeping_sub")):st==="failed"?(S.reason||""):waking?t("elapsed",{time:fmt(now-started)}):st==="ready"?t("ready_sub"):"";
@@ -768,18 +773,22 @@ function render(){
  if(render.cuHtml!==cuHtml){$("meta").innerHTML=cuHtml;render.cuHtml=cuHtml}
  document.title=st==="sleeping"?t("title"):`${st==="ready"?t("ready_title"):st==="failed"?t("failed_title"):t("waking_title")} · ${t("title")}`;
 
- const frame=$("comfy-frame"),mainGate=$("gate-main");
+ const frame=$("comfy-frame"),mainGate=$("gate-main"),footerEl=$("footer-txt");
+ const navPill=$("nav-pill"),hBadge=$("h-badge"),hViewers=$("h-viewers"),hStop=$("header-stop");
  if(st==="ready"){
+  document.body.classList.add("app-ready");
   if(!render.readyMounted){
    render.readyMounted=true;
    card.classList.add("out");
    setTimeout(()=>{
     if(mainGate)mainGate.style.display="none";
+    if(footerEl)footerEl.style.display="none";
     const b=$("bg"),g=document.querySelector(".grid");
     if(b)b.style.display="none";if(g)g.style.display="none";
    },350);
   }else{
    if(mainGate)mainGate.style.display="none";
+   if(footerEl)footerEl.style.display="none";
    const b=$("bg"),g=document.querySelector(".grid");
    if(b)b.style.display="none";if(g)g.style.display="none";
   }
@@ -789,41 +798,34 @@ function render(){
   }
   frame.style.display="block";
   document.title=`ComfyUI · ${curP||"Kit"}`;
+
+  // When ready: Header exhibits status pill, ready badge, stop button and viewers
+  if(hBadge){hBadge.className="badge ready";$("h-btext").textContent=t("badge_ready");hBadge.style.display="inline-flex";}
+  if(navPill){navPill.style.display="inline-flex";}
+  $("pill-time").textContent=fmt(Math.max(0,now-started));
+  $("pill-cu").textContent=`${(cu.today||0).toFixed(2)} CU`;
+  $("pill-prof").textContent=curP||"moss-image";
+  if(hViewers){hViewers.style.display="inline-flex";}
+  if(hStop){
+   const canStop=(S.you&&S.you.owner)||(!S.owner_only||!S.owner_only.includes("stop"));
+   hStop.hidden=!canStop;
+   if(!hStop.classList.contains("confirming"))$("header-stop-txt").textContent=t("header_stop");
+  }
  }else{
+  document.body.classList.remove("app-ready");
   render.readyMounted=false;
   card.classList.remove("out");
   if(mainGate)mainGate.style.display="";
+  if(footerEl)footerEl.style.display="";
   const b=$("bg"),g=document.querySelector(".grid");
   if(b)b.style.display="";if(g)g.style.display="";
   if(frame){frame.style.display="none";if(frame.src&&frame.src!=="about:blank")frame.src="about:blank";}
- }
 
- // Update Header Badges & Pill
- const hBadge=$("h-badge");
- if(hBadge){hBadge.className="badge "+cls;$("h-btext").textContent={sleeping:t("badge_sleeping"),ready:t("badge_ready"),failed:t("badge_failed"),stopping:t("badge_stopping"),switching:t("badge_switching")}[st]||t("badge_waking");}
- const vc=t("online",{count:S.clients||1});
- $("vcount").textContent=vc;if($("card-vcount"))$("card-vcount").textContent=vc;
-
- $("pill-time").textContent=fmt(Math.max(0,now-started));
- $("pill-cu").textContent=`${(cu.today||0).toFixed(2)} CU`;
- $("pill-prof").textContent=curP||"moss-image";
- if(st==="sleeping"){
-  $("pill-stat-time").style.display="none";
-  $("pill-div-1").style.display="none";
- }else{
-  $("pill-stat-time").style.display="inline-flex";
-  $("pill-div-1").style.display="inline-block";
- }
-
- // Update Header Stop Button
- const hStop=$("header-stop");
- if(hStop){
-  const canStop=(S.you&&S.you.owner)||(!S.owner_only||!S.owner_only.includes("stop"));
-  const isNonSleeping=st!=="sleeping"&&st!=="stopping";
-  hStop.hidden=!(canStop&&isNonSleeping);
-  if(!hStop.classList.contains("confirming")){
-   $("header-stop-txt").textContent=t("header_stop");
-  }
+  // When sleeping or waking: Header stays pristine & minimal, matching site!
+  if(hBadge){hBadge.style.display="none";}
+  if(navPill){navPill.style.display="none";}
+  if(hViewers){hViewers.style.display="none";}
+  if(hStop){hStop.hidden=true;}
  }
 }
 
