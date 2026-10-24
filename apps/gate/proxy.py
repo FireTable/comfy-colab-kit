@@ -100,7 +100,7 @@ class Proxy:
         try:
             c = await self.client()
             async with c.get(self.backend + "/system_stats", headers=service_headers(self.token_file),
-                             timeout=aiohttp.ClientTimeout(total=8)) as r:
+                             timeout=aiohttp.ClientTimeout(total=15)) as r:
                 return r.status == 200
         except (aiohttp.ClientError, asyncio.TimeoutError):
             return False

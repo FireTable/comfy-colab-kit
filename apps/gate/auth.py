@@ -10,11 +10,14 @@ from __future__ import annotations
 import hmac
 import time
 from dataclasses import dataclass
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Mapping, TYPE_CHECKING
 
 import jwt
 
 from .config import Settings
+
+if TYPE_CHECKING:
+    from .db import GateDB
 
 
 class AuthError(Exception):
@@ -72,13 +75,21 @@ def verify_access_jwt(token: str, settings: Settings, keys: JWKSCache, leeway: i
         raise AuthError(401, "invalid_token", f"Access token rejected: {type(e).__name__}") from e
 
 
-def is_owner(email: str, settings: Settings) -> bool:
+def is_owner(email: str, settings: Settings, db: GateDB | None = None) -> bool:
+    norm = email.lower()
     # empty OWNER_EMAILS => every authenticated user is an owner
-    return not settings.owner_emails or email.lower() in settings.owner_emails
+    if not settings.owner_emails:
+        return True
+    if norm in settings.owner_emails:
+        return True
+    if db and norm in db.list_owners():
+        return True
+    return False
 
 
 def identify(headers: Mapping[str, str], settings: Settings, keys: JWKSCache | None,
-             agent_token: str = "", query_token: str = "", cookie_token: str = "") -> Identity:
+             agent_token: str = "", query_token: str = "", cookie_token: str = "",
+             db: GateDB | None = None) -> Identity:
     token_candidate = None
     auth = headers.get("Authorization", "")
     if auth.startswith("Bearer "):
@@ -88,12 +99,18 @@ def identify(headers: Mapping[str, str], settings: Settings, keys: JWKSCache | N
     elif cookie_token:
         token_candidate = cookie_token.strip()
 
-    if agent_token and token_candidate:
-        if hmac.compare_digest(token_candidate, agent_token):
+    if token_candidate:
+        if db:
+            tok_info = db.verify_token(token_candidate)
+            if tok_info:
+                email = tok_info["email"]
+                is_own = is_owner(email, settings, db)
+                return Identity(email, "agent", is_own)
+        if agent_token and hmac.compare_digest(token_candidate, agent_token):
             return Identity("agent", "agent", True)
         raise AuthError(401, "bad_agent_token", "invalid bearer or access token")
     if settings.auth_disabled:
-        is_own = not settings.owner_emails or "dev@localhost" in settings.owner_emails
+        is_own = is_owner("dev@localhost", settings, db)
         return Identity("dev@localhost", "dev", is_own)
     token = headers.get("Cf-Access-Jwt-Assertion") or ""
     if not token:
@@ -107,7 +124,7 @@ def identify(headers: Mapping[str, str], settings: Settings, keys: JWKSCache | N
         raise AuthError(403, "no_email", "token has no user email")
     if settings.allowed_emails and email not in settings.allowed_emails:
         raise AuthError(403, "not_allowed", "email not in ALLOWED_EMAILS")
-    return Identity(email, "user", is_owner(email, settings))
+    return Identity(email, "user", is_owner(email, settings, db))
 
 
 def authorize(identity: Identity, action: str, settings: Settings) -> None:

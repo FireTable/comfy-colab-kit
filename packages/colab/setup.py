@@ -707,6 +707,10 @@ def main():
             smoke()
     print("KIT_READY " + json.dumps({"total_s": round(time.time() - T0), "stages": TIMES,
                                      "background_downloads": len(PLAN["models"]) - dl.files_done}), flush=True)
+    # Keep the Jupyter kernel connection alive to prevent Google Colab's 12-min idle reaper
+    while True:
+        time.sleep(30)
+        print("KIT_KEEPALIVE", flush=True)
 
 
 if __name__ == "__main__":
