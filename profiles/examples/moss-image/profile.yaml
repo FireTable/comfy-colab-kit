@@ -272,6 +272,12 @@ workflows:
       - text
     - - 18
       - switch
+    - - 18
+      - width
+    - - 18
+      - height
+    - - 18
+      - seed
     outputs:
     - 9
 - id: official-layout
@@ -329,6 +335,8 @@ workflows:
       - width
     - - 23
       - height
+    - - 23
+      - batch_size
     outputs:
     - 26
 - id: matlowai-img2img
