@@ -56,7 +56,13 @@ class ColabCLI:
         return text
 
     async def sessions(self) -> list[str]:
-        out = await self._run("sessions", timeout=60)
+        try:
+            out = await self._run("sessions", timeout=60)
+        except ColabError as e:
+            msg = str(e).lower()
+            if "no active session" in msg or "no session" in msg:
+                return []
+            raise
         return parse_sessions(out)
 
     async def new(self, name: str, accelerator: str) -> None:

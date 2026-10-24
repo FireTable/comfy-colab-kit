@@ -433,12 +433,20 @@ async def background(app: web.Application) -> None:
     sweep_every = max(1, settings.auto_stop.orphan_sweep_min) * 60
     last_sweep = 0.0
     loop = asyncio.get_running_loop()
+    consecutive_probe_failures = 0
     while True:
         await asyncio.sleep(30)
         try:
             if s.machine.state == State.READY:
-                s.queue_busy = await proxy.queue_busy()
-                await proxy.heartbeat()
+                if not await proxy.probe():
+                    consecutive_probe_failures += 1
+                    if consecutive_probe_failures >= 3:
+                        log.warning("backend probe failed %d times; reconciling with colab", consecutive_probe_failures)
+                        await s.reconcile()
+                else:
+                    consecutive_probe_failures = 0
+                    s.queue_busy = await proxy.queue_busy()
+                    await proxy.heartbeat()
             elif s.is_boot_state() and not s.boot_task_running() and await proxy.probe():
                 # re-attached after a gate restart and the backend answers
                 if s.machine.can(State.READY):
@@ -452,6 +460,8 @@ async def background(app: web.Application) -> None:
                     if settings.colab_session_name in names:
                         s.bus.publish("log", "orphan VM found while sleeping; stopping it")
                         await s.colab.stop(settings.colab_session_name)
+                elif s.machine.is_billing:
+                    await s.reconcile()
                 bal = await s.colab.ccu_info()
                 if bal is not None:
                     s.ledger.balance = bal
