@@ -27,6 +27,7 @@
   function paint() { q("kit-app").classList.toggle("on", linear()); q("kit-graph").classList.toggle("on", !linear()); }
   q("kit-app").onclick = () => toggle(true); q("kit-graph").onclick = () => toggle(false);
   q("kit-stop").onclick = async () => {
+    if (q("kit-stop").disabled) return;
     if (!confirm("Sleep now and release the GPU?")) return;
     const r = await fetch("/_gate/stop", { method: "POST" }); if (r.ok) location.href = "/"; else alert((await r.json()).message);
   };
@@ -44,7 +45,19 @@
         left.style.display = "none";
       }
       q("kit-ext").hidden = !(s.warn && s.can_extend && s.you?.owner);
-      q("kit-stop").hidden = !(s.you?.owner || !s.owner_only.includes("stop"));
+      const canStop = s.can_stop !== false;
+      const stopBtn = q("kit-stop");
+      stopBtn.disabled = !canStop;
+      if (!canStop) {
+        stopBtn.style.opacity = "0.38";
+        stopBtn.style.cursor = "not-allowed";
+        stopBtn.title = "Only initiator can stop (仅开机者可释放 GPU)";
+      } else {
+        stopBtn.style.opacity = "";
+        stopBtn.style.cursor = "pointer";
+        stopBtn.title = "Sleep (release GPU)";
+      }
+      stopBtn.hidden = false;
       paint();
     } catch (e) { /* transient */ }
   }

@@ -265,3 +265,41 @@ def test_zero_clients_tracking_on_ready(tmp_path):
     assert s.clients_zero_since is not None
 
 
+async def test_initiator_tracking_and_can_stop_policy(tmp_path):
+    s = make(tmp_path, OWNER_EMAILS="boss@x.com")
+    assert not s.can_stop(email="alice@x.com", ip="1.2.3.4")
+
+    # Alice wakes session from IP 1.2.3.4
+    res = await s.wake(None, by="alice@x.com", ip="1.2.3.4")
+    assert not res.joined
+    assert s.woken_by == "alice@x.com"
+    assert s.woken_by_ip == "1.2.3.4"
+
+    # Alice can stop (by email or IP)
+    assert s.can_stop(email="alice@x.com", ip="9.9.9.9", is_owner=False)
+    assert s.can_stop(email="other@x.com", ip="1.2.3.4", is_owner=False)
+
+    # Bob cannot stop
+    assert not s.can_stop(email="bob@x.com", ip="5.6.7.8", is_owner=False)
+
+    # Boss (super-admin) can always stop
+    assert s.can_stop(email="boss@x.com", ip="5.6.7.8", is_owner=True)
+
+    # Persistence preserves initiator
+    s.persist()
+    s2 = make(tmp_path, OWNER_EMAILS="boss@x.com")
+    s2.restore()
+    assert s2.woken_by == "alice@x.com"
+    assert s2.woken_by_ip == "1.2.3.4"
+    assert s2.can_stop(email="alice@x.com", ip="9.9.9.9")
+    assert not s2.can_stop(email="bob@x.com", ip="5.6.7.8")
+
+    # Stopping resets initiator
+    await s.stop("done")
+    assert s.machine.state == State.SLEEPING
+    assert s.woken_by == ""
+    assert s.woken_by_ip == ""
+    assert not s.can_stop(email="alice@x.com", ip="1.2.3.4")
+
+
+

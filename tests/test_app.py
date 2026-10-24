@@ -179,3 +179,42 @@ async def test_mcp_endpoint(tmp_path):
         assert "state" in call_res["result"]["content"][0]["text"]
     finally:
         await c.close()
+
+
+async def test_stop_restricted_to_initiator_and_owner(tmp_path):
+    c, app = await client(tmp_path, OWNER_EMAILS="boss@firetable.tech")
+    try:
+        # Wake from IP 1.1.1.1
+        r = await c.post("/_gate/wake", json={}, headers={"CF-Connecting-IP": "1.1.1.1"})
+        assert r.status == 202
+
+        sess = app[SESSION]
+        import asyncio
+        for _ in range(200):
+            if sess.machine.state == State.READY:
+                break
+            await asyncio.sleep(0.01)
+
+        # Another user from IP 2.2.2.2 checks status: can_stop is False
+        r = await c.get("/_gate/status", headers={"CF-Connecting-IP": "2.2.2.2"})
+        status_data = await r.json()
+        assert status_data["can_stop"] is False
+        assert status_data["you"]["can_stop"] is False
+
+        # Another user from IP 2.2.2.2 attempts stop: 403 Forbidden
+        r = await c.post("/_gate/stop", headers={"CF-Connecting-IP": "2.2.2.2"})
+        assert r.status == 403
+        err_data = await r.json()
+        assert err_data["error"] == "not_initiator"
+
+        # Initiator from IP 1.1.1.1 checks status: can_stop is True
+        r = await c.get("/_gate/status", headers={"CF-Connecting-IP": "1.1.1.1"})
+        assert (await r.json())["can_stop"] is True
+
+        # Initiator from IP 1.1.1.1 calls stop: 200 OK
+        r = await c.post("/_gate/stop", headers={"CF-Connecting-IP": "1.1.1.1"})
+        assert r.status == 200
+        assert (await r.json())["state"] == "sleeping"
+    finally:
+        await c.close()
+

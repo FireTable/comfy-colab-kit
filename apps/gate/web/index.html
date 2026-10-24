@@ -72,6 +72,9 @@ body.app-ready{height:100vh;height:100dvh;overflow:hidden}
 .header-btn-stop{height:36px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,107,74,.35);background:rgba(255,107,74,.12);color:var(--bad);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;font:600 12px var(--mono);transition:all .2s cubic-bezier(0.16,1,0.3,1);white-space:nowrap}
 .header-btn-stop:hover{background:rgba(255,107,74,.22);border-color:var(--bad);box-shadow:0 0 14px rgba(255,107,74,.35)}
 .header-btn-stop.confirming{background:var(--bad);color:#fff;border-color:var(--bad);padding:0 14px;box-shadow:0 4px 16px rgba(255,107,74,.5);animation:pulse-red 1.5s infinite}
+.header-btn-stop:disabled,.header-btn-stop.disabled{opacity:0.38;cursor:not-allowed !important;pointer-events:auto !important;border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--muted);box-shadow:none !important;transform:none !important}
+.header-btn-stop:disabled:hover,.header-btn-stop.disabled:hover{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.12);color:var(--muted);box-shadow:none !important;transform:none !important}
+:root[data-theme=light] .header-btn-stop:disabled,:root[data-theme=light] .header-btn-stop.disabled{border-color:rgba(15,23,42,.12);background:rgba(15,23,42,.04);color:#94A3B8}
 @keyframes pulse-red{0%,100%{box-shadow:0 0 0 0 rgba(255,107,74,.6)}50%{box-shadow:0 0 0 6px rgba(255,107,74,0)}}
 .header-stop-label{font:600 11.5px var(--mono);white-space:nowrap}
 .icon-btn,.icon{background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:10px;height:36px;padding:0 10px;cursor:pointer;font:600 13px var(--mono);backdrop-filter:blur(8px);display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;text-decoration:none;box-sizing:border-box}
@@ -181,6 +184,8 @@ label{display:block;margin:18px 0 6px;font:600 11px var(--mono);letter-spacing:.
 @keyframes spin{to{transform:rotate(360deg)}}
 .ghost{width:100%;min-height:46px;margin-top:10px;border-radius:14px;border:1px solid var(--line2);background:none;color:var(--fg);cursor:pointer;font-size:14px}
 .ghost:hover{border-color:var(--bad);color:var(--bad)}
+.ghost:disabled,.ghost.disabled{opacity:0.38;cursor:not-allowed !important;pointer-events:auto !important;color:var(--muted) !important;border-color:var(--line) !important;background:none !important}
+.ghost:disabled:hover,.ghost.disabled:hover{border-color:var(--line) !important;color:var(--muted) !important}
 .err{color:var(--bad);margin-top:10px;font-size:13px}.err:empty{display:none}
 .meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:18px}
 .meta div{border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:rgba(127,127,127,.05)}
@@ -430,7 +435,8 @@ const I18N={
   select_profile:"Select Profile",
   wake_btn:"Wake",retry_btn:"Retry",starting_btn:"Starting…",
   stop_btn:"Stop · release GPU",stop_confirm:"Stop and release the GPU?",
-  header_stop:"Stop",
+  header_stop:"Stop",header_stop_title:"Stop · release GPU",
+  stop_disabled_hint:"Only the session initiator or owner can stop the session",
   dock_confirm:"Confirm stop?",dock_stopping:"Stopping…",
   console_title:"Console",lines:"{count} lines",
   cu_today:"CU TODAY",cu_month:"MONTH",cu_balance:"BALANCE",
@@ -458,7 +464,8 @@ const I18N={
   select_profile:"选择运行预设",
   wake_btn:"唤醒",retry_btn:"重试",starting_btn:"启动中…",
   stop_btn:"关机 · 释放 GPU",stop_confirm:"确定要停机并释放 GPU 吗？",
-  header_stop:"关机",
+  header_stop:"关机",header_stop_title:"关机 · 释放 GPU",
+  stop_disabled_hint:"仅开机者或管理员可关机释放 GPU",
   dock_confirm:"确认关机?",dock_stopping:"停机中…",
   console_title:"控制台日志",lines:"{count} 行",
   cu_today:"今日 CU",cu_month:"本月 CU",cu_balance:"CU 余额",
@@ -772,7 +779,14 @@ function render(){
  }
 
  const stopBtn=$("stop");
- stopBtn.hidden=!(S.you&&S.you.owner&&st!=="sleeping"&&st!=="stopping");
+ const showStop = st!=="sleeping"&&st!=="stopping";
+ stopBtn.hidden=!showStop;
+ if(showStop){
+  const canStop = S && S.can_stop !== false;
+  stopBtn.disabled = !canStop;
+  stopBtn.classList.toggle("disabled", !canStop);
+  stopBtn.title = canStop ? "" : t("stop_disabled_hint");
+ }
  stopBtn.textContent=t("stop_btn");
 
  const cu=S.cu||{};
@@ -818,8 +832,15 @@ function render(){
   $("pill-prof").textContent=curP||"moss-image";
   if(hViewers){hViewers.style.display="inline-flex";}
   if(hStop){
-   const canStop=(S.you&&S.you.owner)||(!S.owner_only||!S.owner_only.includes("stop"));
-   hStop.hidden=!canStop;
+   const canStop = S && S.can_stop !== false;
+   hStop.hidden=false;
+   hStop.disabled=!canStop;
+   hStop.classList.toggle("disabled", !canStop);
+   if (!canStop) {
+    hStop.title = t("stop_disabled_hint");
+   } else {
+    hStop.title = t("header_stop_title");
+   }
    if(!hStop.classList.contains("confirming"))$("header-stop-txt").textContent=t("header_stop");
   }
  }else{
@@ -861,6 +882,7 @@ $("wake").onclick=async()=>{
 };
 
 $("stop").onclick=async()=>{
+ if($("stop").disabled||(S&&S.can_stop===false))return;
  if(!confirm(t("stop_confirm")))return;
  try{await api("/_gate/stop",{method:"POST"})}catch(e){$("err").textContent=e.message}
 };
@@ -869,12 +891,13 @@ let headerConfirmTimer=null;
 function resetHeaderStop(){
  if(headerConfirmTimer){clearTimeout(headerConfirmTimer);headerConfirmTimer=null;}
  const btn=$("header-stop"),txt=$("header-stop-txt");
- if(btn){btn.classList.remove("confirming");btn.disabled=false;}
+ if(btn){btn.classList.remove("confirming");btn.disabled=(S&&S.can_stop===false);}
  if(txt){txt.textContent=t("header_stop");}
 }
 $("header-stop").onclick=async(e)=>{
  e.stopPropagation();
  const btn=$("header-stop"),txt=$("header-stop-txt");
+ if(btn.disabled||(S&&S.can_stop===false))return;
  if(!btn.classList.contains("confirming")){
   btn.classList.add("confirming");
   txt.textContent=t("dock_confirm");
@@ -893,7 +916,16 @@ document.addEventListener("pointerdown",e=>{
 
 function connect(){
  const es=new EventSource("/_gate/events?cid="+encodeURIComponent(cid)+"&since="+lines);
- es.addEventListener("state",e=>{const j=JSON.parse(e.data);S=Object.assign({you:S&&S.you,owner_only:S&&S.owner_only},j);render.lastSyncTime=Date.now();render()});
+ es.addEventListener("state",e=>{
+  const j=JSON.parse(e.data);
+  const prevCanStop=(S&&S.can_stop!=null)?S.can_stop:true;
+  S=Object.assign({you:S&&S.you,owner_only:S&&S.owner_only,can_stop:prevCanStop},j);
+  if(j.state!==lastSt){
+   api("/_gate/status?cid="+encodeURIComponent(cid)).then(fresh=>{S=Object.assign({},S||{},fresh);render()}).catch(()=>{});
+  }
+  render.lastSyncTime=Date.now();
+  render();
+ });
  es.addEventListener("progress",e=>{if(S){S.progress=JSON.parse(e.data);render()}});
  es.addEventListener("log",e=>log(JSON.parse(e.data)));
  es.onerror=()=>{$("sub").textContent=t("reconnecting")}}

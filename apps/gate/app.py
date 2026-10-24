@@ -100,6 +100,20 @@ def _ident(request: web.Request) -> Identity:
     return request[IDENT]
 
 
+def get_client_ip(request: web.Request) -> str:
+    cf_ip = request.headers.get("CF-Connecting-IP")
+    if cf_ip:
+        return cf_ip.strip()
+    xff = request.headers.get("X-Forwarded-For")
+    if xff:
+        client = xff.split(",")[0].strip()
+        if client:
+            return client
+    if request.remote:
+        return request.remote.strip()
+    return ""
+
+
 async def _body(request: web.Request) -> dict:
     if not request.can_read_body:
         return {}
@@ -113,8 +127,15 @@ async def _body(request: web.Request) -> dict:
 async def status(request: web.Request) -> web.Response:
     s = request.app[SESSION]
     ident = _ident(request)
-    return web.json_response({**s.status(), "you": {"email": ident.email, "owner": ident.is_owner},
-                              "owner_only": list(request.app[SETTINGS].owner_only_actions), "version": __version__})
+    client_ip = get_client_ip(request)
+    can_stop = s.can_stop(email=ident.email, ip=client_ip, is_owner=ident.is_owner)
+    return web.json_response({
+        **s.status(),
+        "can_stop": can_stop,
+        "you": {"email": ident.email, "owner": ident.is_owner, "ip": client_ip, "can_stop": can_stop},
+        "owner_only": list(request.app[SETTINGS].owner_only_actions),
+        "version": __version__,
+    })
 
 
 async def profiles_route(request: web.Request) -> web.Response:
@@ -134,10 +155,11 @@ async def wake(request: web.Request) -> web.Response:
     body = await _body(request)
     s = request.app[SESSION]
     profile = body.get("profile")
+    client_ip = get_client_ip(request)
     # if a session is already starting/running, the caller joins it (its profile wins);
     # changing profile is the separate, owner-only /_gate/switch action
     try:
-        res = await s.wake(profile, by=ident.email, workflows=body.get("workflows"))
+        res = await s.wake(profile, by=ident.email, ip=client_ip, workflows=body.get("workflows"))
     except KeyError:
         return err(404, "unknown_profile", f"unknown profile {profile!r}")
     if res.refused:
@@ -170,8 +192,9 @@ async def switch(request: web.Request) -> web.Response:
     except AuthError as e:
         return err(e.status, e.code, e.msg)
     body = await _body(request)
+    client_ip = get_client_ip(request)
     try:
-        res = await request.app[SESSION].switch(str(body.get("profile", "")), by=ident.email)
+        res = await request.app[SESSION].switch(str(body.get("profile", "")), by=ident.email, ip=client_ip)
     except KeyError:
         return err(404, "unknown_profile", "unknown profile")
     if res.refused:
@@ -181,11 +204,11 @@ async def switch(request: web.Request) -> web.Response:
 
 async def stop(request: web.Request) -> web.Response:
     ident = _ident(request)
-    try:
-        authorize(ident, "stop", request.app[SETTINGS])
-    except AuthError as e:
-        return err(e.status, e.code, e.msg)
-    await request.app[SESSION].stop(f"stopped by {ident.email}")
+    s = request.app[SESSION]
+    client_ip = get_client_ip(request)
+    if not s.can_stop(email=ident.email, ip=client_ip, is_owner=ident.is_owner):
+        return err(403, "not_initiator", "Only the user who started the session (or owner) can stop it.")
+    await s.stop(f"stopped by {ident.email or client_ip or 'unknown'}")
     return web.json_response({"state": request.app[SESSION].machine.state.value})
 
 
@@ -266,7 +289,7 @@ async def mcp_endpoint(request: web.Request) -> web.Response:
         elif tool_name == "gate_wake":
             args = params.get("arguments", {})
             prof = args.get("profile") or request.app[SETTINGS].default_profile
-            res = await s.wake(prof, by=ident.email)
+            res = await s.wake(prof, by=ident.email, ip=get_client_ip(request))
             if res.refused:
                 return web.json_response({
                     "jsonrpc": "2.0",
@@ -279,11 +302,12 @@ async def mcp_endpoint(request: web.Request) -> web.Response:
                 "result": {"content": [{"type": "text", "text": f"Wake initiated for profile '{prof}'. State: {res.state}"}]}
             })
         elif tool_name == "gate_stop":
-            if not ident.is_owner and "stop" in request.app[SETTINGS].owner_only_actions:
+            client_ip = get_client_ip(request)
+            if not s.can_stop(email=ident.email, ip=client_ip, is_owner=ident.is_owner):
                 return web.json_response({
                     "jsonrpc": "2.0",
                     "id": req_id,
-                    "result": {"isError": True, "content": [{"type": "text", "text": "Permission denied: stop requires owner"}]}
+                    "result": {"isError": True, "content": [{"type": "text", "text": "Permission denied: only the session initiator or owner can stop it"}]}
                 })
             st = await s.stop("mcp agent requested stop")
             return web.json_response({
@@ -361,9 +385,12 @@ async def wake_page(request: web.Request) -> web.Response:
     s = request.app[SESSION]
     ident = _ident(request)
     settings = request.app[SETTINGS]
+    client_ip = get_client_ip(request)
+    can_stop = s.can_stop(email=ident.email, ip=client_ip, is_owner=ident.is_owner)
     status_data = {
         **s.status(),
-        "you": {"email": ident.email, "owner": ident.is_owner},
+        "can_stop": can_stop,
+        "you": {"email": ident.email, "owner": ident.is_owner, "ip": client_ip, "can_stop": can_stop},
         "owner_only": list(settings.owner_only_actions),
     }
     profiles_data = {
@@ -388,7 +415,7 @@ async def catch_all(request: web.Request) -> web.StreamResponse:
     s.touch()
     if request.path in ("/", "/index.html"):
         if request.app[SETTINGS].auto_stop.wake_on_visit and s.machine.state == State.SLEEPING:
-            await s.wake(None, by=_ident(request).email)
+            await s.wake(None, by=_ident(request).email, ip=get_client_ip(request))
         return await wake_page(request)
     if s.machine.state == State.READY:
         try:

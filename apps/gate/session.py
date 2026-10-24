@@ -129,6 +129,8 @@ class Session:
         self.log_file = Path(settings.state_dir) / "session.log"
         self.bus = Broadcaster(backlog=1000, on_log=self._append_log)
         self.ledger = Ledger.load(Path(settings.state_dir) / "cu_ledger.json")
+        self.woken_by: str = ""
+        self.woken_by_ip: str = ""
         self.last_activity = clock()
         self.client_conns: dict[str, int] = {}
         self.open_clients = 0
@@ -190,6 +192,8 @@ class Session:
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.state_file.with_suffix(".tmp")
         tmp.write_text(json.dumps({**self.machine.snapshot(), "workflows": self.workflows,
+                                   "woken_by": self.woken_by,
+                                   "woken_by_ip": self.woken_by_ip,
                                    "last_activity": self.last_activity,
                                    "progress": self.progress,
                                    "stage_durations": self.stage_durations}))
@@ -211,6 +215,8 @@ class Session:
             m.since, m.session_started = d.get("since", self.clock()), d.get("session_started")
             m.extends_used = int(d.get("extends_used", 0))
             self.workflows = d.get("workflows")
+            self.woken_by = str(d.get("woken_by") or "")
+            self.woken_by_ip = str(d.get("woken_by_ip") or "")
             self.last_activity = d.get("last_activity", self.clock())
             self.progress = d.get("progress") or {}
             self.stage_durations = d.get("stage_durations") or {}
@@ -249,6 +255,8 @@ class Session:
         m.state, m.reason, m.since = st, reason, self.clock()
         if st == State.SLEEPING:
             m.session_started = None
+            self.woken_by = ""
+            self.woken_by_ip = ""
         self.persist()
         self.bus.publish("state", self.status())
 
@@ -269,6 +277,7 @@ class Session:
             }
         return {
             **m.snapshot(),
+            "woken_by": self.woken_by,
             "server_time": now,
             "busy": m.state not in (State.SLEEPING, State.READY, State.FAILED),
             "progress": self.progress,
@@ -297,7 +306,7 @@ class Session:
         self.profiles.update(fresh)
         return errors
 
-    async def wake(self, profile_id: str | None, by: str = "", workflows: list[str] | None = None) -> WakeResult:
+    async def wake(self, profile_id: str | None, by: str = "", ip: str = "", workflows: list[str] | None = None) -> WakeResult:
         async with self.lock:
             if self.machine.state in (State.SLEEPING, State.FAILED):
                 self.reload_profiles()
@@ -318,12 +327,49 @@ class Session:
             self.bus.clear_logs()
             self.log_file.unlink(missing_ok=True)
             self.stage_durations = {"allocating": {"start": self.clock(), "duration": None}}
+            self.woken_by = by or ""
+            self.woken_by_ip = ip or ""
             m.profile, self.workflows, self.progress = pid, workflows, {}
-            m.to(State.ALLOCATING, f"wake by {by or 'unknown'}")
+            m.to(State.ALLOCATING, f"wake by {by or ip or 'unknown'}")
             self.last_activity = self.clock()
             self.persist()
             self._task = asyncio.create_task(self._boot(pid))
             return WakeResult(False, m.state.value, pid)
+
+    def can_stop(self, email: str = "", ip: str = "", is_owner: bool = False) -> bool:
+        """Evaluate if the caller is authorized to stop this session."""
+        if self.machine.state == State.SLEEPING:
+            return False
+
+        # 1. Configured super-admin / owner email can always stop
+        if is_owner and email and email != "dev@localhost" and self.settings.owner_emails:
+            if email.lower() in self.settings.owner_emails:
+                return True
+
+        # 2. Check if the caller is the initiator who woke the session
+        # 2a. Match by authenticated user email
+        if self.woken_by and email and email != "dev@localhost":
+            if email.lower() == self.woken_by.lower():
+                return True
+
+        # 2b. Match by client IP address
+        if self.woken_by_ip and ip:
+            if ip.strip() == self.woken_by_ip.strip():
+                return True
+
+        # 3. Dev / unauthenticated mode fallback:
+        # If caller has dev/general owner identity
+        if is_owner and (not self.settings.owner_emails or email.lower() in self.settings.owner_emails):
+            # If auth is disabled and we have an initiator IP recorded, enforce IP match
+            if email == "dev@localhost" and self.woken_by_ip:
+                return False
+            return True
+
+        # 4. Fallback if no initiator was recorded (e.g. legacy state)
+        if not self.woken_by and not self.woken_by_ip:
+            return is_owner or not self.settings.owner_emails
+
+        return False
 
     async def stop(self, reason: str) -> None:
         async with self.lock:
@@ -338,16 +384,16 @@ class Session:
             self.bus.publish("state", self.status())
             return True
 
-    async def switch(self, profile_id: str, by: str = "") -> WakeResult:
+    async def switch(self, profile_id: str, by: str = "", ip: str = "") -> WakeResult:
         """v1: cold switch (stop, then wake with the new profile)."""
         self.reload_profiles()
         if profile_id not in self.profiles:
             raise KeyError(profile_id)
         async with self.lock:
             if self.machine.state == State.READY:
-                self.machine.to(State.SWITCHING, f"switch to {profile_id} by {by}")
+                self.machine.to(State.SWITCHING, f"switch to {profile_id} by {by or ip}")
                 await self._stop_locked(f"switch to {profile_id}")
-        return await self.wake(profile_id, by=by)
+        return await self.wake(profile_id, by=by, ip=ip)
 
     async def fetch(self, workflow_ids: list[str]) -> str:
         """Download the models of extra workflows onto the running VM (on demand). Returns '' or a refusal."""
@@ -431,6 +477,8 @@ class Session:
                 self.persist()
                 return
         m.to(State.SLEEPING, reason)
+        self.woken_by = ""
+        self.woken_by_ip = ""
         self.progress = {}
         self.on_demand, self.fetching = [], []
         if self._fetch_task and not self._fetch_task.done():
