@@ -440,9 +440,27 @@ KIT = "/content/ComfyUI/user/default/kit.json"
 COMFY = "/content/ComfyUI"
 
 @PromptServer.instance.routes.post("/kit/heartbeat")
+@PromptServer.instance.routes.get("/kit/heartbeat")
 async def _hb(request):
-    open(HB, "w").write(str(time.time()))
+    try:
+        open(HB, "w").write(str(time.time()))
+    except Exception:
+        pass
     return web.json_response({"ok": True})
+
+@web.middleware
+async def _touch_hb_mw(request, handler):
+    try:
+        open(HB, "w").write(str(time.time()))
+    except Exception:
+        pass
+    return await handler(request)
+
+try:
+    if hasattr(PromptServer.instance, "app") and _touch_hb_mw not in PromptServer.instance.app.middlewares:
+        PromptServer.instance.app.middlewares.append(_touch_hb_mw)
+except Exception:
+    pass
 
 @PromptServer.instance.routes.get("/kit/info")
 async def _info(request):
@@ -575,7 +593,7 @@ def comfy_cmd():
 
 
 def watchdog():
-    lost = PLAN.get("watchdog_gate_lost_min", 20) * 60
+    lost = PLAN.get("watchdog_gate_lost_min", 40) * 60
     max_s = PLAN.get("max_session_hours", 7) * 3600
     open(HB_FILE, "w").write(str(time.time()))
     while True:
