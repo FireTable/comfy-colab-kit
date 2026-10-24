@@ -182,10 +182,10 @@ class GateDB:
     def list_tokens(self, email: str = "", is_owner: bool = False) -> list[dict[str, Any]]:
         with self._get_conn() as conn:
             if is_owner and not email:
-                rows = conn.execute("SELECT * FROM agent_tokens ORDER BY created_at DESC").fetchall()
+                rows = conn.execute("SELECT * FROM agent_tokens WHERE revoked = 0 ORDER BY created_at DESC").fetchall()
             else:
                 rows = conn.execute(
-                    "SELECT * FROM agent_tokens WHERE email = ? ORDER BY created_at DESC",
+                    "SELECT * FROM agent_tokens WHERE email = ? AND revoked = 0 ORDER BY created_at DESC",
                     (email.lower(),)
                 ).fetchall()
             return [
@@ -221,16 +221,19 @@ class GateDB:
             "created_at": now,
         }
 
-    def revoke_token(self, token_id: str, email: str, is_owner: bool = False) -> bool:
+    def delete_token(self, token_id: str, email: str, is_owner: bool = False) -> bool:
         with self._get_conn() as conn:
             if is_owner:
-                cur = conn.execute("UPDATE agent_tokens SET revoked = 1 WHERE id = ?", (token_id,))
+                cur = conn.execute("DELETE FROM agent_tokens WHERE id = ?", (token_id,))
             else:
                 cur = conn.execute(
-                    "UPDATE agent_tokens SET revoked = 1 WHERE id = ? AND email = ?",
+                    "DELETE FROM agent_tokens WHERE id = ? AND email = ?",
                     (token_id, email.lower())
                 )
             return cur.rowcount > 0
+
+    def revoke_token(self, token_id: str, email: str, is_owner: bool = False) -> bool:
+        return self.delete_token(token_id, email, is_owner)
 
     def verify_token(self, raw_token: str) -> dict[str, Any] | None:
         if not raw_token or not raw_token.startswith("sk_agent_"):

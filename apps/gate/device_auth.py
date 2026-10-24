@@ -397,13 +397,13 @@ async def create_agent_token_endpoint(request: web.Request) -> web.Response:
 
 
 async def revoke_agent_token_endpoint(request: web.Request) -> web.Response:
-    """Revokes a specific token with secondary confirmation on client."""
+    """Deletes/revokes a specific token with confirmation on client."""
     ident = _ident(request)
     if not ident:
         return web.json_response({"error": "unauthorized"}, status=401)
     token_id = request.match_info.get("id", "").strip()
     db: GateDB = request.app[DB_KEY]
-    ok = db.revoke_token(token_id, email=ident.email, is_owner=ident.is_owner)
+    ok = db.delete_token(token_id, email=ident.email, is_owner=ident.is_owner)
     if not ok:
         return web.json_response({"error": "token_not_found_or_forbidden"}, status=404)
-    return web.json_response({"ok": True, "revoked_id": token_id})
+    return web.json_response({"ok": True, "deleted_id": token_id, "revoked_id": token_id})
