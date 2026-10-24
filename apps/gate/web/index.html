@@ -42,14 +42,35 @@
 :root[data-theme=light] .sel-trigger:hover,:root[data-theme=light] .sel-trigger:focus-visible{border-color:var(--y);background:rgba(217,119,6,.06)}
 :root[data-theme=light] h1{background-image:linear-gradient(110deg,#0F172A 30%,#D97706 55%,#0F172A 80%)}
 *{box-sizing:border-box}[hidden]{display:none!important}html,body{height:100%}
+:root{--header-h:52px}
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 Inter,system-ui,-apple-system,"Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif;
- min-height:100dvh;display:flex;flex-direction:column;overflow-x:hidden}
+ height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 #bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;transform:scaleY(-1)}
 .grid{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
  background-size:44px 44px;mask-image:radial-gradient(ellipse at 50% 45%,#000 10%,transparent 70%);-webkit-mask-image:radial-gradient(ellipse at 50% 45%,#000 10%,transparent 70%);opacity:.55}
-header{position:relative;z-index:2;display:flex;align-items:center;gap:10px;padding:14px max(18px,env(safe-area-inset-left))}
-header img{width:30px;height:30px;border-radius:8px}header b{font-size:15px;letter-spacing:.2px}header .sp{flex:1}
-.chip{font:12px var(--mono);color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:2px 9px}
+.site-header{position:sticky;top:0;height:var(--header-h);z-index:100;padding:0 max(18px,env(safe-area-inset-left));
+ background:rgba(14,10,18,.78);border-bottom:1px solid var(--line);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);
+ transition:background-color .2s,border-color .2s;display:flex;align-items:center;box-sizing:border-box}
+:root[data-theme=light] .site-header{background:rgba(248,250,252,.92);border-bottom-color:var(--line)}
+.nav-container{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.header-left{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.brand{display:flex;align-items:center;gap:9px;color:var(--fg);text-decoration:none;font-weight:700;font-size:15px;letter-spacing:-.01em;white-space:nowrap;flex-shrink:0;transition:opacity .15s}
+.brand:hover{opacity:.88}
+.brand img{width:28px;height:28px;border-radius:8px;flex-shrink:0;box-shadow:0 2px 8px -2px var(--o)}
+.brand-text{overflow:hidden;text-overflow:ellipsis}
+.header-left .badge{margin-left:2px}
+.nav-pill{display:inline-flex;align-items:center;gap:10px;padding:5px 14px;background:rgba(255,255,255,.05);border:1px solid var(--line2);border-radius:9999px;
+ backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);font:500 12px var(--mono);color:var(--fg);white-space:nowrap;transition:all .2s ease}
+:root[data-theme=light] .nav-pill{background:rgba(15,23,42,.04);border-color:rgba(15,23,42,.12)}
+.pill-stat{display:inline-flex;align-items:center;gap:5px}
+.pill-icon{color:var(--muted);flex-shrink:0}
+.pill-divider{width:1px;height:13px;background:var(--line2);flex-shrink:0}
+.header-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.header-btn-stop{height:32px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,107,74,.35);background:rgba(255,107,74,.12);color:var(--bad);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;font:600 12px var(--mono);transition:all .2s cubic-bezier(0.16,1,0.3,1);white-space:nowrap}
+.header-btn-stop:hover{background:rgba(255,107,74,.22);border-color:var(--bad);box-shadow:0 0 14px rgba(255,107,74,.35)}
+.header-btn-stop.confirming{background:var(--bad);color:#fff;border-color:var(--bad);padding:0 13px;box-shadow:0 4px 16px rgba(255,107,74,.5);animation:pulse-red 1.5s infinite}
+@keyframes pulse-red{0%,100%{box-shadow:0 0 0 0 rgba(255,107,74,.6)}50%{box-shadow:0 0 0 6px rgba(255,107,74,0)}}
+.header-stop-label{font:600 11.5px var(--mono);white-space:nowrap}
 .icon{background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:10px;height:38px;padding:0 10px;cursor:pointer;font:600 13px var(--mono);backdrop-filter:blur(8px);display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;text-decoration:none}
 .icon:hover{border-color:var(--y);color:var(--y)}
 .icon-sq{width:38px;padding:0;flex-shrink:0}
@@ -216,72 +237,105 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
  .sel-title{font-size:13px}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
-/* Fullscreen ComfyUI Iframe & Floating Dock */
-#comfy-frame{position:fixed;inset:0;width:100%;height:100%;border:none;z-index:40;background:var(--bg)}
-.gate-dock{position:fixed;right:20px;bottom:20px;z-index:9999;display:none;align-items:center;animation:dockIn .28s cubic-bezier(0.16,1,0.3,1);user-select:none}
-@keyframes dockIn{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
-.dock-inner{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 8px;border-radius:9999px;
- background:var(--card);border:1px solid var(--line2);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);
- box-shadow:0 14px 36px -6px rgba(0,0,0,.6),0 2px 10px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.1);transition:all .2s ease}
-:root[data-theme=light] .dock-inner{background:rgba(255,255,255,.94);border-color:rgba(15,23,42,.12);box-shadow:0 12px 32px -6px rgba(15,23,42,.12),0 2px 8px rgba(15,23,42,.06),inset 0 1px 0 #fff}
-.dock-left{display:flex;align-items:center}
-.dock-logo{width:26px;height:26px;border-radius:7px;display:block;flex-shrink:0;box-shadow:0 2px 8px -2px var(--o)}
-.dock-divider{width:1px;height:16px;background:var(--line2);flex-shrink:0}
-.dock-stats{display:flex;align-items:center;gap:12px;font:500 12px var(--mono);color:var(--fg);white-space:nowrap}
-.dock-stat{display:inline-flex;align-items:center;gap:5px}
-.dock-icon{color:var(--muted);flex-shrink:0}
-.dock-btn-stop{height:30px;min-width:30px;padding:0 7px;border-radius:999px;border:1px solid rgba(255,107,74,.35);background:rgba(255,107,74,.12);color:var(--bad);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;transition:all .2s cubic-bezier(0.16,1,0.3,1)}
-.dock-btn-stop:hover{background:rgba(255,107,74,.22);border-color:var(--bad);box-shadow:0 0 14px rgba(255,107,74,.4)}
-.dock-btn-stop.confirming{background:var(--bad);color:#fff;border-color:var(--bad);padding:0 12px;box-shadow:0 4px 16px rgba(255,107,74,.5);animation:pulse-red 1.5s infinite}
-@keyframes pulse-red{0%,100%{box-shadow:0 0 0 0 rgba(255,107,74,.6)}50%{box-shadow:0 0 0 6px rgba(255,107,74,0)}}
-.dock-stop-label{font:600 11.5px var(--mono);white-space:nowrap}
-@media (max-width:480px){
- .gate-dock{right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom))}
- .dock-inner{gap:7px;padding:5px 8px 5px 6px}
- .dock-logo{width:24px;height:24px}
- .dock-stats{gap:8px;font-size:11px}
- .dock-btn-stop{height:32px;min-width:32px}
+/* ComfyUI Iframe & Gate Main Layout */
+#comfy-frame{display:none;width:100%;height:calc(100vh - var(--header-h));height:calc(100dvh - var(--header-h));border:none;background:var(--bg);flex:1}
+.gate-main{position:relative;z-index:1;flex:1;display:grid;grid-template-columns:minmax(0,1fr);place-items:center;padding:16px;min-height:calc(100vh - var(--header-h));min-height:calc(100dvh - var(--header-h));overflow-y:auto;box-sizing:border-box}
+footer{font:12px var(--mono);color:var(--muted);text-align:center;margin-top:20px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+@media (max-width:768px){
+ #pill-stat-prof,#pill-div-2{display:none}
+}
+@media (max-width:580px){
+ .site-header{padding:0 10px}
+ .brand-text{display:none}
+ .nav-pill{padding:4px 8px;gap:6px;font-size:11px}
+ .header-stop-label{display:none}
+ .header-btn-stop.confirming .header-stop-label{display:inline}
+}
+@media (max-width:420px){
+ #h-badge{display:none}
 }
 </style>
 </head>
 <body>
 <canvas id="bg" aria-hidden="true"></canvas><div class="grid" aria-hidden="true"></div>
-<header>
-  <img src="/_gate/static/logo.svg" alt=""><b>Comfy Colab Kit</b><span class="chip" id="hprof" hidden></span><span class="sp"></span>
-  <div class="lang-dropdown" id="lang-dropdown">
-    <button type="button" class="icon lang-btn" id="lang-btn" aria-haspopup="menu" aria-expanded="false" title="Language">
-      <svg class="globe-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>
-      </svg>
-      <span id="ltext">简体中文</span>
-      <svg class="chevron-sm" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
-    </button>
-    <div class="menu-popover" id="lang-popover" role="menu">
-      <button type="button" class="menu-item" role="menuitem" id="opt-lang-zh">
-        <span>简体中文</span>
-        <svg class="menu-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+<header class="site-header">
+  <div class="nav-container">
+    <div class="header-left">
+      <a class="brand" href="/" aria-label="Comfy Colab Kit Home">
+        <img src="/_gate/static/logo.svg" alt="" width="28" height="28">
+        <span class="brand-text">Comfy Colab Kit</span>
+      </a>
+      <span class="badge" id="h-badge"><span class="dot"></span><span id="h-btext">…</span></span>
+    </div>
+
+    <div class="nav-pill" id="nav-pill">
+      <span class="pill-stat" id="pill-stat-time" title="Running Time">
+        <svg class="pill-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span id="pill-time">00:00</span>
+      </span>
+      <span class="pill-divider" id="pill-div-1"></span>
+      <span class="pill-stat" id="pill-stat-cu" title="Compute Units">
+        <svg class="pill-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span id="pill-cu">0.00 CU</span>
+      </span>
+      <span class="pill-divider" id="pill-div-2"></span>
+      <span class="pill-stat" id="pill-stat-prof" title="Current Profile">
+        <span id="pill-prof">moss-image</span>
+      </span>
+    </div>
+
+    <div class="header-right">
+      <button type="button" class="header-btn-stop" id="header-stop" title="关机 · 释放 GPU" aria-label="关机" hidden>
+        <svg class="power-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+          <line x1="12" y1="2" x2="12" y2="12"/>
+        </svg>
+        <span id="header-stop-txt" class="header-stop-label">关机</span>
       </button>
-      <button type="button" class="menu-item" role="menuitem" id="opt-lang-en">
-        <span>English</span>
-        <svg class="menu-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+
+      <span class="viewers" id="viewers">
+        <svg class="user-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span id="vcount">1 online</span>
+      </span>
+
+      <div class="lang-dropdown" id="lang-dropdown">
+        <button type="button" class="icon lang-btn" id="lang-btn" aria-haspopup="menu" aria-expanded="false" title="Language">
+          <svg class="globe-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>
+          </svg>
+          <span id="ltext">简体中文</span>
+          <svg class="chevron-sm" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="menu-popover" id="lang-popover" role="menu">
+          <button type="button" class="menu-item" role="menuitem" id="opt-lang-zh">
+            <span>简体中文</span>
+            <svg class="menu-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+          <button type="button" class="menu-item" role="menuitem" id="opt-lang-en">
+            <span>English</span>
+            <svg class="menu-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button class="icon icon-sq" id="theme" aria-label="Toggle theme" title="Toggle theme">
+        <svg class="theme-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+        </svg>
+        <svg class="theme-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+        </svg>
       </button>
+
+      <a class="icon icon-sq" id="github-link" href="https://github.com/FireTable/comfy-colab-kit" target="_blank" rel="noopener noreferrer" title="GitHub Repository" aria-label="GitHub Repository">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+        </svg>
+      </a>
     </div>
   </div>
-  <button class="icon icon-sq" id="theme" aria-label="Toggle theme" title="Toggle theme">
-    <svg class="theme-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
-    </svg>
-    <svg class="theme-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
-    </svg>
-  </button>
-  <a class="icon icon-sq" id="github-link" href="https://github.com/FireTable/comfy-colab-kit" target="_blank" rel="noopener noreferrer" title="GitHub Repository" aria-label="GitHub Repository">
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
-      <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
-    </svg>
-  </a>
 </header>
-<main>
+<main class="gate-main" id="gate-main">
 <section class="card" id="card" aria-live="polite">
   <div class="card-glow"></div>
   <div class="top">
@@ -340,35 +394,9 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
     <pre id="log"></pre>
   </details>
 </section>
+  <footer id="footer-txt">shared session · GPU sleeps when idle</footer>
 </main>
-<footer id="footer-txt">shared session · GPU sleeps when idle</footer>
 <iframe id="comfy-frame" title="ComfyUI" allow="clipboard-read; clipboard-write" style="display:none"></iframe>
-<aside id="gate-dock" class="gate-dock" style="display:none" aria-label="Gate Status & Controls">
-  <div class="dock-inner">
-    <div class="dock-left">
-      <img src="/_gate/static/logo.svg" alt="Kit Logo" class="dock-logo">
-    </div>
-    <div class="dock-divider"></div>
-    <div class="dock-stats">
-      <span class="dock-stat" title="Running Time">
-        <svg class="dock-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        <span id="dock-time">00:00</span>
-      </span>
-      <span class="dock-stat" title="Today's Compute Units">
-        <svg class="dock-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        <span id="dock-cu">0.0 CU</span>
-      </span>
-    </div>
-    <div class="dock-divider"></div>
-    <button type="button" class="dock-btn-stop" id="dock-stop" title="关机 · 释放 GPU" aria-label="关机">
-      <svg class="power-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
-        <line x1="12" y1="2" x2="12" y2="12"/>
-      </svg>
-      <span id="dock-stop-txt" class="dock-stop-label" style="display:none">确认关机?</span>
-    </button>
-  </div>
-</aside>
 <script src="/_gate/static/bg.js" defer></script>
 <script>
 const $=id=>document.getElementById(id);
@@ -394,6 +422,7 @@ const I18N={
   select_profile:"Select Profile",
   wake_btn:"Wake",retry_btn:"Retry",starting_btn:"Starting…",
   stop_btn:"Stop · release GPU",stop_confirm:"Stop and release the GPU?",
+  header_stop:"Stop",
   dock_confirm:"Confirm stop?",dock_stopping:"Stopping…",
   console_title:"Console",lines:"{count} lines",
   cu_today:"CU TODAY",cu_month:"MONTH",cu_balance:"BALANCE",
@@ -421,6 +450,7 @@ const I18N={
   select_profile:"选择运行预设",
   wake_btn:"唤醒",retry_btn:"重试",starting_btn:"启动中…",
   stop_btn:"关机 · 释放 GPU",stop_confirm:"确定要停机并释放 GPU 吗？",
+  header_stop:"关机",
   dock_confirm:"确认关机?",dock_stopping:"停机中…",
   console_title:"控制台日志",lines:"{count} 行",
   cu_today:"今日 CU",cu_month:"本月 CU",cu_balance:"CU 余额",
@@ -738,39 +768,62 @@ function render(){
  if(render.cuHtml!==cuHtml){$("meta").innerHTML=cuHtml;render.cuHtml=cuHtml}
  document.title=st==="sleeping"?t("title"):`${st==="ready"?t("ready_title"):st==="failed"?t("failed_title"):t("waking_title")} · ${t("title")}`;
 
- const frame=$("comfy-frame"),dock=$("gate-dock");
+ const frame=$("comfy-frame"),mainGate=$("gate-main");
  if(st==="ready"){
   if(!render.readyMounted){
    render.readyMounted=true;
    card.classList.add("out");
    setTimeout(()=>{
-    card.style.display="none";
-    const h=document.querySelector("header"),f=$("footer-txt"),b=$("bg"),g=document.querySelector(".grid");
-    if(h)h.style.display="none";if(f)f.style.display="none";if(b)b.style.display="none";if(g)g.style.display="none";
+    if(mainGate)mainGate.style.display="none";
+    const b=$("bg"),g=document.querySelector(".grid");
+    if(b)b.style.display="none";if(g)g.style.display="none";
    },350);
   }else{
-   card.style.display="none";
-   const h=document.querySelector("header"),f=$("footer-txt"),b=$("bg"),g=document.querySelector(".grid");
-   if(h)h.style.display="none";if(f)f.style.display="none";if(b)b.style.display="none";if(g)g.style.display="none";
+   if(mainGate)mainGate.style.display="none";
+   const b=$("bg"),g=document.querySelector(".grid");
+   if(b)b.style.display="none";if(g)g.style.display="none";
   }
   const targetUrl=S.backend_url||"https://comfy-colab.firetable.tech";
   if(!frame.src||frame.src==="about:blank"||!frame.src.startsWith(targetUrl)){
    frame.src=targetUrl;
   }
   frame.style.display="block";
-  dock.style.display="flex";
-
-  $("dock-time").textContent=fmt(Math.max(0,now-started));
-  $("dock-cu").textContent=`${(cu.today||0).toFixed(2)} CU`;
   document.title=`ComfyUI · ${curP||"Kit"}`;
  }else{
   render.readyMounted=false;
   card.classList.remove("out");
-  card.style.display="";
-  const h=document.querySelector("header"),f=$("footer-txt"),b=$("bg"),g=document.querySelector(".grid");
-  if(h)h.style.display="";if(f)f.style.display="";if(b)b.style.display="";if(g)g.style.display="";
+  if(mainGate)mainGate.style.display="";
+  const b=$("bg"),g=document.querySelector(".grid");
+  if(b)b.style.display="";if(g)g.style.display="";
   if(frame){frame.style.display="none";if(frame.src&&frame.src!=="about:blank")frame.src="about:blank";}
-  if(dock){dock.style.display="none";}
+ }
+
+ // Update Header Badges & Pill
+ const hBadge=$("h-badge");
+ if(hBadge){hBadge.className="badge "+cls;$("h-btext").textContent={sleeping:t("badge_sleeping"),ready:t("badge_ready"),failed:t("badge_failed"),stopping:t("badge_stopping"),switching:t("badge_switching")}[st]||t("badge_waking");}
+ const vc=t("online",{count:S.clients||1});
+ $("vcount").textContent=vc;if($("card-vcount"))$("card-vcount").textContent=vc;
+
+ $("pill-time").textContent=fmt(Math.max(0,now-started));
+ $("pill-cu").textContent=`${(cu.today||0).toFixed(2)} CU`;
+ $("pill-prof").textContent=curP||"moss-image";
+ if(st==="sleeping"){
+  $("pill-stat-time").style.display="none";
+  $("pill-div-1").style.display="none";
+ }else{
+  $("pill-stat-time").style.display="inline-flex";
+  $("pill-div-1").style.display="inline-block";
+ }
+
+ // Update Header Stop Button
+ const hStop=$("header-stop");
+ if(hStop){
+  const canStop=(S.you&&S.you.owner)||(!S.owner_only||!S.owner_only.includes("stop"));
+  const isNonSleeping=st!=="sleeping"&&st!=="stopping";
+  hStop.hidden=!(canStop&&isNonSleeping);
+  if(!hStop.classList.contains("confirming")){
+   $("header-stop-txt").textContent=t("header_stop");
+  }
  }
 }
 
@@ -799,31 +852,30 @@ $("stop").onclick=async()=>{
  try{await api("/_gate/stop",{method:"POST"})}catch(e){$("err").textContent=e.message}
 };
 
-let dockConfirmTimer=null;
-function resetDockStop(){
- if(dockConfirmTimer){clearTimeout(dockConfirmTimer);dockConfirmTimer=null;}
- const btn=$("dock-stop"),txt=$("dock-stop-txt");
+let headerConfirmTimer=null;
+function resetHeaderStop(){
+ if(headerConfirmTimer){clearTimeout(headerConfirmTimer);headerConfirmTimer=null;}
+ const btn=$("header-stop"),txt=$("header-stop-txt");
  if(btn){btn.classList.remove("confirming");btn.disabled=false;}
- if(txt){txt.style.display="none";}
+ if(txt){txt.textContent=t("header_stop");}
 }
-$("dock-stop").onclick=async(e)=>{
+$("header-stop").onclick=async(e)=>{
  e.stopPropagation();
- const btn=$("dock-stop"),txt=$("dock-stop-txt");
+ const btn=$("header-stop"),txt=$("header-stop-txt");
  if(!btn.classList.contains("confirming")){
   btn.classList.add("confirming");
   txt.textContent=t("dock_confirm");
-  txt.style.display="inline";
-  dockConfirmTimer=setTimeout(resetDockStop,4000);
+  headerConfirmTimer=setTimeout(resetHeaderStop,4000);
   return;
  }
- if(dockConfirmTimer){clearTimeout(dockConfirmTimer);dockConfirmTimer=null;}
+ if(headerConfirmTimer){clearTimeout(headerConfirmTimer);headerConfirmTimer=null;}
  txt.textContent=t("dock_stopping");
  btn.disabled=true;
  try{await api("/_gate/stop",{method:"POST"})}
- catch(err){alert(err.message);resetDockStop();}
+ catch(err){alert(err.message);resetHeaderStop();}
 };
 document.addEventListener("pointerdown",e=>{
- if(dockConfirmTimer&&!$("dock-stop").contains(e.target))resetDockStop();
+ if(headerConfirmTimer&&!$("header-stop").contains(e.target))resetHeaderStop();
 });
 
 function connect(){
