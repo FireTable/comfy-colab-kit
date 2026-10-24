@@ -173,7 +173,7 @@ flowchart TD
 #### Pattern A: Direct Internal / Tailscale Network (Recommended)
 - Configure the Agent to connect directly to the VPS internal origin:
   ```bash
-  export CKIT_URL="http://100.104.117.104:8080" # Tailscale IP or private LAN
+  export CKIT_URL="http://100.64.0.1:8080" # Tailscale IP or private LAN
   ```
 - **Headers**: Only requires `Authorization: Bearer <YOUR_AGENT_TOKEN>`.
 - Completely avoids Cloudflare Access overhead, redirects, and edge quotas.
