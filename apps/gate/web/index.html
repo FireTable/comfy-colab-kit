@@ -98,7 +98,7 @@ body.app-ready{height:100vh;height:100dvh;overflow:hidden}
 .menu-check{width:14px;height:14px;color:var(--y);opacity:0;flex-shrink:0}
 .menu-item.active .menu-check{opacity:1}
 /* SpotlightCard */
-.card{position:relative;width:100%;max-width:460px;min-width:0;margin:auto 0;background:var(--card);border:1px solid var(--line2);border-radius:22px;padding:26px 24px 20px;
+.card{position:relative;width:100%;max-width:460px;min-width:0;margin-top:max(24px,calc(50vh - 250px));margin-bottom:auto;background:var(--card);border:1px solid var(--line2);border-radius:22px;padding:26px 24px 20px;
  backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);box-shadow:0 20px 60px -20px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06);
  transition:opacity .25s,transform .25s;--mx:50%;--my:0%}
 .card-glow{position:absolute;inset:0;border-radius:22px;overflow:hidden;pointer-events:none}
@@ -242,8 +242,8 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 /* ComfyUI Iframe & Gate Main Layout */
 #comfy-frame{display:none;width:100%;height:calc(100vh - var(--header-h));height:calc(100dvh - var(--header-h));border:none;background:var(--bg);flex:1}
-.gate-main{position:relative;z-index:1;flex:1 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;
- padding:24px 16px;box-sizing:border-box;width:100%}
+.gate-main{position:relative;z-index:1;flex:1 0 auto;display:flex;flex-direction:column;align-items:center;
+ padding:0 16px 24px;box-sizing:border-box;width:100%}
 footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color:var(--muted);
  padding:16px;margin-top:auto;flex-shrink:0}
 @media (max-width:768px){
@@ -894,25 +894,6 @@ function connect(){
  es.addEventListener("progress",e=>{if(S){S.progress=JSON.parse(e.data);render()}});
  es.addEventListener("log",e=>log(JSON.parse(e.data)));
  es.onerror=()=>{$("sub").textContent=t("reconnecting")}}
-
-// Console expansion anchor to keep card from jumping vertically when logs open
-const logsEl=$("logs"),cardEl=$("card");
-if(logsEl&&cardEl){
- const sumEl=logsEl.querySelector("summary");
- if(sumEl){
-  sumEl.addEventListener("click",()=>{
-   if(!logsEl.open){
-    const curTop=cardEl.offsetTop;
-    cardEl.style.marginTop=`${curTop}px`;
-   }else{
-    cardEl.style.marginTop="";
-   }
-  });
- }
- window.addEventListener("resize",()=>{
-  if(!logsEl||!logsEl.open){if(cardEl)cardEl.style.marginTop="";}
- });
-}
 
 // Initial paint (SSR zero-flicker or fallback)
 render.lastSyncTime=Date.now();
