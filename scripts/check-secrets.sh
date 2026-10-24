@@ -9,10 +9,16 @@ if [ "$#" -gt 0 ]; then FILES=("$@"); else
   while IFS= read -r f; do FILES+=("$f"); done < <( { git ls-files; git diff --cached --name-only; } 2>/dev/null | sort -u)
 fi
 hits=0
+tmp=$(mktemp)
+trap 'rm -f "$tmp"' EXIT
 for f in ${FILES[@]+"${FILES[@]}"}; do
   [ -f "$f" ] || continue
   case "$f" in *.png|*.jpg|*.webp|*.ico) continue;; esac
-  if out=$(grep -nEo "$PATTERNS" "$f" 2>/dev/null | cut -d: -f1); [ -n "$out" ]; then
+  # Strip base64 data-URI payloads before matching: embedded images are not a secret
+  # carrier (same reason binary image formats are skipped above), and their random
+  # bytes otherwise trip token-shaped patterns such as 1//<base64> or sk-<base64>.
+  sed -E 's#data:[a-zA-Z0-9.+/-]+;base64,[A-Za-z0-9+/=]+##g' "$f" > "$tmp"
+  if out=$(grep -nEo "$PATTERNS" "$tmp" 2>/dev/null | cut -d: -f1); [ -n "$out" ]; then
     for l in $out; do echo "possible secret: $f:$l"; done; hits=1
   fi
 done
