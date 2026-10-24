@@ -43,6 +43,7 @@ html {
   scroll-behavior: smooth;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-gutter: stable;
 }
 :root[data-theme=light] {
   scrollbar-color: rgba(15, 23, 42, 0.15) transparent;
@@ -109,7 +110,7 @@ h3 { font-size: 19px; margin: 0 0 8px; }
 p { margin: 0; }
 
 /* Anchor targets must clear the sticky header */
-section[id], footer.site-footer { scroll-margin-top: calc(var(--header-h, 64px) + 10px); }
+section[id], footer.site-footer { scroll-margin-top: calc(var(--header-h, 60px) + 10px); }
 
 .section-header { margin-bottom: 32px; }
 .section-header h2 { margin-top: 10px; }
@@ -158,17 +159,25 @@ section > .inner { max-width: 1120px; margin: 0 auto; }
   100% { background-position: -150% 0; }
 }
 
+:root {
+  --header-h: 60px;
+}
+
 /* Top Navigation Bar */
 .site-header {
   position: sticky;
   top: 0;
   z-index: 50;
-  padding: 12px 24px;
+  height: var(--header-h);
+  padding: 0 24px;
   background: rgba(14, 10, 18, 0.75);
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(20px) saturate(150%);
   -webkit-backdrop-filter: blur(20px) saturate(150%);
   transition: background-color .2s, border-color .2s;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
 }
 :root[data-theme=light] .site-header {
   background: rgba(248, 250, 252, 0.88);
@@ -176,6 +185,7 @@ section > .inner { max-width: 1120px; margin: 0 auto; }
 }
 .nav-container {
   max-width: 1180px;
+  width: 100%;
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -215,7 +225,7 @@ section > .inner { max-width: 1120px; margin: 0 auto; }
   background: rgba(127, 127, 127, 0.08);
   border: 1px solid var(--line);
   border-radius: 99px;
-  padding: 3px 5px;
+  padding: 2px 4px;
   backdrop-filter: blur(12px);
 }
 :root[data-theme=light] .nav-pill {
@@ -226,8 +236,9 @@ section > .inner { max-width: 1120px; margin: 0 auto; }
   color: var(--muted);
   text-decoration: none;
   font-size: 13px;
+  line-height: 20px;
   font-weight: 500;
-  padding: 5px 11px;
+  padding: 4px 10px;
   border-radius: 99px;
   transition: all .15s ease;
   white-space: nowrap;
@@ -270,6 +281,11 @@ section > .inner { max-width: 1120px; margin: 0 auto; }
   border-color: var(--y);
   color: var(--y);
   transform: translateY(-1px);
+}
+.icon-sq {
+  width: 36px;
+  padding: 0;
+  flex-shrink: 0;
 }
 :root[data-theme=light] .icon-btn {
   background: #FFFFFF;
@@ -1363,7 +1379,7 @@ details.card .answer {
     flex-wrap: wrap;
     row-gap: 6px;
   }
-  .site-header { padding-top: 8px; padding-bottom: 8px; }
+  .site-header { height: auto; min-height: var(--header-h); padding: 8px 24px; }
   .nav-pill {
     display: flex;
     order: 3;
@@ -1417,7 +1433,7 @@ details.card .answer {
   .hero .sub { font-size: 15.5px; }
   .flow-h { display: none; }
   .flow-v { display: flex; flex-direction: column; gap: 0; }
-  .site-header { padding: 6px 16px; }
+  .site-header { height: auto; min-height: var(--header-h); padding: 6px 16px; }
   .nav-container { row-gap: 4px; }
   /* Comfortable touch targets for the primary actions. */
   .btn { min-height: 46px; }

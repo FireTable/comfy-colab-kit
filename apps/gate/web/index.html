@@ -41,7 +41,9 @@
 :root[data-theme=light] .sel-trigger{background:rgba(15,23,42,.03);border-color:rgba(15,23,42,.12)}
 :root[data-theme=light] .sel-trigger:hover,:root[data-theme=light] .sel-trigger:focus-visible{border-color:var(--y);background:rgba(217,119,6,.06)}
 :root[data-theme=light] h1{background-image:linear-gradient(110deg,#0F172A 30%,#D97706 55%,#0F172A 80%)}
-*{box-sizing:border-box}[hidden]{display:none!important}html,body{height:100%}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html{scroll-behavior:smooth;scrollbar-gutter:stable}
+html,body{height:100%}
 :root{--header-h:60px}
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 Inter,system-ui,-apple-system,"Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif;
  min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;overflow-x:hidden;overflow-y:auto}
@@ -49,15 +51,15 @@ body.app-ready{height:100vh;height:100dvh;overflow:hidden}
 #bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;transform:scaleY(-1)}
 .grid{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
  background-size:44px 44px;mask-image:radial-gradient(ellipse at 50% 45%,#000 10%,transparent 70%);-webkit-mask-image:radial-gradient(ellipse at 50% 45%,#000 10%,transparent 70%);opacity:.55}
-.site-header{position:sticky;top:0;z-index:100;padding:12px 24px;
+.site-header{position:sticky;top:0;z-index:100;height:var(--header-h);padding:0 24px;
  background:rgba(14,10,18,.75);border-bottom:1px solid var(--line);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);
- transition:background-color .2s,border-color .2s;box-sizing:border-box}
+ transition:background-color .2s,border-color .2s;box-sizing:border-box;display:flex;align-items:center}
 :root[data-theme=light] .site-header{background:rgba(248,250,252,.88);border-bottom-color:var(--line)}
 .nav-container{max-width:1180px;width:100%;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
 .header-left{display:flex;align-items:center;gap:10px;flex-shrink:0}
 .brand{display:flex;align-items:center;gap:10px;color:var(--fg);text-decoration:none;font-weight:700;font-size:16px;letter-spacing:-.01em;white-space:nowrap;flex-shrink:0;transition:opacity .15s}
 .brand:hover{opacity:.88;color:var(--fg)}
-.brand img{width:32px;height:32px;border-radius:9px;flex-shrink:0;box-shadow:0 2px 8px -2px var(--o)}
+.brand img{width:32px;height:32px;border-radius:9px;flex-shrink:0}
 .brand-text{overflow:hidden;text-overflow:ellipsis}
 .header-left .badge{margin-left:2px}
 .nav-pill{display:inline-flex;align-items:center;gap:10px;padding:5px 14px;background:rgba(255,255,255,.05);border:1px solid var(--line2);border-radius:9999px;
@@ -66,22 +68,23 @@ body.app-ready{height:100vh;height:100dvh;overflow:hidden}
 .pill-stat{display:inline-flex;align-items:center;gap:5px}
 .pill-icon{color:var(--muted);flex-shrink:0}
 .pill-divider{width:1px;height:13px;background:var(--line2);flex-shrink:0}
-.header-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.header-right,.nav-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .header-btn-stop{height:36px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,107,74,.35);background:rgba(255,107,74,.12);color:var(--bad);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;font:600 12px var(--mono);transition:all .2s cubic-bezier(0.16,1,0.3,1);white-space:nowrap}
 .header-btn-stop:hover{background:rgba(255,107,74,.22);border-color:var(--bad);box-shadow:0 0 14px rgba(255,107,74,.35)}
 .header-btn-stop.confirming{background:var(--bad);color:#fff;border-color:var(--bad);padding:0 14px;box-shadow:0 4px 16px rgba(255,107,74,.5);animation:pulse-red 1.5s infinite}
 @keyframes pulse-red{0%,100%{box-shadow:0 0 0 0 rgba(255,107,74,.6)}50%{box-shadow:0 0 0 6px rgba(255,107,74,0)}}
 .header-stop-label{font:600 11.5px var(--mono);white-space:nowrap}
-.icon{background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:10px;height:36px;padding:0 10px;cursor:pointer;font:600 13px var(--mono);backdrop-filter:blur(8px);display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;text-decoration:none}
-.icon:hover{border-color:var(--y);color:var(--y);transform:translateY(-1px)}
-:root[data-theme=light] .icon{background:#FFFFFF;border-color:rgba(15,23,42,.12);box-shadow:0 1px 2px rgba(15,23,42,.04);color:#0F172A}
-:root[data-theme=light] .icon:hover{border-color:var(--y);color:var(--y);background:#FFFDF9}
+.icon-btn,.icon{background:var(--card);border:1px solid var(--line2);color:var(--fg);border-radius:10px;height:36px;padding:0 10px;cursor:pointer;font:600 13px var(--mono);backdrop-filter:blur(8px);display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;text-decoration:none;box-sizing:border-box}
+.icon-btn:hover,.icon:hover{border-color:var(--y);color:var(--y);transform:translateY(-1px)}
+:root[data-theme=light] .icon-btn,:root[data-theme=light] .icon{background:#FFFFFF;border-color:rgba(15,23,42,.12);box-shadow:0 1px 2px rgba(15,23,42,.04);color:#0F172A}
+:root[data-theme=light] .icon-btn:hover,:root[data-theme=light] .icon:hover{border-color:var(--y);color:var(--y);background:#FFFDF9}
 .icon-sq{width:36px;padding:0;flex-shrink:0}
 .theme-sun,.theme-moon{width:16px;height:16px;color:var(--fg);flex-shrink:0}
 :root[data-theme=dark] .theme-sun{display:block}
 :root[data-theme=dark] .theme-moon{display:none}
 :root[data-theme=light] .theme-sun{display:none}
 :root[data-theme=light] .theme-moon{display:block}
+.github-icon{width:17px;height:17px;fill:currentColor;flex-shrink:0}
 /* Language Dropdown Menu */
 .lang-dropdown{position:relative}
 .lang-btn{font:500 13px system-ui,-apple-system,sans-serif;padding:0 10px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;flex-shrink:0;height:36px}
@@ -250,7 +253,7 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
  #pill-stat-prof,#pill-div-2{display:none}
 }
 @media (max-width:640px){
- .site-header{padding:10px 16px}
+ .site-header{padding:0 16px}
  .brand-text{display:none}
  .nav-pill{padding:4px 8px;gap:6px;font-size:11px}
  .header-stop-label{display:none}
@@ -304,36 +307,36 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
       </span>
 
       <div class="lang-dropdown" id="lang-dropdown">
-        <button type="button" class="icon lang-btn" id="lang-btn" aria-haspopup="menu" aria-expanded="false" title="Language">
-          <svg class="globe-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button type="button" class="icon-btn lang-btn" id="lang-btn" aria-haspopup="menu" aria-expanded="false" title="Language">
+          <svg class="globe-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>
           </svg>
           <span id="ltext">简体中文</span>
-          <svg class="chevron-sm" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+          <svg class="chevron-sm" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </button>
         <div class="menu-popover" id="lang-popover" role="menu">
           <button type="button" class="menu-item" role="menuitem" id="opt-lang-zh">
             <span>简体中文</span>
-            <svg class="menu-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg class="menu-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
           </button>
           <button type="button" class="menu-item" role="menuitem" id="opt-lang-en">
             <span>English</span>
-            <svg class="menu-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg class="menu-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
           </button>
         </div>
       </div>
 
-      <button class="icon icon-sq" id="theme" aria-label="Toggle theme" title="Toggle theme">
-        <svg class="theme-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button class="icon-btn icon-sq" id="theme" aria-label="Toggle theme" title="Toggle theme">
+        <svg class="theme-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
         </svg>
-        <svg class="theme-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg class="theme-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
         </svg>
       </button>
 
-      <a class="icon icon-sq" id="github-link" href="https://github.com/FireTable/comfy-colab-kit" target="_blank" rel="noopener noreferrer" title="GitHub Repository" aria-label="GitHub Repository">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+      <a class="icon-btn icon-sq" id="github-link" href="https://github.com/FireTable/comfy-colab-kit" target="_blank" rel="noopener noreferrer" title="GitHub Repository" aria-label="GitHub Repository">
+        <svg class="github-icon" width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
           <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
         </svg>
       </a>
