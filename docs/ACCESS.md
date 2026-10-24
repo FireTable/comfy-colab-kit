@@ -17,26 +17,54 @@ Comfy Colab Kit provides flexible access paths tailored for end-users, team memb
 
 ---
 
-## 1. Web Browser Access (Cloudflare Zero Trust)
+## 1. Web Browser Access (Cloudflare Zero Trust for Humans)
 
 The recommended production configuration places `PUBLIC_HOST` behind Cloudflare Access.
 
-### Login Flow
-1. Open `https://comfy.yourdomain.com` in your browser (mobile or desktop).
-2. Cloudflare Access prompts for your email address.
-3. Enter your email and submit the 6-digit one-time passcode (OTP) received in your inbox.
-4. Cloudflare issues a signed `CF_Authorization` cookie containing an RS256 JWT assertion (`Cf-Access-Jwt-Assertion`).
-5. The gateway cryptographically validates the token against Cloudflare's public keys (`JWKS`).
+### 1.1 Supported Identity Providers (IdP)
+Cloudflare Zero Trust supports multiple simultaneous login methods on the login screen:
+1. **GitHub One-Click Login (OAuth App)**:
+   - Create a GitHub OAuth App at [GitHub Developer Settings](https://github.com/settings/applications/new):
+     - **Application Name**: `Comfy Colab Kit`
+     - **Homepage URL**: `https://comfy.yourdomain.com`
+     - **Authorization callback URL**: `https://<team-domain>.cloudflareaccess.com/cdn-cgi/access/callback`
+   - In Cloudflare Zero Trust (**Settings** > **Authentication** > **Add IdP** > **GitHub**):
+     - Enter the generated `Client ID` and `Client Secret`.
+2. **Google One-Click Login (OAuth 2.0)**:
+   - In Google Cloud Console, create OAuth 2.0 Client Credentials with authorized redirect URI:
+     - `https://<team-domain>.cloudflareaccess.com/cdn-cgi/access/callback`
+   - In Cloudflare Zero Trust (**Settings** > **Authentication** > **Add IdP** > **Google**):
+     - Enter the `Client ID` and `Client Secret`.
+3. **One-Time PIN (Email OTP)**:
+   - Default built-in provider. Supports any email domain (QQ 邮箱, Foxmail, Gmail, 163, Outlook, etc.).
 
-### Permissions & Roles
-- **All Authenticated Users (`ALLOWED_EMAILS`)**:
-  - View current status, CU burn rate, and real-time boot logs.
-  - Wake the default or selected model profile.
-  - Use ComfyUI (App mode or Graph mode) once `ready`.
-- **Owners (`OWNER_EMAILS`)**:
-  - All standard permissions above.
-  - Privileged actions: **Switch profile**, **Extend session (+1h)**, and **Stop GPU immediately**.
-  - *Tip*: Leaving `OWNER_EMAILS` empty grants owner privileges to all authenticated users.
+### 1.2 Access Policies & The "Missing OTP Email" Pitfall
+> [!IMPORTANT]
+> **Why do some emails (e.g. QQ 邮箱) not receive OTP codes?**
+> Cloudflare Access enforces a strict anti-enumeration security policy: **If an entered email does not match any configured Access Policy, Cloudflare silently refuses to dispatch the OTP email**.
+> - **Open Access Mode (`Everyone`)**: If you want anyone with a valid email or social login to access the site, set Policy:
+>   - **Action**: `Allow`
+>   - **Include**: `Everyone`
+> - **Domain Whitelist**: To allow all users of specific mail providers:
+>   - **Include**: `Email Domain: qq.com`, `Email Domain: foxmail.com`, `Email Domain: gmail.com`
+> - **Explicit Email List**: To strictly restrict to designated addresses:
+>   - **Include**: `Emails: alice@example.com, bob@example.com`
+
+### 1.3 The Dual-Host Rule for Browsers
+Remember that `PUBLIC_HOST` embeds `COLAB_TUNNEL_HOST` inside an `<iframe>` once ComfyUI is `ready`.
+**Both Cloudflare Access Applications must enable the same Identity Providers and have matching `Allow` policies**; otherwise, the browser will authenticate on the front page, but fail with `403 Forbidden` inside the ComfyUI iframe!
+
+### 1.4 Gateway Roles & Initiator Shutdown Policy
+Once authenticated through Cloudflare Access, the request reaches `comfy-gate`:
+- **`ALLOWED_EMAILS`** (in `.env`):
+  - Set to empty (`ALLOWED_EMAILS=`) to automatically trust any user verified by Cloudflare Access.
+  - Or specify comma-separated emails to enforce an additional gate-side application whitelist.
+- **`OWNER_EMAILS`** (in `.env`):
+  - Configures super-admins (`firetable@foxmail.com`) who can stop any session, switch profiles, and extend runtime.
+- **Initiator-Only Shutdown ("谁开谁关")**:
+  - When a user wakes the Colab VM, the gateway records their verified email (`woken_by`) and client IP (`woken_by_ip`).
+  - **Only the initiator who started the session (or an owner) can stop it**.
+  - For all other users on the page or in ComfyUI, the Stop button is visually disabled (`opacity: 0.38; cursor: not-allowed`) with a tooltip explaining that only the session initiator can release the GPU. Unauthorized stop calls return `403 Forbidden`.
 
 ---
 
@@ -110,15 +138,64 @@ Just as turning off authentication requires bypassing **both** applications, **r
 
 ## 4. AI Agents & Autonomous Workflows (REST & MCP)
 
-Autonomous AI coding agents can interact with the gateway programmatically.
+Autonomous AI coding agents (Claude Code, Cursor, OpenClaw, LangGraph) can interact with the gateway programmatically.
 
-### 4.1 Authentication Header
-Attach the Bearer token to all HTTP requests:
-```http
-Authorization: Bearer <YOUR_AGENT_TOKEN>
+### 4.1 How Agents Traverse Cloudflare Access
+When `PUBLIC_HOST` is protected by Cloudflare Access, incoming programmatic requests must authenticate through Cloudflare at the network edge before reaching `comfy-gate`.
+
+Choose one of three production patterns:
+
+```mermaid
+flowchart TD
+    subgraph Pattern1 ["Pattern A: Direct / Tailscale / LAN (Recommended)"]
+        AgentA["AI Agent"] -->|Direct HTTP + Bearer Token| GateA["comfy-gate:8080\n(Bypasses Cloudflare Edge)"]
+    end
+
+    subgraph Pattern2 ["Pattern B: Cloudflare Service Token (Public Web)"]
+        AgentB["AI Agent"] -->|CF-Access-Client-Id\nCF-Access-Client-Secret\nBearer Agent Token| CFAccess["Cloudflare Access\n(Service Auth Policy)"]
+        CFAccess --> GateB["comfy-gate:8080"]
+    end
+
+    subgraph Pattern3 ["Pattern C: Cloudflare Access Bypass Rule"]
+        AgentC["AI Agent\n(Static IP or CIDR)"] -->|Bearer Agent Token| CFBypass["Cloudflare Access\n(Bypass by IP Policy)"]
+        CFBypass --> GateC["comfy-gate:8080"]
+    end
 ```
 
-### 4.2 Standard Agent Execution Cycle
+#### Pattern A: Direct Internal / Tailscale Network (Recommended)
+- Configure the Agent to connect directly to the VPS internal origin:
+  ```bash
+  export CKIT_URL="http://100.104.117.104:8080" # Tailscale IP or private LAN
+  ```
+- **Headers**: Only requires `Authorization: Bearer <YOUR_AGENT_TOKEN>`.
+- Completely avoids Cloudflare Access overhead, redirects, and edge quotas.
+
+#### Pattern B: Cloudflare Service Token (For Public Agents)
+If your agent runs on external cloud infrastructure (e.g. GitHub Actions, modal, Modal, AWS):
+1. In Cloudflare Zero Trust (**Access** > **Service Auth**), generate a Service Token (gives Client ID and Client Secret).
+2. In Cloudflare Access Applications (**`comfy-colab-kit`** > **Policies**):
+   - Add a Policy: Name `Agent Service Auth` · Action: `Service Auth` · Include: `Service Token: <name>`.
+3. Agent includes all three headers on every request:
+   ```http
+   CF-Access-Client-Id: <YOUR_CF_CLIENT_ID>
+   CF-Access-Client-Secret: <YOUR_CF_CLIENT_SECRET>
+   Authorization: Bearer <YOUR_AGENT_TOKEN>
+   ```
+
+#### Pattern C: Cloudflare Access IP Whitelist / Bypass
+- In Cloudflare Access Applications (**`comfy-colab-kit`** > **Policies**):
+  - Add a Policy with Action `Bypass` · Include: `IP Range: <Agent_Static_IP>/32`.
+- The Agent sends `Authorization: Bearer <YOUR_AGENT_TOKEN>`.
+
+### 4.2 Gateway-Side Agent Authentication
+Once traffic reaches `comfy-gate`:
+- The gate extracts the token from either:
+  - Header: `Authorization: Bearer <TOKEN>`
+  - Query Parameter: `?token=<TOKEN>`
+- The token is compared with timing-safe hash comparison against `secrets/agent_token`.
+- Valid agents receive `Identity(email="agent", role="agent", is_owner=True)` and are authorized to wake, generate, switch, extend, and stop sessions.
+
+### 4.3 Standard Agent Execution Cycle
 ```mermaid
 sequenceDiagram
     autonumber
