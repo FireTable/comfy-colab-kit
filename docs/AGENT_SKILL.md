@@ -200,20 +200,41 @@ When `POST /_gate/wake` returns `409 Conflict`, the response body includes a spe
 
 ## 7. Model Context Protocol (MCP) Configuration
 
-To connect Claude Desktop, Cursor, or OpenClaw to your deployed gate via the native Model Context Protocol (MCP):
+To connect Claude Desktop, Cursor, OpenClaw, or Cline to your deployed gate via the native Model Context Protocol (MCP):
 
+### Stdio MCP (Cursor `~/.cursor/mcp.json` / Claude Desktop `claude_desktop_config.json`):
 ```json
 {
   "mcpServers": {
     "comfy-colab": {
       "command": "python3",
-      "args": ["-m", "packages.cli.mcp_server"],
+      "args": ["-m", "ckit.mcp_server"],
       "env": {
         "CKIT_URL": "https://comfy.yourdomain.com",
-        "CKIT_TOKEN_FILE": "/path/to/secrets/agent_token"
+        "CKIT_TOKEN": "sk_agent_..."
       }
     }
   }
 }
 ```
-Available MCP tools: `gate_status`, `gate_wake`, `gate_generate`, `gate_stop`.
+
+### Remote HTTP MCP (SSE / Streamable JSON-RPC):
+- **URL**: `https://comfy.yourdomain.com/mcp`
+- **Header**: `Authorization: Bearer <agent_token>`
+
+### Available MCP Tools:
+- `gate_status`: Query session state, active profile, progress, and CU balance.
+- `gate_wake`: Wake or join the shared Google Colab L4 GPU instance (`profile: "moss-image"`).
+- `gate_txt2img`: **Recommended high-level text-to-image generator**! Automatically executes the anti-banding MOSS-Image DeBand pipeline with anti-banding LoRAs (L37-41 & L32-36) and fast sampling.
+  - `prompt`: Positive text description (required).
+  - `negative_prompt`: Negative elements to avoid (optional).
+  - `preset`: Speed/quality preset: `'Fast alt'` (default, 10 steps), `'Fast'`, `'Balanced'`, `'Quality'`.
+  - `seed`: Reproducibility seed (optional).
+  - `width` / `height`: Resolution (default 1024x1024).
+  - Returns complete, directly accessible image URLs!
+- `gate_generate`: Submit a raw ComfyUI prompt graph JSON object.
+- `gate_stop`: Stop the GPU session immediately to save Colab Compute Units.
+
+### 1-Click Browser "Copy Prompt for AI Agent" & Device Pairing:
+- **In Web UI**: Users can click the **🤖 复制 AI Agent 接入指令 / Copy Prompt for AI Agent** button in the top-right user menu. This instantly creates an Agent Bearer Token in the browser session and copies a structured prompt with MCP configs, tool definitions, and commands directly to the clipboard.
+- **In Terminal (RFC 8628 Device Flow)**: Run `python3 -m ckit auth https://comfy.yourdomain.com`. The CLI displays an authorization URL; the user clicks "Approve" in the browser, and the agent token is saved automatically to `~/.config/ckit/config.json`.

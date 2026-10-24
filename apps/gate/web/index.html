@@ -126,6 +126,13 @@ body.app-ready{height:100vh;height:100dvh;overflow:hidden}
 .token-card.revoked .btn-revoke{display:none}
 .token-revoked-label{font-size:10.5px;color:var(--muted)}
 .cli-section{display:flex;flex-direction:column;gap:6px;margin-top:2px}
+.btn-copy-ai-prompt{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;height:32px;background:linear-gradient(135deg,var(--primary) 0%,#2563eb 100%);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(37,99,235,0.25);transition:all .15s}
+.btn-copy-ai-prompt:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn-copy-ai-prompt:active{transform:translateY(0)}
+.token-prompt-btn{background:rgba(59,130,246,0.12);color:var(--primary);border:1px solid rgba(59,130,246,0.25);border-radius:6px;padding:2px 7px;font-size:10.5px;font-weight:600;cursor:pointer;flex-shrink:0;transition:all .15s}
+.token-prompt-btn:hover{background:var(--primary);color:#fff}
+.ai-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--card);border:1px solid var(--primary);color:var(--fg);padding:10px 18px;border-radius:10px;font-size:12.5px;font-weight:500;box-shadow:0 10px 30px rgba(0,0,0,0.5);z-index:300;opacity:0;pointer-events:none;transition:all .25s ease}
+.ai-toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
 .cli-connect-title{font-size:10.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin:0}
 .cli-cmd-box{display:flex;align-items:center;background:rgba(0,0,0,0.28);border:1px solid var(--line2);border-radius:8px;padding:4px 8px;gap:8px}
 :root[data-theme=light] .cli-cmd-box{background:rgba(0,0,0,0.04);border-color:rgba(15,23,42,0.1)}
@@ -415,12 +422,20 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
           </div>
 
           <div class="cli-section">
-            <div class="cli-connect-title">连接本机 Agent (CLI)</div>
-            <div class="cli-cmd-box">
+            <button type="button" class="btn-copy-ai-prompt" id="copy-ai-prompt-btn" title="一键复制专为 Cursor、Claude Code、OpenClaw 设计的完整接入指令">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/>
+                <path d="M4 11a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-7z"/>
+                <circle cx="9" cy="15" r="1"/>
+                <circle cx="15" cy="15" r="1"/>
+              </svg>
+              <span id="copy-ai-prompt-txt">🤖 复制 AI Agent 接入指令</span>
+            </button>
+            <div class="cli-cmd-box" style="margin-top:2px">
               <code id="cli-auth-cmd">ckit auth ...</code>
-              <button type="button" class="copy-cmd-btn" id="copy-cmd-btn" title="点击复制">复制</button>
+              <button type="button" class="copy-cmd-btn" id="copy-cmd-btn" title="点击复制命令">复制命令</button>
             </div>
-            <div class="cli-help-tip">在终端运行此命令即可自动打开浏览器完成配对</div>
+            <div class="cli-help-tip" id="cli-help-tip">复制指令给 Cursor / Claude Code，或终端运行命令一键配对</div>
           </div>
         </div>
       </div>
@@ -560,7 +575,17 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
         <button type="button" class="copy-cmd-btn mcp-copy-btn" id="copy-mcp-json-btn">复制 MCP 配置</button>
       </div>
 
-      <div class="token-modal-actions" style="margin-top:14px">
+      <button type="button" class="btn-copy-ai-prompt" id="copy-ai-prompt-modal-btn" style="margin-top:10px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/>
+          <path d="M4 11a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-7z"/>
+          <circle cx="9" cy="15" r="1"/>
+          <circle cx="15" cy="15" r="1"/>
+        </svg>
+        <span id="copy-modal-prompt-txt">🤖 复制完整 AI Agent 提示词</span>
+      </button>
+
+      <div class="token-modal-actions" style="margin-top:12px">
         <button type="button" class="token-btn-primary" id="token-done-btn" style="width:100%">完成</button>
       </div>
     </div>
@@ -717,6 +742,10 @@ function updateLanguageUI(){
  $("ltext").textContent=lang==="zh"?"简体中文":"English";
  $("opt-lang-zh").classList.toggle("active",lang==="zh");
  $("opt-lang-en").classList.toggle("active",lang==="en");
+ if($("copy-ai-prompt-txt"))$("copy-ai-prompt-txt").textContent=lang==="zh"?"🤖 复制 AI Agent 接入指令":"🤖 Copy Prompt for AI Agent";
+ if($("copy-modal-prompt-txt"))$("copy-modal-prompt-txt").textContent=lang==="zh"?"🤖 复制完整 AI Agent 提示词":"🤖 Copy Complete AI Prompt";
+ if($("copy-cmd-btn"))$("copy-cmd-btn").textContent=lang==="zh"?"复制命令":"Copy";
+ if($("cli-help-tip"))$("cli-help-tip").textContent=lang==="zh"?"复制指令给 Cursor / Claude Code，或终端运行命令一键配对":"Copy prompt to Cursor / Claude, or run CLI command to pair in 1 click";
 }
 langBtn.onclick=(e)=>{e.stopPropagation();toggleLangMenu()};
 $("opt-lang-zh").onclick=(e)=>{e.stopPropagation();setLanguage("zh");toggleLangMenu(false)};
@@ -782,6 +811,164 @@ tokenModalClose.onclick=closeTokenModal;
 tokenCancelBtn.onclick=closeTokenModal;
 tokenModal.onclick=(e)=>{if(e.target===tokenModal)closeTokenModal()};
 
+let latestAgentToken=null;
+
+function showToast(msg){
+ let toast=$("ai-toast");
+ if(!toast){
+  toast=document.createElement("div");
+  toast.id="ai-toast";
+  toast.className="ai-toast";
+  document.body.appendChild(toast);
+ }
+ toast.textContent=msg;
+ toast.classList.add("show");
+ clearTimeout(window.__toastTimer);
+ window.__toastTimer=setTimeout(()=>{toast.classList.remove("show")},3500);
+}
+
+function generateAIPrompt(token,clientName){
+ const origin=window.location.origin;
+ const isZh=lang==="zh";
+ return `# 接入 Comfy Colab Kit GPU 绘图网关 (Comfy Colab Kit Agent Access)
+
+你好！用户已向你授权使用其私有 Google Colab L4 GPU ComfyUI 绘图网关。
+本网关由 Comfy Colab Kit (https://github.com/FireTable/comfy-colab-kit) 驱动，内置经过抗条纹 (DeBand) 优化的高清 MOSS-Image 生产管线。
+
+---
+
+## 1. 核心凭证与网关地址 (Connection Info)
+- **网关地址 (Gateway URL)**: \`${origin}\`
+- **预授权令牌 (Bearer Token)**: \`${token || "(可直接通过下文 Device Flow 授权获取)"}\`
+  *(当前已在浏览器完成授权，具备完整的会话查询与模型绘图权限)*
+
+---
+
+## 2. 推荐接入方式 A: 配置为 MCP 工具 (Cursor / Claude Desktop / Windsurf)
+如果你支持 MCP 工具协议，请将以下配置写入你的 MCP 配置文件：
+
+### Cursor (\`~/.cursor/mcp.json\`) 或 Claude Desktop (\`claude_desktop_config.json\`)
+\`\`\`json
+{
+  "mcpServers": {
+    "comfy-colab": {
+      "command": "python3",
+      "args": ["-m", "ckit.mcp_server"],
+      "env": {
+        "CKIT_URL": "${origin}",
+        "CKIT_TOKEN": "${token}"
+      }
+    }
+  }
+}
+\`\`\`
+
+> **提示 (CLI 安装)**:
+> 若本地未安装 \`ckit\`，可直接运行：
+> \`\`\`bash
+> pip install "git+https://github.com/FireTable/comfy-colab-kit.git#subdirectory=packages/cli"
+> \`\`\`
+
+### 远程 HTTP MCP (若客户端支持 SSE / Streamable MCP):
+- **Endpoint**: \`${origin}/mcp\`
+- **HTTP Header**: \`Authorization: Bearer ${token}\`
+
+---
+
+## 3. 可用 MCP 工具及调用规范 (Available Tools)
+
+1. \`gate_status\`: 查询 GPU 会话状态 (\`sleeping\`, \`allocating\`, \`downloading\`, \`ready\` 等)、运行中的 Profile 及 Compute Unit 余额。
+2. \`gate_wake\`: 唤醒或加入共享 GPU 会话。
+   - 参数: \`profile\` (可选，默认 \`"moss-image"\`)。
+3. \`gate_txt2img\`: **推荐的高层文生图工具**！一键运行 MOSS-Image DeBand 高清抗伪影生图管线并自动轮询返回图片 URL：
+   - \`prompt\` (必填): 画面正面描述词 (如 "A breathtaking cinematic cyberpunk city in rain, neon reflections, 8k, photorealistic")
+   - \`negative_prompt\` (可选): 负向提示词 (默认已配置画质增强负向词)
+   - \`preset\` (可选): 速度画质预设，默认 \`"Fast alt"\` (10步超快且画质极佳)，可选 \`"Fast"\` / \`"Balanced"\` / \`"Quality"\`
+   - \`seed\` (可选): 随机种子整数
+   - \`width\` / \`height\` (可选): 图像分辨率 (默认 1024x1024)
+4. \`gate_generate\`: 低层 ComfyUI 原生 API 提示图生成工具 (接收原生 node graph JSON)。
+5. \`gate_stop\`: 当绘画任务结束或用户要求关机时，主动释放 Colab GPU，防止浪费计算单元。
+
+---
+
+## 4. 方式 B: 终端命令与一键配对 (Device Flow)
+如果你在终端运行或 Token 失效，可随时在命令行执行：
+\`\`\`bash
+python3 -m ckit auth ${origin}
+\`\`\`
+终端将自动弹出浏览器授权页 (或访问终端提示的链接)。用户只需在浏览器中点击「批准 (Approve)」，即可完成一键配对授权！
+
+---
+
+## 5. 立即验证与测试 (Python Snippet)
+你可以直接运行此脚本测试网关连通性：
+\`\`\`python
+import urllib.request, json
+req = urllib.request.Request(
+    "${origin}/_gate/status",
+    headers={"Authorization": "Bearer ${token}"}
+)
+with urllib.request.urlopen(req) as r:
+    print("Gateway State:", json.loads(r.read())["state"])
+\`\`\`
+
+请向用户确认你已成功获取这些指令。当用户提出生图需求时，自动检查 GPU 状态并在需要时唤醒，调用 \`gate_txt2img\` 生成图片！`;
+}
+
+async function copyAIPromptWorkflow(tokenStr=""){
+ let tok=tokenStr||latestAgentToken;
+ const btn=$("copy-ai-prompt-btn");
+ const origTxt=$("copy-ai-prompt-txt")?$("copy-ai-prompt-txt").textContent:"🤖 复制 AI Agent 接入指令";
+ if(!tok){
+  if(btn){
+   btn.disabled=true;
+   $("copy-ai-prompt-txt").textContent=lang==="zh"?"正在授权并生成 Token...":"Authorizing & creating token...";
+  }
+  try{
+   const dateStr=new Date().toISOString().slice(5,10);
+   const res=await api("/api/agent-tokens",{
+    method:"POST",
+    body:JSON.stringify({name:`Cursor/Claude (${dateStr})`})
+   });
+   tok=res.token;
+   latestAgentToken=tok;
+   loadAgentTokens();
+  }catch(err){
+   alert((lang==="zh"?"生成 Agent Token 失败: ":"Failed to create token: ")+err.message);
+   if(btn){
+    btn.disabled=false;
+    $("copy-ai-prompt-txt").textContent=origTxt;
+   }
+   return;
+  }
+ }
+
+ const promptText=generateAIPrompt(tok);
+ try{
+  await navigator.clipboard.writeText(promptText);
+  showToast(lang==="zh"?"✅ AI Agent 接入指令与 Token 已复制！直接粘贴给 Cursor / Claude 即可。":"✅ AI Agent setup prompt & token copied! Paste into Cursor / Claude.");
+  if(btn){
+   $("copy-ai-prompt-txt").textContent=lang==="zh"?"已复制到剪贴板!":"Copied to clipboard!";
+   setTimeout(()=>{
+    btn.disabled=false;
+    $("copy-ai-prompt-txt").textContent=origTxt;
+   },2500);
+  }
+ }catch(_){
+  prompt(lang==="zh"?"请复制 AI 接入指令:":"Copy AI Prompt:",promptText);
+  if(btn){
+   btn.disabled=false;
+   $("copy-ai-prompt-txt").textContent=origTxt;
+  }
+ }
+}
+
+if($("copy-ai-prompt-btn"))$("copy-ai-prompt-btn").onclick=()=>copyAIPromptWorkflow();
+if($("copy-ai-prompt-modal-btn"))$("copy-ai-prompt-modal-btn").onclick=()=>{
+ const tok=$("new-token-val").textContent;
+ copyAIPromptWorkflow(tok);
+};
+
 tokenConfirmBtn.onclick=async()=>{
  const name=tokenNameInput.value.trim()||"Cursor";
  tokenConfirmBtn.disabled=true;
@@ -792,14 +979,17 @@ tokenConfirmBtn.onclick=async()=>{
    body:JSON.stringify({name})
   });
   const tok=res.token;
+  latestAgentToken=tok;
   $("new-token-val").textContent=tok;
   const origin=window.location.origin;
   const mcpConfig={
    mcpServers:{
     "comfy-colab":{
-     url:`${origin}/mcp`,
-     headers:{
-      Authorization:`Bearer ${tok}`
+     command:"python3",
+     args:["-m","ckit.mcp_server"],
+     env:{
+      CKIT_URL:origin,
+      CKIT_TOKEN:tok
      }
     }
    }
@@ -865,13 +1055,32 @@ async function loadAgentTokens(){
        <div class="token-name">${escapeHtml(tok.name)}</div>
        <div class="token-time">${lang==="zh"?`创建: ${createdStr} · 调用: ${lastUsedStr}`:`Created: ${createdStr} · Used: ${lastUsedStr}`}</div>
      </div>
-     ${tok.revoked
-       ?`<span class="token-revoked-label">${lang==="zh"?"已禁用":"Revoked"}</span>`
-       :`<button type="button" class="btn-revoke" data-id="${tok.id}">${lang==="zh"?"禁用":"Revoke"}</button>`}
    `;
-   const btn=card.querySelector(".btn-revoke");
-   if(btn){
-    btn.onclick=async(e)=>{
+   const actionsDiv=document.createElement("div");
+   actionsDiv.style.cssText="display:flex;align-items:center;gap:6px;";
+
+   const pBtn=document.createElement("button");
+   pBtn.type="button";
+   pBtn.className="token-prompt-btn";
+   pBtn.textContent=lang==="zh"?"AI 指令":"Prompt";
+   pBtn.title=lang==="zh"?"复制此 Agent 的 AI 接入指令":"Copy AI setup prompt";
+   pBtn.onclick=(e)=>{
+    e.stopPropagation();
+    copyAIPromptWorkflow();
+   };
+   actionsDiv.appendChild(pBtn);
+
+   if(tok.revoked){
+    const span=document.createElement("span");
+    span.className="token-revoked-label";
+    span.textContent=lang==="zh"?"已禁用":"Revoked";
+    actionsDiv.appendChild(span);
+   }else{
+    const revokeBtn=document.createElement("button");
+    revokeBtn.type="button";
+    revokeBtn.className="btn-revoke";
+    revokeBtn.textContent=lang==="zh"?"禁用":"Revoke";
+    revokeBtn.onclick=async(e)=>{
      e.stopPropagation();
      const confirmMsg=lang==="zh"
        ?`确认禁用 Agent「${tok.name}」吗？\n禁用后该设备将无法调用 MCP。`
@@ -884,7 +1093,9 @@ async function loadAgentTokens(){
       alert((lang==="zh"?"操作失败: ":"Error: ")+err.message);
      }
     };
+    actionsDiv.appendChild(revokeBtn);
    }
+   card.appendChild(actionsDiv);
    listEl.appendChild(card);
   }
  }catch(err){

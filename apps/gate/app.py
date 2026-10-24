@@ -297,7 +297,7 @@ async def mcp_endpoint(request: web.Request) -> web.Response:
             "name": "comfy-colab-kit",
             "version": "0.1.0",
             "protocol": "2024-11-05",
-            "tools": ["gate_status", "gate_wake", "gate_stop"]
+            "tools": ["gate_status", "gate_wake", "gate_txt2img", "gate_generate", "gate_stop"]
         })
     body = await _body(request)
     req_id = body.get("id")
@@ -337,6 +337,33 @@ async def mcp_endpoint(request: web.Request) -> web.Response:
                         }
                     },
                     {
+                        "name": "gate_txt2img",
+                        "description": "Generate an image using the pre-configured MOSS-Image DeBand pipeline with anti-banding LoRAs and fast sampling.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "prompt": {"type": "string", "description": "Text description of the image to generate."},
+                                "negative_prompt": {"type": "string", "description": "Negative elements to avoid."},
+                                "preset": {"type": "string", "description": "Preset: 'Fast alt' (default), 'Fast', 'Balanced', 'Quality'."},
+                                "seed": {"type": "integer", "description": "Random seed (optional)."},
+                                "width": {"type": "integer", "description": "Image width (default 1024)."},
+                                "height": {"type": "integer", "description": "Image height (default 1024)."}
+                            },
+                            "required": ["prompt"]
+                        }
+                    },
+                    {
+                        "name": "gate_generate",
+                        "description": "Submit a raw ComfyUI prompt graph and return completed image outputs.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "prompt": {"type": "object", "description": "The ComfyUI API prompt dictionary."}
+                            },
+                            "required": ["prompt"]
+                        }
+                    },
+                    {
                         "name": "gate_stop",
                         "description": "Stop the Colab GPU session immediately to release Compute Units.",
                         "inputSchema": {"type": "object", "properties": {}}
@@ -367,6 +394,108 @@ async def mcp_endpoint(request: web.Request) -> web.Response:
                 "jsonrpc": "2.0",
                 "id": req_id,
                 "result": {"content": [{"type": "text", "text": f"Wake initiated for profile '{prof}'. State: {res.state}"}]}
+            })
+        elif tool_name == "gate_txt2img" or tool_name == "gate_generate":
+            if s.state.value != "ready":
+                return web.json_response({
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "result": {"isError": True, "content": [{"type": "text", "text": f"Cannot generate: GPU is not ready (state: '{s.state.value}'). Call gate_wake first."}]}
+                })
+            args = params.get("arguments", {})
+            if tool_name == "gate_txt2img":
+                prompt_text = (args.get("prompt") or "").strip()
+                if not prompt_text:
+                    return web.json_response({
+                        "jsonrpc": "2.0",
+                        "id": req_id,
+                        "result": {"isError": True, "content": [{"type": "text", "text": "Missing required argument 'prompt'"}]}
+                    })
+                from ckit.moss_template import make_moss_txt2img_graph
+                prompt_graph = make_moss_txt2img_graph(
+                    prompt=prompt_text,
+                    negative_prompt=args.get("negative_prompt", "worst quality, bad anatomy, watermark, jpeg artifact"),
+                    preset=args.get("preset", "Fast alt · fix + darask0 0.35 · 10 steps"),
+                    seed=args.get("seed", -1),
+                    width=args.get("width", 1024),
+                    height=args.get("height", 1024),
+                )
+            else:
+                prompt_graph = args.get("prompt")
+                if not isinstance(prompt_graph, dict):
+                    return web.json_response({
+                        "jsonrpc": "2.0",
+                        "id": req_id,
+                        "result": {"isError": True, "content": [{"type": "text", "text": "Argument 'prompt' must be a ComfyUI graph dictionary"}]}
+                    })
+
+            proxy = request.app[PROXY]
+            timeout_s = int(args.get("timeout_seconds") or 180)
+            client = await proxy.client()
+            headers = proxy.service_headers(proxy.token_file)
+            headers["Content-Type"] = "application/json"
+
+            try:
+                async with client.post(f"{proxy.backend}/prompt", json={"prompt": prompt_graph}, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as pr:
+                    if pr.status >= 400:
+                        err_text = await pr.text()
+                        return web.json_response({
+                            "jsonrpc": "2.0",
+                            "id": req_id,
+                            "result": {"isError": True, "content": [{"type": "text", "text": f"Prompt submission failed ({pr.status}): {err_text}"}]}
+                        })
+                    p_out = await pr.json()
+            except Exception as e:
+                return web.json_response({
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "result": {"isError": True, "content": [{"type": "text", "text": f"Error contacting backend ComfyUI: {e}"}]}
+                })
+
+            prompt_id = p_out.get("prompt_id")
+            if not prompt_id:
+                return web.json_response({
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "result": {"isError": True, "content": [{"type": "text", "text": f"No prompt_id returned from ComfyUI: {json.dumps(p_out)}"}]}
+                })
+
+            start_t = time.time()
+            public_base = f"{request.scheme}://{request.host}".rstrip("/")
+            while time.time() - start_t < timeout_s:
+                await asyncio.sleep(2.5)
+                try:
+                    async with client.get(f"{proxy.backend}/history/{prompt_id}", headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as hr:
+                        if hr.status == 200:
+                            h_out = await hr.json()
+                            if prompt_id in h_out:
+                                item = h_out[prompt_id]
+                                outputs = item.get("outputs", {})
+                                images = []
+                                for node_id, node_out in outputs.items():
+                                    for img in node_out.get("images", []):
+                                        fn = img.get("filename", "")
+                                        sub = img.get("subfolder", "")
+                                        t = img.get("type", "output")
+                                        url = f"{public_base}/view?filename={urllib.parse.quote(fn)}&subfolder={urllib.parse.quote(sub)}&type={urllib.parse.quote(t)}"
+                                        images.append({"filename": fn, "url": url, "node_id": node_id})
+                                res_data = {"prompt_id": prompt_id, "status": item.get("status", {}), "images": images}
+                                res_text = json.dumps(res_data, indent=2, ensure_ascii=False)
+                                if images:
+                                    img_md = "\n".join([f"![{img['filename']}]({img['url']})\nLink: {img['url']}" for img in images])
+                                    res_text += f"\n\n### Generated Images\n{img_md}"
+                                return web.json_response({
+                                    "jsonrpc": "2.0",
+                                    "id": req_id,
+                                    "result": {"content": [{"type": "text", "text": res_text}]}
+                                })
+                except Exception:
+                    continue
+
+            return web.json_response({
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {"isError": True, "content": [{"type": "text", "text": f"Generation timed out after {timeout_s}s. Prompt ID: {prompt_id}"}]}
             })
         elif tool_name == "gate_stop":
             client_ip = get_client_ip(request)
