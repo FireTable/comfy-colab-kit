@@ -86,18 +86,18 @@ If you want to completely disable login prompts (for friends, internal testing, 
 
 ---
 
-## 5. The Symmetry Rule: Restoring / Enabling Protection
+## 5. Unified Multi-Domain Application (Best Practice)
 
-Just as **disabling** access requires updating both applications, **enabling (or restoring) protection is strictly symmetrical**:
+Rather than maintaining two disconnected Access applications that require cross-origin cookie syncing, comfy-colab-kit uses a single **Multi-Domain Access Application** with **Eager Redirect Cookie** enabled:
 
-| Component | Target Host | Required Cloudflare Access Policies | Role in Protected Mode |
+| Component | Target Host(s) | Required Cloudflare Access Policies | Role in Protected Mode |
 |---|---|---|---|
-| **App 1: Frontend** | `PUBLIC_HOST`<br>(e.g. `comfy.yourdomain.com`) | • Policy 1: `Allow` for `ALLOWED_EMAILS` | Challenges visiting browsers with Email OTP / SSO. Issues JWT assertion. |
-| **App 2: Backend** | `COLAB_TUNNEL_HOST`<br>(e.g. `comfy-colab.yourdomain.com`) | • Policy 1: `Service Auth` for Service Token<br>• Policy 2: `Allow` for `ALLOWED_EMAILS` | • `Service Auth`: lets VPS `comfy-gate` proxy traffic.<br>• `Allow`: lets authenticated browser iframe load ComfyUI. |
+| **Unified Access App** (`comfy-colab-kit`) | • `comfy.yourdomain.com`<br>• `comfy-colab.yourdomain.com` | • Policy 1 (`Service Auth`): `gate service token only`<br>• Policy 2 (`Allow`): `Everyone` (or `ALLOWED_EMAILS`) | Challenges visiting browsers with Email OTP / SSO. Preemptively drops authentication cookies onto both domains via Eager Redirect so the ComfyUI iframe loads seamlessly without CSP frame-ancestors errors. |
 | **VPS Gateway** | `comfy-gate:8080` | `.env`: `AUTH_DISABLED=false`<br>(or remove/comment out `AUTH_DISABLED`) | Cryptographically verifies incoming `Cf-Access-Jwt-Assertion` against Cloudflare JWKS. |
 
-> [!IMPORTANT]
-> **Common Pitfall when Enabling**: If you forget to add Policy 2 (`Allow` for your email) on the Backend App, Cloudflare will accept the gateway's service token on the backend proxy, but the **browser's iframe will be rejected with 403 Forbidden** because Cloudflare Access will block the browser from loading the iframe! Always ensure the Backend App permits BOTH the Service Token and the authorized user emails.
+> [!TIP]
+> **Why Multi-Domain App with Eager Redirect?**
+> When users authenticate to `comfy.yourdomain.com`, Cloudflare Access automatically chains an eager background redirect to `comfy-colab.yourdomain.com` and drops the `CF_Authorization` cookie on both hostnames. When the session reaches `state: ready`, the browser's `<iframe>` already possesses the backend credentials, avoiding third-party login prompts and CSP `frame-ancestors 'none'` blocks.
 >
 > **Identity Providers (Google, GitHub, OTP)**:
 > In Cloudflare Zero Trust (**Settings** > **Authentication**), you can connect Google OAuth and GitHub OAuth alongside the default One-Time PIN (OTP). When configuring Access Policies:
