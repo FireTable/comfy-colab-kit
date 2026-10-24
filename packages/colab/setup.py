@@ -90,12 +90,14 @@ HF_RE = re.compile(r"^https://huggingface\.co/([^/]+/[^/]+)/resolve/([^/]+)/(.+)
 # files can be paused (SIGSTOP) while ComfyUI is executing a prompt.
 HF_DL_SCRIPT = r"""
 import os, sys
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+os.environ["HF_HUB_DISABLE_XET"] = "1"
 from huggingface_hub import hf_hub_download
 print(hf_hub_download(sys.argv[1], sys.argv[2], revision=sys.argv[3], local_dir=sys.argv[4],
                       token=os.environ.get("HF_TOKEN") or None), flush=True)
 """
 HF_TMP = "/content/hf"
-STALL_S = int(os.environ.get("KIT_STALL_S", "90"))
+STALL_S = int(os.environ.get("KIT_STALL_S", "30"))
 RETRYABLE = re.compile(r"429|Too Many|\b5\d\d\b|timed out|Timeout|Connection|reset by peer")
 
 
@@ -629,6 +631,8 @@ def fetch_only():
     """On-demand download on a running VM (gate: POST /_gate/fetch). No KIT_STAGE lines: the session state
     stays `ready`; progress arrives as KIT_PROGRESS, the result as KIT_FETCHED / KIT_FETCH_FAILED."""
     os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+    os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+    os.environ["HF_HUB_DISABLE_XET"] = "1"
     if PLAN.get("xet_high_performance", True):
         os.environ["HF_XET_HIGH_PERFORMANCE"] = "1"
     ids = [w["id"] for w in PLAN["workflows"]]
@@ -654,7 +658,9 @@ def main():
         print("KIT_READY " + json.dumps({"reused": True}), flush=True)
         return
     with Stage("bootstrap"):
-        sh("pip install -q -U uv 'huggingface_hub>=0.36' 'hf-xet>=1.5.2'", quiet=True)
+        sh("pip install -q -U uv 'huggingface_hub>=0.36' 'hf-transfer>=0.1.8' 'hf-xet>=1.5.2'", quiet=True)
+        os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+        os.environ["HF_HUB_DISABLE_XET"] = "1"
         if PLAN.get("xet_high_performance", True):
             os.environ["HF_XET_HIGH_PERFORMANCE"] = "1"
         os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"  # tqdm bars flood the wake-page log
