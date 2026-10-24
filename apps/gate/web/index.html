@@ -1088,31 +1088,25 @@ async function loadAgentTokens(){
    };
    actionsDiv.appendChild(pBtn);
 
-   if(tok.revoked){
-    const span=document.createElement("span");
-    span.className="token-revoked-label";
-    span.textContent=lang==="zh"?"已禁用":"Revoked";
-    actionsDiv.appendChild(span);
-   }else{
-    const revokeBtn=document.createElement("button");
-    revokeBtn.type="button";
-    revokeBtn.className="btn-revoke";
-    revokeBtn.textContent=lang==="zh"?"禁用":"Revoke";
-    revokeBtn.onclick=async(e)=>{
-     e.stopPropagation();
-     const confirmMsg=lang==="zh"
-       ?`确认禁用 Agent「${tok.name}」吗？\n禁用后该设备将无法调用 MCP。`
-       :`Are you sure you want to revoke Agent "${tok.name}"?\nThis device will lose MCP access immediately.`;
-     if(!confirm(confirmMsg))return;
-     try{
-      await api(`/api/agent-tokens/${tok.id}/revoke`,{method:"POST"});
-      loadAgentTokens();
-     }catch(err){
-      alert((lang==="zh"?"操作失败: ":"Error: ")+err.message);
-     }
-    };
-    actionsDiv.appendChild(revokeBtn);
-   }
+   const delBtn=document.createElement("button");
+   delBtn.type="button";
+   delBtn.className="btn-revoke";
+   delBtn.textContent=lang==="zh"?"删除":"Delete";
+   delBtn.title=lang==="zh"?"删除此 Agent 凭据":"Delete this Agent token";
+   delBtn.onclick=async(e)=>{
+    e.stopPropagation();
+    const confirmMsg=lang==="zh"
+      ?`确认删除 Agent「${tok.name}」吗？\n删除后该设备将无法连接网关。`
+      :`Are you sure you want to delete Agent "${tok.name}"?\nThis device will lose gateway access immediately.`;
+    if(!confirm(confirmMsg))return;
+    try{
+     await api(`/api/agent-tokens/${tok.id}`,{method:"DELETE"});
+     loadAgentTokens();
+    }catch(err){
+     alert((lang==="zh"?"删除失败: ":"Error: ")+err.message);
+    }
+   };
+   actionsDiv.appendChild(delBtn);
    card.appendChild(actionsDiv);
    listEl.appendChild(card);
   }
