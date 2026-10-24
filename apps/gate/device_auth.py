@@ -380,7 +380,7 @@ async def list_agent_tokens_endpoint(request: web.Request) -> web.Response:
 
 
 async def create_agent_token_endpoint(request: web.Request) -> web.Response:
-    """Directly creates a new agent token for the authenticated user."""
+    """Creates a new agent token or reuses an existing unused token for the authenticated user."""
     ident = _ident(request)
     if not ident:
         return web.json_response({"error": "unauthorized"}, status=401)
@@ -392,7 +392,8 @@ async def create_agent_token_endpoint(request: web.Request) -> web.Response:
         except Exception:
             body = {}
     name = str(body.get("name") or "AI Agent").strip()
-    res = db.create_direct_token(email=ident.email, name=name)
+    force = bool(body.get("force", False))
+    res = db.create_direct_token(email=ident.email, name=name, force_new=force)
     return web.json_response(res)
 
 

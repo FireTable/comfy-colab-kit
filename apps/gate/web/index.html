@@ -940,19 +940,19 @@ async function copyAIPromptWorkflow(tokenStr=""){
  if(!tok){
   if(btn){
    btn.disabled=true;
-   $("copy-ai-prompt-txt").textContent=lang==="zh"?"正在授权并生成 Token...":"Authorizing & creating token...";
+   $("copy-ai-prompt-txt").textContent=lang==="zh"?"正在获取接入凭证...":"Fetching credentials...";
   }
   try{
    const dateStr=new Date().toISOString().slice(5,10);
    const res=await api("/api/agent-tokens",{
     method:"POST",
-    body:JSON.stringify({name:`Cursor/Claude (${dateStr})`})
+    body:JSON.stringify({name:`Cursor/Claude (${dateStr})`,force:false})
    });
    tok=res.token;
    latestAgentToken=tok;
    loadAgentTokens();
   }catch(err){
-   alert((lang==="zh"?"生成 Agent Token 失败: ":"Failed to create token: ")+err.message);
+   alert((lang==="zh"?"获取 Agent Token 失败: ":"Failed to get token: ")+err.message);
    if(btn){
     btn.disabled=false;
     $("copy-ai-prompt-txt").textContent=origTxt;
@@ -994,7 +994,7 @@ tokenConfirmBtn.onclick=async()=>{
  try{
   const res=await api("/api/agent-tokens",{
    method:"POST",
-   body:JSON.stringify({name})
+   body:JSON.stringify({name,force:true})
   });
   const tok=res.token;
   latestAgentToken=tok;
@@ -1084,7 +1084,7 @@ async function loadAgentTokens(){
    pBtn.title=lang==="zh"?"复制此 Agent 的 AI 接入指令":"Copy AI setup prompt";
    pBtn.onclick=(e)=>{
     e.stopPropagation();
-    copyAIPromptWorkflow();
+    copyAIPromptWorkflow(tok.token||"");
    };
    actionsDiv.appendChild(pBtn);
 
