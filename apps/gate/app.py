@@ -191,8 +191,12 @@ async def status(request: web.Request) -> web.Response:
     client_ip = get_client_ip(request)
     can_stop = s.can_stop(email=ident.email, ip=client_ip, is_owner=ident.is_owner)
     can_wake = "wake" not in request.app[SETTINGS].owner_only_actions or ident.is_owner
+    st = s.status()
+    if not ident.is_owner:
+        st["cu"] = None
+        st["woken_by"] = None
     return web.json_response({
-        **s.status(),
+        **st,
         "can_stop": can_stop,
         "can_wake": can_wake,
         "you": {"email": ident.email, "owner": ident.is_owner, "ip": client_ip, "can_stop": can_stop, "can_wake": can_wake},
@@ -393,6 +397,7 @@ async def mcp_endpoint(request: web.Request) -> web.Response:
 
 async def events(request: web.Request) -> web.StreamResponse:
     s = request.app[SESSION]
+    ident = _ident(request)
     cid = (request.query.get("cid") or
            request.headers.get("CF-Connecting-IP") or
            request.headers.get("X-Forwarded-For") or
@@ -412,7 +417,11 @@ async def events(request: web.Request) -> web.StreamResponse:
     q = s.bus.subscribe()
     s.client_opened(cid)
     try:
-        await send("state", s.status())
+        init_st = s.status()
+        if not ident.is_owner:
+            init_st["cu"] = None
+            init_st["woken_by"] = None
+        await send("state", init_st)
         if s.progress:
             await send("progress", s.progress)
         for line in s.bus.logs_since(since):
@@ -420,6 +429,8 @@ async def events(request: web.Request) -> web.StreamResponse:
         while True:
             try:
                 kind, data = await asyncio.wait_for(q.get(), timeout=20)
+                if kind == "state" and isinstance(data, dict) and not ident.is_owner:
+                    data = {**data, "cu": None, "woken_by": None}
                 await send(kind, data)
             except asyncio.TimeoutError:
                 await resp.write(b": ping\n\n")
@@ -451,8 +462,12 @@ async def wake_page(request: web.Request) -> web.Response:
     client_ip = get_client_ip(request)
     can_stop = s.can_stop(email=ident.email, ip=client_ip, is_owner=ident.is_owner)
     can_wake = "wake" not in settings.owner_only_actions or ident.is_owner
+    st = s.status()
+    if not ident.is_owner:
+        st["cu"] = None
+        st["woken_by"] = None
     status_data = {
-        **s.status(),
+        **st,
         "can_stop": can_stop,
         "can_wake": can_wake,
         "you": {"email": ident.email, "owner": ident.is_owner, "ip": client_ip, "can_stop": can_stop, "can_wake": can_wake},
