@@ -54,15 +54,50 @@ VPS 上运行一个轻量网关 **comfy-gate**（Python / aiohttp），前端受
   <i>官网展示页：WebGL 极光动态流光背景、零 GPU 闲置架构与精选社区工作流展示</i>
 </p>
 
-<p align="center">
-  <img src="screenshots/preview-wake.png" width="100%" alt="冷启动唤醒网关" /><br/>
-  <i>冷启动唤醒网关：实时 SSE 阶段流式日志、Cloudflare Access 零信任鉴权与动态 CU 点数账本</i>
-</p>
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/preview-wake.png" width="100%" alt="冷启动唤醒网关" /><br/>
+      <sub><b>冷启动唤醒网关</b><br/>实时 SSE 阶段流式日志、Cloudflare Access 零信任鉴权与动态 CU 点数账本</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/preview-comfyui.png" width="100%" alt="Colab L4 GPU 官方 ComfyUI" /><br/>
+      <sub><b>Colab L4 GPU 官方 ComfyUI</b><br/>原生 ComfyUI Web 应用、线性 App 模式、快捷浮层切换与极速实时生图</sub>
+    </td>
+  </tr>
+</table>
 
-<p align="center">
-  <img src="screenshots/preview-comfyui.png" width="100%" alt="Colab L4 GPU 官方 ComfyUI" /><br/>
-  <i>Colab L4 GPU 官方 ComfyUI：原生 ComfyUI Web 应用、线性 App 模式、快捷浮层切换与极速实时生图</i>
-</p>
+### 🤖 AI Agent 自主驱动 GPU
+
+两段真实会话：AI Agent 全程通过网关接口完成，**不碰浏览器、不手动执行单元格**。
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/agent-txt2img.png" style="max-height:460px;width:auto;max-width:100%" alt="AI Agent 文生图会话" /><br/>
+      <sub><b>文生图 · <code>/comfy-colab-kit</code></b><br/>从提示词到出图仅 41 秒</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/agent-img2img.png" style="max-height:460px;width:auto;max-width:100%" alt="AI Agent 图生图会话" /><br/>
+      <sub><b>图生图 · <code>/comfy-colab-kit</code></b><br/>2 分 14 秒，基于同一张参考图出两个变体</sub>
+    </td>
+  </tr>
+</table>
+
+| | 🟢 文生图 | 🟣 图生图 |
+|---|---|---|
+| **Agent 指令** | `text to img: a pic about "hello world: comfy-colab-kit" 1024 × 1024` | `img to img, using the highest quality, generate an image based on the reference image, maintaining the original composition, and completely change the girl's outfit to a bikini.` |
+| **技能入口** | `/comfy-colab-kit` | `/comfy-colab-kit` |
+| **处理链路** | MOSS-Image DeBand 文生图 | 人物抠像 → 沙滩底图 → MOSS-Image DeBand 图生图 |
+| **Profile 预设** | `Fast alt` —— 10 步 + 抗条纹 LoRA | `Quality` —— 25 步，满强度去条纹 LoRA，不叠加加速 LoRA |
+| **分辨率** | 1024 × 1024 | 1024 × 1024，共 2 个变体 |
+| **抵达时 GPU 状态** | 已是 `ready`，无需唤醒 | 已是 `ready`，直接复用会话 |
+| **耗时** | 41 秒 | 2 分 14 秒 |
+| **产出** | 一张 PNG（`outputs/hello-world-comfy-colab-kit-1024.png`） | `beachA`（透明腰封）与 `beachB`（纯白两件式） |
+| **CU 点数账本** | 剩余 22.16 CU · 开机期间 1.71 CU/小时 | 剩余 20.99 CU · 开机期间 1.71 CU/小时 |
+| **收尾** | Agent 可直接调用 `stop` 立即释放 GPU | Agent 为下一个变体保温，说停就停 |
+
+两条链路都完全跑在网关的 REST / MCP 接口上：Agent 全程不接触浏览器、notebook 单元格或 Colab 链接。
 
 ---
 
