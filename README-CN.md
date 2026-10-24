@@ -14,6 +14,11 @@
 </p>
 
 <p align="center">
+  <a href="https://comfy-colab-kit.firetable.tech"><b>🌐 访问官网展示站</b></a>
+</p>
+
+<p align="center">
+  <a href="https://comfy-colab-kit.firetable.tech"><img src="https://img.shields.io/badge/官网展示站-comfy--colab--kit.firetable.tech-10b981?logo=cloudflare&logoColor=white" alt="官网展示站" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-amber.svg" alt="License" /></a>
   <img src="https://img.shields.io/badge/Python-3.11%2B-3b82f6?logo=python&logoColor=white" alt="Python" />
   <img src="https://img.shields.io/badge/Colab-L4-F9AB00?logo=googlecolab&logoColor=white" alt="Colab L4" />
@@ -39,6 +44,27 @@ VPS 上运行一个轻量网关 **comfy-gate**（Python / aiohttp），前端受
 | **1 按需唤醒** | 休眠卡片 → 唤醒 → 阶段与日志 → 官方 ComfyUI 界面 | 10 状态状态机，`colab new`（L4）+ `colab exec` 初始化，同主机双向反代（HTTP + `/ws`） |
 | **2 可切换 Profile** | 唤醒前选择 MOSS-Image、SD3.5、Qwen 等 | `profile.yaml` + JSON Schema；零密钥，模型按公开 URL 引用 |
 | **3 自动停机** | 浮层显示剩余时间；闲置 / 会话上限 / 静默时段 / CU 预算触发休眠 | 全部规则严格由 `.env` 配置控制 |
+
+---
+
+## 🖼️ 界面预览
+
+<p align="center">
+  <img src="screenshots/preview-landing.png" width="100%" alt="官网展示页" /><br/>
+  <i>官网展示页：WebGL 极光动态流光背景、零 GPU 闲置架构与精选社区工作流展示</i>
+</p>
+
+<p align="center">
+  <img src="screenshots/preview-wake.png" width="100%" alt="冷启动唤醒网关" /><br/>
+  <i>冷启动唤醒网关：实时 SSE 阶段流式日志、Cloudflare Access 零信任鉴权与动态 CU 点数账本</i>
+</p>
+
+<p align="center">
+  <img src="screenshots/preview-comfyui.png" width="100%" alt="Colab L4 GPU 官方 ComfyUI" /><br/>
+  <i>Colab L4 GPU 官方 ComfyUI：原生 ComfyUI Web 应用、线性 App 模式、快捷浮层切换与极速实时生图</i>
+</p>
+
+---
 
 ## 💡 为什么需要 Comfy Colab Kit？（工作流革命）
 

@@ -14,6 +14,11 @@
 </p>
 
 <p align="center">
+  <a href="https://comfy-colab-kit.firetable.tech"><b>🌐 Live Showcase Site</b></a>
+</p>
+
+<p align="center">
+  <a href="https://comfy-colab-kit.firetable.tech"><img src="https://img.shields.io/badge/Showcase-comfy--colab--kit.firetable.tech-10b981?logo=cloudflare&logoColor=white" alt="Live Showcase" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-amber.svg" alt="License" /></a>
   <img src="https://img.shields.io/badge/Python-3.11%2B-3b82f6?logo=python&logoColor=white" alt="Python" />
   <img src="https://img.shields.io/badge/Colab-L4-F9AB00?logo=googlecolab&logoColor=white" alt="Colab L4" />
@@ -40,6 +45,27 @@ A tiny gateway, **comfy-gate** (Python / aiohttp), runs on your VPS behind Cloud
 | **1 · Wake on demand** | Sleep card → Wake → stages + logs → ComfyUI Web App | 10-state machine, `colab new` (L4) + setup via `colab exec`, streaming reverse proxy (HTTP + `/ws`) |
 | **2 · Switchable profiles** | Pick MOSS-Image, SD3.5, … before waking | `profile.yaml` + JSON Schema; zero secrets, models by public URL |
 | **3 · Auto-stop** | Overlay shows time left; sleeps on idle / max session / quiet hours / CU budget | every rule configured in `.env` |
+
+---
+
+## 🖼️ Preview
+
+<p align="center">
+  <img src="screenshots/preview-landing.png" width="100%" alt="Landing Showcase" /><br/>
+  <i>Landing Showcase: WebGL Aurora backdrop, zero-GPU-idle architecture, and community workflow showcase</i>
+</p>
+
+<p align="center">
+  <img src="screenshots/preview-wake.png" width="100%" alt="Cold-Start Wake Gateway" /><br/>
+  <i>Cold-Start Wake Gateway: Real-time SSE stage telemetry, Cloudflare Access Zero-Trust auth, and live CU budget ledger</i>
+</p>
+
+<p align="center">
+  <img src="screenshots/preview-comfyui.png" width="100%" alt="ComfyUI on Colab L4 GPU" /><br/>
+  <i>ComfyUI on Colab L4 GPU: Native ComfyUI web application with App mode, Linear/Graph toggle overlay, and real-time image generation</i>
+</p>
+
+---
 
 ## 💡 Why Comfy Colab Kit? (The Paradigm Shift)
 

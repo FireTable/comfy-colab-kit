@@ -634,7 +634,7 @@ const I18N={
  }
 };
 
-let lang=localStorage.getItem("kit.lang")||(navigator.language.startsWith("zh")?"zh":"en");
+let lang=new URLSearchParams(location.search).get("lang")||localStorage.getItem("kit.lang")||(navigator.language.startsWith("zh")?"zh":"en");
 function t(k,p={}){let s=(I18N[lang]&&I18N[lang][k])||I18N.en[k]||k;for(const[x,v] of Object.entries(p))s=s.replace(`{${x}}`,v);return s}
 
 const STAGES_KEYS=[["allocating","stage_allocating",20],["installing","stage_installing",60],["downloading","stage_downloading",0],["booting","stage_booting",40],["smoke_testing","stage_smoke_testing",15]];
