@@ -117,13 +117,18 @@ class Proxy:
 
     async def heartbeat(self) -> None:
         """Tell the Colab-side watchdog that the gate is alive."""
+        if not self.backend:
+            return
         try:
             c = await self.client()
-            async with c.post(self.backend + "/kit/heartbeat", headers=service_headers(self.token_file),
-                              timeout=aiohttp.ClientTimeout(total=8)):
-                pass
-        except Exception:  # noqa: BLE001
-            pass
+            h = service_headers(self.token_file)
+            h["Origin"] = self.backend
+            async with c.post(self.backend + "/kit/heartbeat", headers=h, json={},
+                              timeout=aiohttp.ClientTimeout(total=8)) as r:
+                if r.status != 200:
+                    log.warning("heartbeat to %s returned %s", self.backend, r.status)
+        except Exception as e:  # noqa: BLE001
+            log.warning("heartbeat ping failed: %s", e)
 
     async def handle(self, req: web.Request) -> web.StreamResponse:
         self.on_activity()
