@@ -834,21 +834,139 @@ function generateAIPrompt(token,clientName){
 ## 1. 核心凭证与网关地址 (Connection Info)
 - **网关地址 (Gateway URL)**: \`${origin}\`
 - **预授权令牌 (Bearer Token)**: \`${token || "(可直接通过下文 Device Flow 授权获取)"}\`
-  *(当前已在浏览器完成授权，具备完整的会话查询与模型绘图权限)*
+  *(当前已在浏览器完成授权，具备完整的会话查询、模型管理与绘图权限)*
+
+所有 HTTP 接口均使用**相对路径**描述，由 Agent 拼接在网关 Base URL 之后，请求头附带：
+\`Authorization: Bearer ${token}\`
 
 ---
 
-## 2. 通用 Agent 接入与持久化配置 (Universal Agent Configuration)
+## 2. 获取与安装 ckit CLI 工具 (Install ckit)
+
+\`ckit\` 是专为 Agent 和工程师打造的轻量命令行工具与 MCP 服务器，**基于 Python 3 标准库，无任何第三方 pip 运行时依赖**。
+
+### 安装方式 (任选其一)
+- **通过 pip 安装 (推荐)**:
+\`\`\`bash
+pip install "git+https://github.com/FireTable/comfy-colab-kit.git"
+\`\`\`
+- **通过 uv 工具安装**:
+\`\`\`bash
+uv tool install "git+https://github.com/FireTable/comfy-colab-kit.git"
+\`\`\`
+- **单脚本免安装运行**:
+\`\`\`bash
+mkdir -p ~/.local/bin
+curl -sSL "https://raw.githubusercontent.com/FireTable/comfy-colab-kit/main/packages/cli/ckit" -o ~/.local/bin/ckit && chmod +x ~/.local/bin/ckit
+\`\`\`
+
+### 常用命令速查
+- \`ckit status [--json]\`: 检查 GPU 实例状态、当前模型 Profile、排队情况与 CU 余额
+- \`ckit profiles [--json]\`: 查询网关支持的所有模型 Profiles 及 Workflows 工作流列表
+- \`ckit wake [--profile ID] [--wait]\`: 唤醒或加入 GPU 实例（加入现有会话无需重复开机）
+- \`ckit generate --prompt "..." [--preset "Fast alt"]\`: 执行快速文生图
+- \`ckit stop\`: 立即关闭 GPU 实例，释放算力停止计费
+- \`ckit mcp\`: 启动标准输入输出 (stdio) MCP 服务
+
+---
+
+## 3. 怎么查询支持的 ComfyUI 工作流 (Query Workflows)
+
+在生图前，Agent 可以通过以下方式动态获取网关支持的模型 Profile 及旗下全部可用工作流：
+
+1. **CLI 命令行查询**:
+\`\`\`bash
+ckit profiles --json
+\`\`\`
+2. **HTTP API 查询 (相对路径)**:
+向 \`GET /_gate/profiles\` 发送请求，返回包含当前可用 Profile 列表（如 \`moss-image\`, \`sd-latest\`, \`qwen-image\`）以及每个 Profile 下全部已注册工作流（如 \`matlowai-presets\`, \`matlowai-img2img\`, \`akhaliq-4step\`, \`official-t2i\` 等）的完整定义与许可。
+3. **查询当前 GPU 运行状态**:
+向 \`GET /_gate/status\` 发送请求，返回当前 GPU 运行的 Profile、会话阶段以及默认视图。
+
+---
+
+## 4. 选型决策：什么时候用文生图？什么时候用图生图？
+
+- **纯文字构思 / 概念生图 -> 使用文生图 (Txt2Img)**:
+  - 推荐调用 MCP 工具: \`gate_txt2img(prompt=..., negative_prompt=..., preset="Fast alt", seed=..., width=1024, height=1024)\`
+  - **默认画质预设**: \`"Fast alt"\` (10 步超快且画质极佳，内置抗条纹 DeBand LoRA)。
+  - **负向提示词**: 默认已注入画质优化负向词 (\`worst quality, bad anatomy, watermark, jpeg artifact\`)。
+- **提供参考底图 / 局部重绘 / 风格迁移 -> 使用图生图 (Img2Img)**:
+  - **必须步骤**: 先调用 \`POST /upload/image\` 上传参考底图（见下文透传说明）。
+  - **推荐工作流**: \`matlowai-img2img\` (或原生透传 \`/prompt\`)。
+  - **重绘幅度 \`denoise\` 调节指南**:
+    - \`0.2 ~ 0.35\`: 微调细节、画质修复、高清放大，构图完全锁定。
+    - \`0.4 ~ 0.65\`: 改变服装、发型、局部物品或光影风格，主体轮廓保留。
+    - \`0.7 ~ 1.0\`: 剧烈重绘创作，仅保留原图色彩调性。
+
+---
+
+## 5. 原生 ComfyUI 接口透传与参考图上传（图生图核心）
+
+当 Gateway 状态为 \`ready\` 时，网关同时扮演安全反向代理角色，所有原生 ComfyUI 请求直接透传到后端内核，**已全部打通认证与 Cloudflare 拦截**：
+
+### 核心开放接口清单 (相对路径)
+- \`POST /upload/image\`: **图生图核心**。上传参考底图到 ComfyUI input 目录（\`multipart/form-data\`，字段 \`image\`, \`overwrite="true"\`，返回 \`{"name": "...", "subfolder": "", "type": "input"}\`）。
+- \`POST /upload/mask\`: 上传 Inpainting 蒙版图。
+- \`POST /prompt\`: 提交原生 node graph JSON 任务排队（在 \`LoadImage\` 节点填入上传拿到的图片名）。
+- \`GET /prompt\`: 查询排队中的任务队列。
+- \`GET /history/{prompt_id}\`: 查询任务执行输出与图片名。
+- \`GET /view?filename={filename}&type=output\`: 获取输出图像文件。
+- \`GET /view_metadata?filename={filename}\`: 读取已生成图片中内嵌的工作流元数据。
+- \`GET /object_info\`: 获取所有 ComfyUI 节点类参数与 Schema。
+- \`GET /system_stats\`: 查询 GPU 显存 (VRAM) 与系统负载。
+- \`GET /queue\` & \`POST /queue\`: 查询排队情况或清空队列。
+- \`POST /interrupt\`: 紧急中断当前正在执行的绘图计算。
+- \`GET /ws?clientId={id}\`: 订阅实时执行进度 WebSocket。
+
+### 图生图底图上传示例 (Python):
+\`\`\`python
+import urllib.request, uuid, json
+
+def upload_image(gateway_url, token, image_path):
+    boundary = f"----WebKitFormBoundary{uuid.uuid4().hex}"
+    with open(image_path, "rb") as f:
+        img_bytes = f.read()
+    filename = image_path.split("/")[-1]
+    body = (
+        f"--{boundary}\\r\\nContent-Disposition: form-data; name=\\"image\\"; filename=\\"{filename}\\"\\r\\nContent-Type: image/png\\r\\n\\r\\n".encode() +
+        img_bytes +
+        f"\\r\\n--{boundary}\\r\\nContent-Disposition: form-data; name=\\"overwrite\\"\\r\\n\\r\\ntrue\\r\\n--{boundary}--\\r\\n".encode()
+    )
+    req = urllib.request.Request(
+        f"{gateway_url.rstrip('/')}/upload/image",
+        data=body,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": f"multipart/form-data; boundary={boundary}"},
+        method="POST"
+    )
+    with urllib.request.urlopen(req) as r:
+        return json.loads(r.read())["name"]  # 填入 LoadImage 节点
+\`\`\`
+
+---
+
+## 6. 权限确认、CU 算力核查与关机释放策略
+
+1. **权限确认**:
+   - 调用 \`gate_status\` (相对路径 \`GET /_gate/status\`)，读取返回中的 \`you\` 节点：
+   - 若 \`you.owner === true\`：你是系统管理员，拥有唤醒 (\`wake\`)、关机 (\`stop\`)、切换模型 (\`switch\`) 的完全权限。
+2. **CU 算力核查**:
+   - 返回中的 \`cu\` 节点包含今日消耗、当月消耗及剩余余额 (\`balance\`)：
+   - 每次绘画完成后，可在回复中向用户汇报当前 CU 余额；若 \`balance < 2.0\` 时提醒算力偏低。
+3. **Owner 关机释放策略**:
+   - Colab L4 GPU 按 CU 持续计费（约 1.71 CU/小时）。当生图任务完成且用户表示“已完成/暂时不需要绘图”时，Agent 应**主动询问或执行关机**（调用 \`gate_stop\` 或相对路径 \`POST /_gate/stop\`），释放计算单元，避免闲置浪费！
+
+---
+
+## 7. 通用 Agent 接入与持久化配置 (Universal Configuration)
 
 ### 方案 A: 保存至通用 Agent 配置 (推荐，跨终端跨 Agent 通用)
 建议优先将网关凭据写入通用 Agent 目录或全局 CLI 配置，全系统所有 Agent、脚本与命令行即可自动识别与共享授权：
-
 - **选项 1 (通用 Agent 环境)**：将环境变量追加至 \`~/.agents/.env\`：
 \`\`\`bash
 CKIT_URL="${origin}"
 CKIT_TOKEN="${token}"
 \`\`\`
-
 - **选项 2 (CLI 全局配置)**：写入全局配置 \`~/.config/ckit/config.json\`：
 \`\`\`json
 {
@@ -857,31 +975,16 @@ CKIT_TOKEN="${token}"
 }
 \`\`\`
 
----
-
 ### 方案 B: 安装配套 Agent Skill (推荐 Skill: \`/comfy-colab-kit\`)
-如果你支持 Agent Skills 技能库标准 (如 Cursor Agent, Claude Code, OpenClaw, Antigravity)，请将技能定义写入 \`~/.agents/skills/comfy-colab-kit/SKILL.md\`，使你随时掌握完整的生图决策与 GPU 运维策略：
+如果你支持 Agent Skills 技能库标准 (如 Cursor Agent, Claude Code, OpenClaw, Antigravity)，请将技能定义写入 \`~/.agents/skills/comfy-colab-kit/SKILL.md\`：
 \`\`\`bash
 mkdir -p ~/.agents/skills/comfy-colab-kit
-cat << 'EOF' > ~/.agents/skills/comfy-colab-kit/SKILL.md
----
-name: comfy-colab-kit
-description: ComfyUI on Colab L4 GPU gate operator. Wake, manage shared session, check CU budget, generate images via text-to-image or image-to-image, and release compute.
----
-
-# Comfy Colab Kit Skill (/comfy-colab-kit)
-- 网关地址: ${origin}
-- 鉴权方式: Header Authorization: Bearer <TOKEN>
-- 优先调用 MCP 工具 (gate_status, gate_wake, gate_txt2img, gate_generate, gate_stop)
-- 所有 HTTP 接口均使用相对路径拼在网关 Host 之后
-EOF
+curl -sSL "${origin}/_gate/static/../../skills/comfy-colab-kit/SKILL.md" 2>/dev/null || true
+# 或直接由 Agent 引用当前已掌握的 comfy-colab-kit skill 指令
 \`\`\`
 
----
-
 ### 方案 C: 配置为 MCP 工具 (支持 MCP 协议的 Agent / IDE)
-如果你支持 Model Context Protocol，请将以下服务配置添加到你的 MCP 配置文件中（例如写入通用的 \`~/.agents/mcp.json\`，或当前宿主环境的 MCP 配置文件）：
-
+如果你支持 Model Context Protocol，请将以下服务配置添加到你的 MCP 配置文件中（例如 \`~/.agents/mcp.json\` 或当前宿主环境的 MCP 配置）：
 \`\`\`json
 {
   "mcpServers": {
@@ -896,60 +999,13 @@ EOF
   }
 }
 \`\`\`
-
-> **远程 HTTP MCP 端点 (若客户端支持 SSE / Streamable MCP)**:
+> **远程 HTTP MCP 端点 (若客户端支持 Streamable / HTTP MCP)**:
 > - **Endpoint**: \`${origin}/mcp\`
 > - **HTTP Header**: \`Authorization: Bearer ${token}\`
 
-> **CLI 安装依赖**: 若本地未安装 \`ckit\`，可直接运行：
-> \`\`\`bash
-> pip install "git+https://github.com/FireTable/comfy-colab-kit.git#subdirectory=packages/cli"
-> \`\`\`
-
 ---
 
-## 3. 任务选型决策树 (Txt2Img vs Img2Img)
-
-1. **纯文字构思 / 概念生图 -> 文生图 (Txt2Img)**:
-   - 调用 MCP: \`gate_txt2img(prompt=..., negative_prompt=..., preset="Fast alt", seed=..., width=1024, height=1024)\`
-   - **默认预设**: \`"Fast alt"\` (10 步超快且画质极佳，内置抗色带条纹 DeBand LoRA)。
-   - **负向提示词**: 默认已注入画质优化负向词。
-2. **提供参考底图 / 修改图片 / 风格迁移 -> 图生图 (Img2Img)**:
-   - 工作流: \`matlowai-img2img\` (或原生透传 \`/prompt\`)。
-   - **重绘幅度 \`denoise\` 调节**:
-     - \`0.2 ~ 0.35\`: 微调细节、画质修复、高清放大，构图完全锁定。
-     - \`0.4 ~ 0.65\`: 改变服装、发型、局部物品或光影风格，主体轮廓保留。
-     - \`0.7 ~ 1.0\`: 剧烈重绘创作，仅保留原图色彩调性。
-
----
-
-## 4. 权限确认、CU 算力核查与关机释放策略
-
-1. **权限确认**:
-   - 调用 \`gate_status\` (相对路径 \`GET /_gate/status\`)，读取返回中的 \`you\` 节点：
-   - 若 \`you.owner === true\`：你是系统管理员，拥有唤醒 (\`wake\`)、关机 (\`stop\`)、切换模型 (\`switch\`) 的完全权限。
-2. **CU 算力核查**:
-   - 返回中的 \`cu\` 节点包含今日消耗、当月消耗及剩余余额 (\`balance\`)：
-   - 每次绘画完成后，可在回复中向用户汇报当前 CU 余额；若 \`balance < 2.0\` 时提醒算力偏低。
-3. **Owner 关机释放策略**:
-   - Colab L4 GPU 按 CU 持续计费。当生图任务完成且用户表示“已完成/暂时不需要绘图”时，Agent 应**主动询问或执行关机**（调用 \`gate_stop\` 或相对路径 \`POST /_gate/stop\`），释放计算单元，避免闲置浪费！
-
----
-
-## 5. 原生 ComfyUI 接口透传规范 (API Passthrough)
-
-当 Gateway 状态为 \`ready\` 时，网关作为安全反向代理，所有原生 ComfyUI 接口以相对路径透传：
-- \`POST /prompt\`: 提交原生 node graph 进行绘图排队
-- \`GET /history/{prompt_id}\`: 查询任务执行输出与图片名
-- \`GET /view?filename={filename}&type=output\`: 获取输出图像文件
-- \`GET /ws?clientId={id}\`: 订阅实时执行进度 WebSocket
-- \`GET /object_info\`: 获取 ComfyUI 节点参数 Schema
-
-请求时将相对路径拼接在网关 Base URL 之后，并附带 \`Authorization: Bearer ${token}\` 即可。
-
----
-
-## 4. 方式 B: 终端命令与一键配对 (Device Flow)
+## 8. 方式 B: 终端命令与一键配对 (Device Flow)
 如果你在终端运行或 Token 失效，可随时在命令行执行：
 \`\`\`bash
 python3 -m ckit auth ${origin}
@@ -958,7 +1014,7 @@ python3 -m ckit auth ${origin}
 
 ---
 
-## 5. 立即验证与测试 (Python Snippet)
+## 9. 立即验证与测试 (Python Snippet)
 你可以直接运行此脚本测试网关连通性：
 \`\`\`python
 import urllib.request, json

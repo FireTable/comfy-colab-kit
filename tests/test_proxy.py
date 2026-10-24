@@ -152,3 +152,52 @@ async def test_proxy_strips_cf_authorization_cookie_and_rewrites_location():
             await p.close()
     finally:
         await server.close()
+
+
+async def test_proxy_multipart_image_upload():
+    backend = web.Application()
+
+    async def handle_upload(req: web.Request) -> web.Response:
+        post = await req.post()
+        img = post.get("image")
+        subfolder = post.get("subfolder", "")
+        content = img.file.read() if hasattr(img, "file") else b""
+        return web.json_response({
+            "name": getattr(img, "filename", "unnamed.png"),
+            "subfolder": subfolder,
+            "type": "input",
+            "size": len(content),
+            "origin": req.headers.get("Origin"),
+        })
+
+    backend.router.add_post("/upload/image", handle_upload)
+    server = TestServer(backend)
+    await server.start_server()
+
+    try:
+        p = Proxy(f"http://127.0.0.1:{server.port}", "/nonexistent", lambda: None, lambda: None, lambda: None)
+        gate_app = web.Application()
+
+        async def gate_handler(req: web.Request):
+            return await p.handle(req)
+
+        gate_app.router.add_post("/upload/image", gate_handler)
+        client = TestClient(TestServer(gate_app))
+        await client.start_server()
+        try:
+            data = aiohttp.FormData()
+            data.add_field("image", b"\x89PNG\r\n\x1a\nfakeimagebytes", filename="ref.png", content_type="image/png")
+            data.add_field("subfolder", "")
+            data.add_field("type", "input")
+            res = await client.post("/upload/image", data=data)
+            assert res.status == 200
+            res_json = await res.json()
+            assert res_json["name"] == "ref.png"
+            assert res_json["size"] == 22
+            assert res_json["origin"] == f"http://127.0.0.1:{server.port}"
+        finally:
+            await client.close()
+            await p.close()
+    finally:
+        await server.close()
+

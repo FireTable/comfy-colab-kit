@@ -633,7 +633,12 @@ async def catch_all(request: web.Request) -> web.StreamResponse:
         except Exception as e:  # noqa: BLE001
             log.warning("proxy error: %s", e)
             return err(502, "backend_unreachable", "ComfyUI backend unreachable")
-    if request.path.startswith(("/api", "/ws", "/prompt", "/view")):
+    api_prefixes = (
+        "/api", "/ws", "/prompt", "/view", "/view_metadata",
+        "/upload", "/object_info", "/embeddings", "/extensions",
+        "/system_stats", "/queue", "/interrupt", "/history"
+    )
+    if any(request.path.startswith(p) for p in api_prefixes):
         return err(503, "asleep", f"ComfyUI is {s.machine.state.value}; POST /_gate/wake first")
     raise web.HTTPFound("/")
 
