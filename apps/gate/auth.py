@@ -94,7 +94,7 @@ def is_owner(email: str, settings: Settings, db: GateDB | None = None) -> bool:
 
 def identify(headers: Mapping[str, str], settings: Settings, keys: JWKSCache | None,
              agent_token: str = "", query_token: str = "", cookie_token: str = "",
-             db: GateDB | None = None) -> Identity:
+             db: GateDB | None = None, cf_cookie: str = "") -> Identity:
     token_candidate = None
     auth = headers.get("Authorization", "")
     if auth.startswith("Bearer "):
@@ -117,7 +117,7 @@ def identify(headers: Mapping[str, str], settings: Settings, keys: JWKSCache | N
     if settings.auth_disabled:
         is_own = is_owner("dev@localhost", settings, db)
         return Identity("dev@localhost", "dev", is_own)
-    token = headers.get("Cf-Access-Jwt-Assertion") or ""
+    token = headers.get("Cf-Access-Jwt-Assertion") or cf_cookie or ""
     if not token:
         raise AuthError(401, "no_access_token", "missing Cloudflare Access token")
     if keys is None:

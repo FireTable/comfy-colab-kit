@@ -94,9 +94,10 @@ async def auth_mw(request: web.Request, handler):
     app = request.app
     query_token = request.query.get("token", "")
     cookie_token = request.cookies.get("agent_token", "")
+    cf_cookie = request.cookies.get("CF_Authorization", "")
     try:
         ident = await asyncio.get_running_loop().run_in_executor(
-            None, identify, request.headers, app[SETTINGS], app[JWKS], app[AGENT_TOKEN], query_token, cookie_token, app.get(DB_KEY))
+            None, identify, request.headers, app[SETTINGS], app[JWKS], app[AGENT_TOKEN], query_token, cookie_token, app.get(DB_KEY), cf_cookie)
     except AuthError as e:
         accept = request.headers.get("Accept", "")
         if "text/html" in accept and not request.path.startswith("/_gate/") and not request.path.startswith("/api/"):
