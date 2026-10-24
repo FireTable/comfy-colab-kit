@@ -12,6 +12,7 @@ dev = ["pytest>=8", "pytest-asyncio>=0.23", "jsonschema>=4.21"]
 
 [project.scripts]
 comfy-gate = "gate.app:main"
+ckit = "ckit.cli:main"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -19,6 +20,7 @@ testpaths = ["tests"]
 
 [tool.setuptools.package-dir]
 gate = "apps/gate"
+ckit = "packages/cli"
 
 [tool.setuptools.package-data]
 gate = ["web/*", "openapi.yaml"]

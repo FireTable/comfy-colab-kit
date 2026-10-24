@@ -7,11 +7,13 @@ Exposes comfy-gate lifecycle and ComfyUI generation tools to AI agents
 Tools:
   - gate_status: Query session state, profile, remaining seconds, CU ledger.
   - gate_wake: Wake or join the shared Colab GPU instance and wait until ready.
-  - gate_generate: Submit a ComfyUI prompt graph, poll for completion, and return image URLs.
+  - gate_txt2img: High-level text-to-image with MOSS-Image DeBand pipeline and presets.
+  - gate_generate: Submit a raw ComfyUI prompt graph, poll for completion, and return image URLs.
   - gate_stop: Release the Colab GPU immediately to prevent Compute Unit waste.
 
 Environment Variables:
   CKIT_URL: Gate endpoint, e.g. https://comfy.example.com (default: http://127.0.0.1:8080)
+  CKIT_TOKEN: Bearer token string (or CKIT_TOKEN_FILE)
   CKIT_TOKEN_FILE: Path to agent bearer token file (optional if AUTH_DISABLED)
   CF_ACCESS_CLIENT_ID: Cloudflare Access Service Token Client ID (optional)
   CF_ACCESS_CLIENT_SECRET_FILE: Cloudflare Access Service Token Secret file (optional)
@@ -21,6 +23,7 @@ import os
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 PROTOCOL_VERSION = "2024-11-05"
@@ -66,11 +69,24 @@ def call_gate(method: str, path: str, body: dict | None = None) -> tuple[int, di
 
     try:
         with urllib.request.urlopen(req, timeout=90) as r:
-            res_data = r.read() or b"{}"
-            return r.status, json.loads(res_data)
+            content_type = r.headers.get("Content-Type", "")
+            raw = r.read() or b"{}"
+            if "text/html" in content_type:
+                return 401, {
+                    "error": "cf_access_redirect",
+                    "message": "Gateway returned HTML instead of JSON. The endpoint may be protected by Cloudflare Access. Please authenticate via device flow ('ckit auth') or provide a valid agent token."
+                }
+            return r.status, json.loads(raw)
     except urllib.error.HTTPError as e:
+        content_type = e.headers.get("Content-Type", "")
+        raw = e.read() or b"{}"
+        if "text/html" in content_type:
+            return e.code, {
+                "error": "cf_access_blocked" if e.code in (302, 401, 403) else "http_html_error",
+                "message": f"Gateway returned HTTP {e.code} with HTML. Cloudflare Access or firewall may be intercepting requests."
+            }
         try:
-            return e.code, json.loads(e.read() or b"{}")
+            return e.code, json.loads(raw)
         except Exception:
             return e.code, {"error": "http_error", "message": str(e)}
     except Exception as e:
@@ -104,8 +120,46 @@ TOOLS = [
         }
     },
     {
+        "name": "gate_txt2img",
+        "description": "Generate an image using the pre-configured MOSS-Image DeBand pipeline with high quality and anti-banding LoRAs. Returns full image URLs.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "prompt": {
+                    "type": "string",
+                    "description": "Text description of the image to generate (positive prompt)."
+                },
+                "negative_prompt": {
+                    "type": "string",
+                    "description": "Optional negative prompt elements to avoid (default: 'worst quality, bad anatomy, watermark, jpeg artifact')."
+                },
+                "preset": {
+                    "type": "string",
+                    "description": "Speed/quality preset: 'Fast alt' (default, 10 steps, recommended), 'Fast' (10 steps), 'Balanced' (14 steps), 'Quality' (25 steps)."
+                },
+                "seed": {
+                    "type": "integer",
+                    "description": "Random seed for reproducible generation (optional, default random integer)."
+                },
+                "width": {
+                    "type": "integer",
+                    "description": "Image width in pixels (default: 1024)."
+                },
+                "height": {
+                    "type": "integer",
+                    "description": "Image height in pixels (default: 1024)."
+                },
+                "timeout_seconds": {
+                    "type": "integer",
+                    "description": "Maximum seconds to wait for generation (default: 180)."
+                }
+            },
+            "required": ["prompt"]
+        }
+    },
+    {
         "name": "gate_generate",
-        "description": "Submit a prompt workflow graph to the running ComfyUI instance, wait for execution, and return image URLs and metadata.",
+        "description": "Submit a raw ComfyUI prompt workflow graph to the running instance, wait for execution, and return image URLs and metadata.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -137,6 +191,53 @@ TOOLS = [
 ]
 
 
+def _execute_prompt(prompt: dict, timeout_s: int = 180) -> dict:
+    code, status = call_gate("GET", "/_gate/status")
+    if status.get("state") != "ready":
+        return {"isError": True, "content": [{"type": "text", "text": f"Cannot generate: ComfyUI is not ready (current state: '{status.get('state')}'). Call gate_wake first."}]}
+
+    p_code, p_out = call_gate("POST", "/prompt", {"prompt": prompt})
+    if p_code >= 400 or "prompt_id" not in p_out:
+        return {"isError": True, "content": [{"type": "text", "text": f"Failed to submit prompt ({p_code}): {json.dumps(p_out, ensure_ascii=False)}"}]}
+
+    prompt_id = p_out["prompt_id"]
+
+    start_t = time.time()
+    cfg = {}
+    cfg_path = os.path.expanduser("~/.config/ckit/config.json")
+    if os.path.isfile(cfg_path):
+        try:
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+        except Exception:
+            pass
+    base = os.environ.get("CKIT_URL", cfg.get("default_endpoint") or "http://127.0.0.1:8080").rstrip("/")
+
+    while time.time() - start_t < timeout_s:
+        time.sleep(3)
+        h_code, h_out = call_gate("GET", f"/history/{prompt_id}")
+        if h_code < 400 and prompt_id in h_out:
+            item = h_out[prompt_id]
+            outputs = item.get("outputs", {})
+            images = []
+            for node_id, node_out in outputs.items():
+                for img in node_out.get("images", []):
+                    fn = img.get("filename", "")
+                    sub = img.get("subfolder", "")
+                    t = img.get("type", "output")
+                    url = f"{base}/view?filename={urllib.parse.quote(fn)}&subfolder={urllib.parse.quote(sub)}&type={urllib.parse.quote(t)}"
+                    images.append({"filename": fn, "url": url, "node_id": node_id})
+
+            res_data = {"prompt_id": prompt_id, "status": item.get("status", {}), "images": images}
+            res_text = json.dumps(res_data, indent=2, ensure_ascii=False)
+            if images:
+                img_md = "\n".join([f"![{img['filename']}]({img['url']})\nLink: {img['url']}" for img in images])
+                res_text += f"\n\n### Generated Images\n{img_md}"
+            return {"content": [{"type": "text", "text": res_text}]}
+
+    return {"isError": True, "content": [{"type": "text", "text": f"Generation timed out after {timeout_s}s. Prompt ID: {prompt_id}"}]}
+
+
 def handle_tool_call(name: str, args: dict) -> dict:
     if name == "gate_status":
         code, out = call_gate("GET", "/_gate/status")
@@ -151,7 +252,7 @@ def handle_tool_call(name: str, args: dict) -> dict:
 
         code, out = call_gate("POST", "/_gate/wake", body)
         if code >= 400:
-            return {"isError": True, "content": [{"type": "text", "text": f"Wake failed ({code}): {json.dumps(out)}"}]}
+            return {"isError": True, "content": [{"type": "text", "text": f"Wake failed ({code}): {json.dumps(out, ensure_ascii=False)}"}]}
 
         if should_wait:
             max_wait = 900  # 15 minutes max
@@ -161,57 +262,52 @@ def handle_tool_call(name: str, args: dict) -> dict:
                 s_code, status = call_gate("GET", "/_gate/status")
                 st = status.get("state")
                 if st == "ready":
-                    return {"content": [{"type": "text", "text": f"ComfyUI is ready!\n{json.dumps(status, indent=2)}"}]}
+                    return {"content": [{"type": "text", "text": f"ComfyUI is ready!\n{json.dumps(status, indent=2, ensure_ascii=False)}"}]}
                 if st in ("failed", "sleeping"):
-                    return {"isError": True, "content": [{"type": "text", "text": f"Wake resulted in state '{st}': {json.dumps(status)}"}]}
+                    return {"isError": True, "content": [{"type": "text", "text": f"Wake resulted in state '{st}': {json.dumps(status, ensure_ascii=False)}"}]}
 
-            return {"isError": True, "content": [{"type": "text", "text": f"Timed out waiting for ComfyUI to become ready.\nLast status: {json.dumps(status)}"}]}
+            return {"isError": True, "content": [{"type": "text", "text": f"Timed out waiting for ComfyUI to become ready.\nLast status: {json.dumps(status, ensure_ascii=False)}"}]}
 
         return {"content": [{"type": "text", "text": json.dumps(out, indent=2, ensure_ascii=False)}]}
+
+    if name == "gate_txt2img":
+        prompt_text = (args.get("prompt") or "").strip()
+        if not prompt_text:
+            return {"isError": True, "content": [{"type": "text", "text": "Missing required argument 'prompt'"}]}
+        negative_prompt = args.get("negative_prompt", "worst quality, bad anatomy, watermark, jpeg artifact")
+        preset = args.get("preset", "Fast alt · fix + darask0 0.35 · 10 steps")
+        seed = args.get("seed", -1)
+        width = args.get("width", 1024)
+        height = args.get("height", 1024)
+        timeout_s = args.get("timeout_seconds", 180)
+
+        try:
+            from .moss_template import make_moss_txt2img_graph
+        except ImportError:
+            try:
+                from cli.moss_template import make_moss_txt2img_graph
+            except ImportError:
+                from moss_template import make_moss_txt2img_graph
+
+        graph = make_moss_txt2img_graph(
+            prompt=prompt_text,
+            negative_prompt=negative_prompt,
+            preset=preset,
+            seed=seed,
+            width=width,
+            height=height,
+        )
+        return _execute_prompt(graph, timeout_s)
 
     if name == "gate_generate":
         prompt = args.get("prompt")
         timeout_s = args.get("timeout_seconds", 180)
-
-        # 1. Verify gate is ready
-        code, status = call_gate("GET", "/_gate/status")
-        if status.get("state") != "ready":
-            return {"isError": True, "content": [{"type": "text", "text": f"Cannot generate: ComfyUI is not ready (current state: '{status.get('state')}'). Call gate_wake first."}]}
-
-        # 2. Submit prompt to ComfyUI
-        p_code, p_out = call_gate("POST", "/prompt", {"prompt": prompt})
-        if p_code >= 400 or "prompt_id" not in p_out:
-            return {"isError": True, "content": [{"type": "text", "text": f"Failed to submit prompt ({p_code}): {json.dumps(p_out)}"}]}
-
-        prompt_id = p_out["prompt_id"]
-
-        # 3. Poll history until prompt completes
-        start_t = time.time()
-        while time.time() - start_t < timeout_s:
-            time.sleep(3)
-            h_code, h_out = call_gate("GET", f"/history/{prompt_id}")
-            if h_code < 400 and prompt_id in h_out:
-                item = h_out[prompt_id]
-                outputs = item.get("outputs", {})
-                images = []
-                base = os.environ.get("CKIT_URL", "http://127.0.0.1:8080").rstrip("/")
-                for node_id, node_out in outputs.items():
-                    for img in node_out.get("images", []):
-                        fn = img.get("filename", "")
-                        sub = img.get("subfolder", "")
-                        t = img.get("type", "output")
-                        url = f"{base}/view?filename={urllib.parse.quote(fn)}&subfolder={urllib.parse.quote(sub)}&type={urllib.parse.quote(t)}"
-                        images.append({"filename": fn, "url": url, "node_id": node_id})
-
-                res_text = json.dumps({"prompt_id": prompt_id, "status": item.get("status", {}), "images": images}, indent=2)
-                return {"content": [{"type": "text", "text": res_text}]}
-
-        return {"isError": True, "content": [{"type": "text", "text": f"Generation timed out after {timeout_s}s. Prompt ID: {prompt_id}"}]}
+        return _execute_prompt(prompt, timeout_s)
 
     if name == "gate_stop":
         reason = args.get("reason", "agent requested stop")
         code, out = call_gate("POST", "/_gate/stop", {"reason": reason})
-        return {"content": [{"type": "text", "text": f"Stop request returned ({code}):\n{json.dumps(out, indent=2)}"}]}
+        return {"content": [{"type": "text", "text": f"Stop request returned ({code}):\n{json.dumps(out, indent=2, ensure_ascii=False)}"}]}
 
     return {"isError": True, "content": [{"type": "text", "text": f"Unknown tool: {name}"}]}
 
@@ -248,11 +344,6 @@ def run_stdio_server():
             }
             sys.stdout.write(json.dumps(res) + "\n")
             sys.stdout.flush()
-
-        elif method == "notifications/initialized":
-            # Handshake complete; no response required
-            pass
-
         elif method == "tools/list":
             res = {
                 "jsonrpc": "2.0",
@@ -263,7 +354,6 @@ def run_stdio_server():
             }
             sys.stdout.write(json.dumps(res) + "\n")
             sys.stdout.flush()
-
         elif method == "tools/call":
             tool_name = params.get("name")
             tool_args = params.get("arguments", {})
@@ -275,23 +365,20 @@ def run_stdio_server():
             }
             sys.stdout.write(json.dumps(res) + "\n")
             sys.stdout.flush()
-
         elif method == "ping":
             sys.stdout.write(json.dumps({"jsonrpc": "2.0", "id": req_id, "result": {}}) + "\n")
             sys.stdout.flush()
-
         else:
-            if req_id is not None:
-                err_res = {
-                    "jsonrpc": "2.0",
-                    "id": req_id,
-                    "error": {
-                        "code": -32601,
-                        "message": f"Method not found: {method}"
-                    }
+            res = {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {
+                    "code": -32601,
+                    "message": f"Method not found: {method}"
                 }
-                sys.stdout.write(json.dumps(err_res) + "\n")
-                sys.stdout.flush()
+            }
+            sys.stdout.write(json.dumps(res) + "\n")
+            sys.stdout.flush()
 
 
 if __name__ == "__main__":
