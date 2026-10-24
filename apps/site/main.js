@@ -430,7 +430,8 @@ function applyLanguage(lang) {
 }
 
 // Initial language detection
-const savedLang = localStorage.getItem("kit.lang");
+const urlLang = new URLSearchParams(window.location.search).get("lang");
+const savedLang = urlLang || localStorage.getItem("kit.lang");
 const initialLang = savedLang || (navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en");
 applyLanguage(initialLang);
 
