@@ -133,5 +133,28 @@ async def test_device_auth_endpoints(tmp_path):
         # Verify direct token works
         res = await client.get("/_gate/status", headers={"Authorization": f"Bearer {dir_data['token']}"})
         assert res.status == 200
+
+        # Step 10: Test unused token reuse
+        res = await client.post("/api/agent-tokens", json={"name": "Cursor-Unused", "force": True})
+        assert res.status == 200
+        unused_tok = (await res.json())["token"]
+
+        # Calling without force should reuse unused_tok
+        res = await client.post("/api/agent-tokens", json={"name": "Cursor-Copy", "force": False})
+        assert res.status == 200
+        reused_data = await res.json()
+        assert reused_data["token"] == unused_tok
+        assert reused_data["reused"] is True
+
+        # Now use the token
+        res = await client.get("/_gate/status", headers={"Authorization": f"Bearer {unused_tok}"})
+        assert res.status == 200
+
+        # After use, a new token is created
+        res = await client.post("/api/agent-tokens", json={"name": "Cursor-Next", "force": False})
+        assert res.status == 200
+        next_data = await res.json()
+        assert next_data["token"] != unused_tok
+        assert next_data["reused"] is False
     finally:
         await client.close()

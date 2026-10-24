@@ -50,7 +50,8 @@ class GateDB:
                     email TEXT NOT NULL,
                     created_at REAL NOT NULL,
                     last_used_at REAL,
-                    revoked INTEGER NOT NULL DEFAULT 0
+                    revoked INTEGER NOT NULL DEFAULT 0,
+                    token_plain TEXT
                 );
                 CREATE INDEX IF NOT EXISTS idx_tokens_hash ON agent_tokens(token_hash);
                 CREATE INDEX IF NOT EXISTS idx_tokens_email ON agent_tokens(email);
@@ -74,6 +75,10 @@ class GateDB:
                     created_at REAL NOT NULL
                 );
             """)
+            try:
+                conn.execute("ALTER TABLE agent_tokens ADD COLUMN token_plain TEXT;")
+            except Exception:
+                pass
 
     # ── Device Code Authorization (RFC 8628) ──────────────────────────────────
     def create_device_code(self, client_name: str = "", expires_in_sec: int = 600) -> dict[str, Any]:
@@ -127,9 +132,9 @@ class GateDB:
 
             name = token_name or row["client_name"] or "AI Agent"
             conn.execute(
-                """INSERT INTO agent_tokens (id, name, token_hash, email, created_at, revoked)
-                   VALUES (?, ?, ?, ?, ?, 0)""",
-                (token_id, name, token_hash, email.lower(), now)
+                """INSERT INTO agent_tokens (id, name, token_hash, email, created_at, revoked, token_plain)
+                   VALUES (?, ?, ?, ?, ?, 0, ?)""",
+                (token_id, name, token_hash, email.lower(), now, raw_token)
             )
             conn.execute(
                 """UPDATE device_codes
@@ -196,29 +201,51 @@ class GateDB:
                     "created_at": r["created_at"],
                     "last_used_at": r["last_used_at"],
                     "revoked": bool(r["revoked"]),
+                    "token": r["token_plain"] if "token_plain" in r.keys() and r["token_plain"] else "",
                 }
                 for r in rows
             ]
 
-    def create_direct_token(self, email: str, name: str) -> dict[str, Any]:
-        raw_token = f"sk_agent_{secrets.token_hex(24)}"
-        token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
-        token_id = f"tok_{secrets.token_hex(6)}"
+    def create_direct_token(self, email: str, name: str, force_new: bool = False) -> dict[str, Any]:
+        norm_email = email.lower()
         now = time.time()
-
         with self._get_conn() as conn:
+            if not force_new:
+                existing = conn.execute(
+                    """SELECT * FROM agent_tokens
+                       WHERE email = ? AND revoked = 0 AND last_used_at IS NULL AND token_plain IS NOT NULL AND token_plain != ''
+                       ORDER BY created_at DESC LIMIT 1""",
+                    (norm_email,)
+                ).fetchone()
+                if existing:
+                    return {
+                        "id": existing["id"],
+                        "token_id": existing["id"],
+                        "name": existing["name"],
+                        "email": existing["email"],
+                        "token": existing["token_plain"],
+                        "created_at": existing["created_at"],
+                        "reused": True,
+                    }
+
+            raw_token = f"sk_agent_{secrets.token_hex(24)}"
+            token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+            token_id = f"tok_{secrets.token_hex(6)}"
+
             conn.execute(
-                """INSERT INTO agent_tokens (id, name, token_hash, email, created_at, revoked)
-                   VALUES (?, ?, ?, ?, ?, 0)""",
-                (token_id, name or "AI Agent", token_hash, email.lower(), now)
+                """INSERT INTO agent_tokens (id, name, token_hash, email, created_at, revoked, token_plain)
+                   VALUES (?, ?, ?, ?, ?, 0, ?)""",
+                (token_id, name or "AI Agent", token_hash, norm_email, now, raw_token)
             )
 
         return {
+            "id": token_id,
             "token_id": token_id,
             "name": name,
-            "email": email.lower(),
+            "email": norm_email,
             "token": raw_token,
             "created_at": now,
+            "reused": False,
         }
 
     def delete_token(self, token_id: str, email: str, is_owner: bool = False) -> bool:
