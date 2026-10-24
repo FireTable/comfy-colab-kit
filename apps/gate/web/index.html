@@ -424,15 +424,10 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
           <div class="cli-section">
             <button type="button" class="btn-copy-ai-prompt" id="copy-ai-prompt-btn" title="一键复制专为 Cursor、Claude Code、OpenClaw 设计的完整接入指令">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>
+                <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1 1.3-1.3Z"/>
               </svg>
               <span id="copy-ai-prompt-txt">复制 AI Agent 接入指令</span>
             </button>
-            <div class="cli-cmd-box" style="margin-top:2px">
-              <code id="cli-auth-cmd">ckit auth ...</code>
-              <button type="button" class="copy-cmd-btn" id="copy-cmd-btn" title="点击复制命令">复制命令</button>
-            </div>
-            <div class="cli-help-tip" id="cli-help-tip">复制指令给 Cursor / Claude Code，或终端运行命令一键配对</div>
           </div>
         </div>
       </div>
@@ -772,7 +767,7 @@ function updateUserUI(you){
  roleBadge.textContent=isOwner?"Owner":"Member";
  roleBadge.className="badge-role "+(isOwner?"badge-owner":"badge-member");
  $("user-role-tag").textContent=isOwner?(lang==="zh"?"系统管理员 (具备全部权限)":"Admin (Full Access)"):(lang==="zh"?"协作者 (查询与绘图)":"Member (Query & Generate)");
- $("cli-auth-cmd").textContent=`ckit auth ${window.location.origin}`;
+ if($("cli-auth-cmd"))$("cli-auth-cmd").textContent=`ckit auth ${window.location.origin}`;
 }
 userBtn.onclick=(e)=>{e.stopPropagation();toggleUserMenu()};
 $("refresh-tokens-btn").onclick=(e)=>{e.stopPropagation();loadAgentTokens()};
@@ -1211,9 +1206,9 @@ async function loadAgentTokens(){
  }
 }
 
-$("copy-cmd-btn").onclick=async(e)=>{
+if($("copy-cmd-btn")){$("copy-cmd-btn").onclick=async(e)=>{
  e.stopPropagation();
- const cmd=$("cli-auth-cmd").textContent;
+ const cmd=$("cli-auth-cmd")?$("cli-auth-cmd").textContent:"";
  try{
   await navigator.clipboard.writeText(cmd);
   const orig=$("copy-cmd-btn").textContent;
@@ -1222,7 +1217,7 @@ $("copy-cmd-btn").onclick=async(e)=>{
  }catch(_){
   prompt(lang==="zh"?"请复制命令:":"Copy command:",cmd);
  }
-};
+};}
 
 const card=$("card");card.addEventListener("pointermove",e=>{const r=card.getBoundingClientRect();card.style.setProperty("--mx",e.clientX-r.left+"px");card.style.setProperty("--my",e.clientY-r.top+"px")});
 async function api(p,o){const r=await fetch(p,Object.assign({headers:{"Content-Type":"application/json"}},o));const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.message||r.status);return j}

@@ -77,21 +77,22 @@ VPS 上运行一个轻量网关 **comfy-gate**（Python / aiohttp），前端受
 | **安全与权限** | 裸露临时公网隧道，或被迫共享 Google 账号密码 | **专属域名 + Cloudflare Access**：企业级零信任身份校验（SSO / 邮箱验证码），为 Agent 发行专属服务令牌 |
 | **团队协作** | 多人点击误开多台虚拟机，成倍烧光点数 | **全局唯一幂等共享会话**：所有访问者共享运行中的实例与实时流式日志 |
 | **算力与计费** | 用完忘记关闭网页，整晚空跑烧光所有 CU 点数 | **智能闲置休眠**：检测 20 分钟闲置超时、单次最长会话或 CU 硬上限自动安全停机 |
-| **自动化与 Agent** | 纯网页交互，无法被无头 AI 编程智能体调用 | **AI Agent 原生友好**：提供 OpenAPI 规范、`ckit --json` CLI 与即将上线的 `/mcp` 服务 |
+| **自动化与 Agent** | 纯网页交互，无法被无头 AI 编程智能体调用 | **AI Agent 与 MCP 原生原生**：完整 Model Context Protocol（stdio + HTTP）、`ckit` CLI、RFC 8628 设备码配对、`/comfy-colab-kit` 技能标准 |
 
 ## ✨ 特性
 
 - **随时随地跨端远程唤醒**：在手机、平板或命令行终端一键唤醒 Colab L4 GPU，无需打开 Colab 网页，后台自动就绪。
 - **全局唯一共享会话**：唤醒是幂等的，第二个访客（或 Agent）会加入正在进行的启动，不会再开一台 VM；状态写入
   `STATE_DIR/session.json`，网关重启后自动接管。
+- **Model Context Protocol (MCP) 原生支持**：提供本地 stdio（`ckit mcp`）与远端 HTTP 流式（`/mcp`）两种协议模式，内置 `gate_status`、`gate_wake`、`gate_txt2img`、`gate_generate`、`gate_stop` 五大核心工具。
 - **所有人看到同一份实时进度**：SSE 广播状态、下载 GB / 速度、初始化日志。
 - **权限双模式控制（默认 Mode B 管理员独占）**：默认 `OWNER_ONLY_CONTROL=true`，仅 `OWNER_EMAILS` 可唤醒与停机 GPU，避免点数被误开或误关；就绪后全员无感并发使用 ComfyUI 生图。亦可切为 Mode A 团队协同模式（支持谁开谁关）。
 - **校验 Access 身份与多 IdP 支持**：支持 Google、GitHub 一键登录与邮箱验证码（OTP），严格验证 `Cf-Access-Jwt-Assertion`（RS256、AUD、issuer）。
 - **后端只认服务令牌**：Colab 隧道主机名只放行网关的 Access 服务令牌。
 - **极速冷启动**：`hf-transfer` Rust 多线程分块并发、`uv` 安装、30s 假死自愈看门狗、隧道最先启动、核心模型到位即启动 ComfyUI（`FAST_START`）。
 - **App 模式优先**：工作流写入 ComfyUI App 模式元数据；注入的浮层可在 App ⇄ 节点图之间切换。
-- **ComfyUI 配置透传**：每个 profile 可设置命令行参数、前端设置、环境变量、`extra_model_paths`。
-- **对 Agent 友好**：OpenAPI、`cli/ckit --json`、`docs/AGENT_SKILL.md`、`llms.txt`，以及即将上线的 `/mcp` 端点。
+- **ComfyUI 完整透传**：透传图生图参考图上传 `/upload/image`、工作流排队 `/prompt`、历史记录 `/history`、图片查看 `/view`、节点 Schema `/object_info`、硬件负载 `/system_stats` 及 WebSocket `/ws`。
+- **对 Agent 极度友好**：RFC 8628 设备码一键配对（`ckit auth`）、网页端一键复制 AI 接入指令（智能复用未激活令牌）、`docs/MCP.md`、`skills/comfy-colab-kit/SKILL.md`、`docs/AGENT_SKILL.md`、`llms.txt`。
 
 ## 🚀 快速开始（VPS + Cloudflare）
 
@@ -124,14 +125,17 @@ docker compose -f deploy/docker-compose.yml up -d
 [AI 智能体] ──POST /_gate/stop───► 任务完成主动释放 GPU（或闲置自动休眠）
 ```
 
-1. **凭证认证**：请求头附带 `Authorization: Bearer <agent_token>`（从 `secrets/agent_token` 签发）或 Cloudflare Access 服务令牌（`CF-Access-Client-Id` 与 `CF-Access-Client-Secret`）。
-2. **状态探测**：请求 `GET /_gate/status`（或运行 `packages/cli/ckit status --json`）。若状态已是 `ready`，可直接复用现有会话。
-3. **幂等唤醒**：请求 `POST /_gate/wake`（或运行 `packages/cli/ckit wake --profile <name> --wait`）。并发唤醒是幂等的，会自动加入已有的启动任务，无需重复扣减点数。
-4. **ComfyUI 原生 API 调用**：一旦就绪，即可直接通过网关调用标准 ComfyUI 接口（`POST /prompt` 提交工作流、`GET /history/{prompt_id}` 轮询结果、`GET /view?filename=...` 下载图片、WebSocket `/ws` 监听节点生成流）。
-5. **安全退出**：生图结束后，若无人类协同（`clients == 0`），可调用 `POST /_gate/stop` 立即释放 GPU；亦可直接退出，由网关的闲置检测引擎在超时后自动关机。
+1. **凭证认证与快速配对**：请求头附带 `Authorization: Bearer <agent_token>`；或直接使用 RFC 8628 设备码流配对（终端运行 `ckit auth https://<host>`），或在网页端右上角点击 **🤖 复制 AI Agent 接入指令**。
+2. **状态探测与工作流查询**：请求 `GET /_gate/status`（或运行 `ckit status --json`）。调用 `GET /_gate/profiles` 或 `ckit profiles --json` 动态查询所有可用的 Profile 与工作流清单。
+3. **幂等唤醒**：请求 `POST /_gate/wake`（或运行 `ckit wake --profile <name> --wait`）。并发唤醒是幂等的，会自动加入已有的启动任务，无需重复扣减点数。
+4. **模型上下文协议 (MCP)**：本地运行 `ckit mcp` 直连 Cursor / Claude Desktop，或使用远端 HTTP `/mcp` 接口，支持 `gate_status`、`gate_wake`、`gate_txt2img`、`gate_generate`、`gate_stop` 五大工具。
+5. **ComfyUI 原生 API 透传**：一旦就绪，即可直接调用图生图底图上传 `POST /upload/image`、工作流提交 `POST /prompt`、结果轮询 `GET /history/{id}`、图片读取 `GET /view` 及 WebSocket `/ws`。
+6. **主动释放与成本控制**：生图结束后，调用 `POST /_gate/stop`（或 MCP `gate_stop`）立即释放 GPU 算力；亦可直接退出，由网关闲置超时自动关机。
 
 📖 **智能体专用文档与规范**：
-- [docs/AGENT_SKILL.md](docs/AGENT_SKILL.md) —— 专为 AI Agent 定义的 Skill 协议标准（`comfy_colab_gate`）、认证机制与调用策略。
+- [docs/MCP.md](docs/MCP.md) —— Model Context Protocol (MCP) 完整接入指南（stdio `ckit mcp`、远端 HTTP `/mcp` 与 Cursor/Claude 深度集成）。
+- [skills/comfy-colab-kit/SKILL.md](skills/comfy-colab-kit/SKILL.md) —— 通用 Agent Skill 标准规范（`/comfy-colab-kit`），包含文生图/图生图选型决策树与上传代码。
+- [docs/AGENT_SKILL.md](docs/AGENT_SKILL.md) —— 专为 AI Agent 定义的 Skill 协议标准、认证机制与生命周期调用策略。
 - [docs/AGENT.md](docs/AGENT.md) —— 面向智能体的 VPS 生产部署指南与凭证申请流水线。
 - [apps/gate/openapi.yaml](apps/gate/openapi.yaml) —— 机器可读的 OpenAPI 3.1 接口完整定义。
 - [llms.txt](llms.txt) —— 专为大语言模型打造的项目全局上下文检索清单。

@@ -38,6 +38,7 @@ Choose the reading path tailored to your specific role and objective:
 | [`ACCESS.md`](ACCESS.md) | Browser login, shareable guest links, LAN/Tailscale mode, agent auth, and in-app navigation | All Users & Agents |
 | [`AGENT.md`](AGENT.md) | End-to-end VPS deployment runbook and complete credential procurement guide | Operators & Coding Agents |
 | [`AGENT_SKILL.md`](AGENT_SKILL.md) | Autonomous agent skill protocol (`comfy_colab_gate`), prompt queuing, and GPU lifecycle | AI Agent Developers |
+| [`MCP.md`](MCP.md) | Model Context Protocol (MCP) guide: stdio (`ckit mcp`), remote HTTP, Cursor/Claude integration | AI Agents & Developers |
 | [`API.md`](API.md) | HTTP REST endpoints, Server-Sent Events (SSE) telemetry, and ComfyUI proxy routes | Developers & AI Agents |
 | [`PROFILES.md`](PROFILES.md) | Profile YAML specifications, upstream workflow licensing, model aliasing, and App mode | Workflow Engineers |
 | [`AUTO_STOP.md`](AUTO_STOP.md) | Pure auto-stop rules, wake admission guards, CU budgeting, and Colab watchdog | Operators & Budget Owners |
