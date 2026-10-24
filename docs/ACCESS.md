@@ -62,23 +62,41 @@ If you want to share access with a colleague or friend without adding their emai
 
 ---
 
-## 3. Private LAN & Tailscale Direct Access (`AUTH_DISABLED=true`)
+## 3. Disabling Authentication & Complete Bypass (Dual-Host Bypass)
 
-For homelabs, local Docker setups, or servers already protected by an internal VPN (e.g. Tailscale):
+If you want to completely disable login prompts so that anyone (or friends on your network) can access the gateway without entering an email OTP, you **MUST configure Bypass on BOTH Cloudflare Access Applications and the VPS gateway**.
 
-1. Set `AUTH_DISABLED=true` in `.env`:
-   ```bash
-   AUTH_DISABLED=true
-   ```
-2. Restart the gateway:
-   ```bash
-   docker compose -f deploy/docker-compose.yml up -d
-   ```
-3. Open the gateway directly via your local IP, Tailscale domain, or reverse proxy without Cloudflare Access.
-4. All incoming requests are automatically recognized as an authorized owner (`dev@localhost`).
+### ⚠️ Why Both Cloudflare Applications Must Be Configured:
+Comfy Colab Kit utilizes a dual-hostname architecture:
+1. **Frontend Gateway (`PUBLIC_HOST`, e.g. `comfy-colab-kit`)**: Serves the wake-on-demand card and telemetry. If this is not bypassed, visitors are stopped by the email OTP login screen when opening the site.
+2. **Backend Tunnel (`COLAB_TUNNEL_HOST`, e.g. `comfy-colab-kit-backend`)**: Where the Colab VM's ComfyUI instance runs. When `state: ready`, the gateway embeds ComfyUI into the page via an `<iframe>` pointing directly to this backend host. **If this backend host is not also bypassed, the browser will be blocked from loading ComfyUI inside the iframe** (resulting in a blank iframe, 403 Forbidden, or login prompts inside the iframe).
+
+### 🛠️ Step-by-Step Setup:
+
+#### Step 1: Cloudflare Zero Trust (Configure Both Apps)
+In [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) > **Access** > **Applications**:
+1. **Frontend App (`comfy-colab-kit` / `PUBLIC_HOST`)**:
+   - Go to **Policies** > **Add a policy**.
+   - Name: `Bypass-All` · Action: **Bypass** · Include: **Everyone**.
+   - Save and ensure it has top priority.
+2. **Backend App (`comfy-colab-kit-backend` / `COLAB_TUNNEL_HOST`)**:
+   - Go to **Policies** > **Add a policy**.
+   - Name: `Bypass-All` · Action: **Bypass** · Include: **Everyone**.
+   - Save and ensure it has top priority.
+
+*(Alternative: You can simply click `...` next to both applications in the Cloudflare application list and select **Disable**).*
+
+#### Step 2: VPS Gateway (Allow Unsigned Requests)
+In `.env` on your VPS, activate `AUTH_DISABLED=true`:
+```bash
+# Enable auth bypass and restart gateway container
+sed -i 's/^# *AUTH_DISABLED=.*/AUTH_DISABLED=true/' /opt/comfy-colab-kit/.env
+cd /opt/comfy-colab-kit && docker compose --env-file .env -f deploy/docker-compose.yml up -d
+```
+All incoming requests will be automatically authorized as the default owner (`dev@localhost`).
 
 > [!WARNING]
-> Never expose a gateway with `AUTH_DISABLED=true` directly to the open public internet. Anyone who discovers the URL could wake the Colab VM and consume your Google Compute Units.
+> Bypassing both applications allows anyone with the URL to wake the Colab VM and consume Compute Units. For public instances, it is strongly recommended to keep Cloudflare Access enabled or use the [Shareable Token Link](#2-guest--friend-access-via-url-token-token) pattern instead.
 
 ---
 
