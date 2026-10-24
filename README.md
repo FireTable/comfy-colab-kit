@@ -201,6 +201,11 @@ live only in kernel memory. See [docs/SECURITY.md](docs/SECURITY.md).
 
 ## 🏗️ Monorepo Architecture
 
+<p align="center">
+  <img src="assets/architecture/flow.svg" width="100%" alt="Comfy Colab Kit request path, 10-state lifecycle, and auto-stop gates" /><br/>
+  <i>Request path, 10-state lifecycle, and the five auto-stop gates — animated SVG, light &amp; dark aware</i>
+</p>
+
 Comfy Colab Kit is structured as an engineering monorepo separating server applications, runtime packages, model profiles, and deployment automation:
 
 ```
@@ -232,7 +237,7 @@ comfy-colab-kit/
 │   ├── AGENT_SKILL.md        # AI agent usage guide (wake, generate, stop)
 │   └── ...
 ├── scripts/                  # CI, validation and secret check utilities
-└── tests/                    # Pytest test suite (117+ tests)
+└── tests/                    # Pytest test suite (130 tests)
 ```
 
 ## 🛠️ Development

@@ -34,6 +34,7 @@ Choose the reading path tailored to your specific role and objective:
 | Document | Primary Focus | Target Audience |
 | :--- | :--- | :--- |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Dual-phase gateway vs proxy, 10-state machine, Colab bootstrap, shared global session | Developers & Architects |
+| [`EVOLUTION.md`](EVOLUTION.md) | Project evolution chronicle: 11 milestones reconstructed from the commit history | Contributors & Maintainers |
 | [`DEPLOY_VPS.md`](DEPLOY_VPS.md) | Docker Compose + Caddy production deployment, secrets layout, and upgrades | System Operators |
 | [`ACCESS.md`](ACCESS.md) | Browser login, shareable guest links, LAN/Tailscale mode, agent auth, and in-app navigation | All Users & Agents |
 | [`AGENT.md`](AGENT.md) | End-to-end VPS deployment runbook and complete credential procurement guide | Operators & Coding Agents |

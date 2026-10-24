@@ -198,6 +198,11 @@ docker compose -f deploy/docker-compose.yml up -d
 
 ## 🏗️ Monorepo 工程结构
 
+<p align="center">
+  <img src="assets/architecture/flow.svg" width="100%" alt="Comfy Colab Kit 请求链路、10 态生命周期与自动停机闸门" /><br/>
+  <i>请求链路、10 态生命周期与五道自动停机闸门 —— 动态 SVG，自动适配明暗模式</i>
+</p>
+
 Comfy Colab Kit 采用工程化 Monorepo 组织架构，清晰分离服务应用、运行时包、模型预设与基础设施配置：
 
 ```
@@ -229,7 +234,7 @@ comfy-colab-kit/
 │   ├── AGENT_SKILL.md        # AI Agent 自动化调度指南（唤醒、出图、关机）
 │   └── ...
 ├── scripts/                  # 验证、校验与敏感信息审计脚本
-└── tests/                    # 完整自动化单元与集成测试套件（117+ 测试）
+└── tests/                    # 完整自动化单元与集成测试套件（130 测试）
 ```
 
 ## 💖 鸣谢与开源致敬 (Acknowledgments)
