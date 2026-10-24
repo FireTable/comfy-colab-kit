@@ -69,8 +69,9 @@ class Proxy:
         h = {k: v for k, v in req.headers.items() if k.lower() not in HOP_BY_HOP | STRIP_REQ}
         backend_host = self.backend.split("://", 1)[1]
         h["Host"] = backend_host
-        if "Origin" in h:
-            h["Origin"] = self.backend  # ComfyUI rejects Host/Origin mismatches
+        h["Origin"] = self.backend  # ComfyUI rejects Host/Origin mismatches
+        if "Referer" in h:
+            h["Referer"] = h["Referer"].replace(f"https://{req.host}", self.backend).replace(f"http://{req.host}", self.backend)
         # Request only encodings aiohttp can decompress (gzip, deflate, br)
         if any(k.lower() == "accept-encoding" for k in req.headers):
             h["Accept-Encoding"] = "gzip, deflate, br"
