@@ -175,7 +175,9 @@ label{display:block;margin:18px 0 6px;font:600 11px var(--mono);letter-spacing:.
 .star > span{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:14px;font-size:16px;font-weight:700;color:#0E0A12;
  background:linear-gradient(180deg,#FBBF24 0%,#D97706 100%);box-shadow:0 8px 30px -8px rgba(217,119,6,.5);transition:transform .15s,filter .15s}
 .star:hover > span{filter:brightness(1.06)}.star:active > span{transform:scale(.985)}
-.star[disabled]{cursor:default}.star[disabled] > span{background:rgba(127,127,127,.18);color:var(--muted);box-shadow:none}.star[disabled]::before,.star[disabled]::after{display:none}
+.star:disabled,.star[disabled]{cursor:not-allowed !important;pointer-events:auto !important}
+.star:disabled > span,.star[disabled] > span{background:rgba(127,127,127,.18) !important;color:var(--muted) !important;box-shadow:none !important}
+.star:disabled::before,.star[disabled]::before,.star:disabled::after,.star[disabled]::after{display:none !important}
 #wicon{display:inline-flex;align-items:center;justify-content:center;line-height:0}
 #wtext{display:inline}
 .skel-text{display:inline-block;height:12px;border-radius:4px;background:linear-gradient(90deg,rgba(127,127,127,.12) 25%,rgba(127,127,127,.24) 50%,rgba(127,127,127,.12) 75%);background-size:200% 100%;animation:shimmer 1.8s infinite}
@@ -434,6 +436,7 @@ const I18N={
   profile_label:"Profile",
   select_profile:"Select Profile",
   wake_btn:"Wake",retry_btn:"Retry",starting_btn:"Starting…",
+  wake_disabled_hint:"Only owners can wake the GPU",
   stop_btn:"Stop · release GPU",stop_confirm:"Stop and release the GPU?",
   header_stop:"Stop",header_stop_title:"Stop · release GPU",
   stop_disabled_hint:"Only the session initiator or owner can stop the session",
@@ -463,6 +466,7 @@ const I18N={
   profile_label:"运行预设 (Profile)",
   select_profile:"选择运行预设",
   wake_btn:"唤醒",retry_btn:"重试",starting_btn:"启动中…",
+  wake_disabled_hint:"仅管理员可开机唤醒 GPU",
   stop_btn:"关机 · 释放 GPU",stop_confirm:"确定要停机并释放 GPU 吗？",
   header_stop:"关机",header_stop_title:"关机 · 释放 GPU",
   stop_disabled_hint:"仅开机者或管理员可关机释放 GPU",
@@ -770,12 +774,19 @@ function render(){
 
  $("pick").hidden=!(st==="sleeping"||st==="failed");
  const w=$("wake");w.hidden=st==="ready";
+ const canWake = S && S.can_wake !== false && (!S.owner_only || !S.owner_only.includes("wake") || (S.you && S.you.owner));
  if(st==="failed"){
-  w.disabled=false;$("wicon").innerHTML=SVG_ROTATE;$("wtext").textContent=t("retry_btn");
+  w.disabled=!canWake;
+  w.title=canWake?"":t("wake_disabled_hint");
+  $("wicon").innerHTML=SVG_ROTATE;$("wtext").textContent=t("retry_btn");
  }else if(st==="sleeping"){
-  w.disabled=false;$("wicon").innerHTML=SVG_ZAP;$("wtext").textContent=t("wake_btn");
+  w.disabled=!canWake;
+  w.title=canWake?"":t("wake_disabled_hint");
+  $("wicon").innerHTML=SVG_ZAP;$("wtext").textContent=t("wake_btn");
  }else{
-  w.disabled=true;$("wicon").innerHTML=SVG_SPIN;$("wtext").textContent=t("starting_btn");
+  w.disabled=true;
+  w.title="";
+  $("wicon").innerHTML=SVG_SPIN;$("wtext").textContent=t("starting_btn");
  }
 
  const stopBtn=$("stop");
@@ -875,6 +886,7 @@ async function loadProfiles(){
 }
 
 $("wake").onclick=async()=>{
+ if($("wake").disabled)return;
  $("err").textContent="";$("wake").disabled=true;
  $("wicon").innerHTML=SVG_SPIN;$("wtext").textContent=t("starting_btn");
  try{await api("/_gate/wake",{method:"POST",body:JSON.stringify({profile:selectedProfileId})})}

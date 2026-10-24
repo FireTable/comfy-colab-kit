@@ -129,10 +129,12 @@ async def status(request: web.Request) -> web.Response:
     ident = _ident(request)
     client_ip = get_client_ip(request)
     can_stop = s.can_stop(email=ident.email, ip=client_ip, is_owner=ident.is_owner)
+    can_wake = "wake" not in request.app[SETTINGS].owner_only_actions or ident.is_owner
     return web.json_response({
         **s.status(),
         "can_stop": can_stop,
-        "you": {"email": ident.email, "owner": ident.is_owner, "ip": client_ip, "can_stop": can_stop},
+        "can_wake": can_wake,
+        "you": {"email": ident.email, "owner": ident.is_owner, "ip": client_ip, "can_stop": can_stop, "can_wake": can_wake},
         "owner_only": list(request.app[SETTINGS].owner_only_actions),
         "version": __version__,
     })
@@ -387,10 +389,12 @@ async def wake_page(request: web.Request) -> web.Response:
     settings = request.app[SETTINGS]
     client_ip = get_client_ip(request)
     can_stop = s.can_stop(email=ident.email, ip=client_ip, is_owner=ident.is_owner)
+    can_wake = "wake" not in settings.owner_only_actions or ident.is_owner
     status_data = {
         **s.status(),
         "can_stop": can_stop,
-        "you": {"email": ident.email, "owner": ident.is_owner, "ip": client_ip, "can_stop": can_stop},
+        "can_wake": can_wake,
+        "you": {"email": ident.email, "owner": ident.is_owner, "ip": client_ip, "can_stop": can_stop, "can_wake": can_wake},
         "owner_only": list(settings.owner_only_actions),
     }
     profiles_data = {

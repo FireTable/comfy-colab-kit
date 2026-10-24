@@ -218,3 +218,22 @@ async def test_stop_restricted_to_initiator_and_owner(tmp_path):
     finally:
         await c.close()
 
+
+async def test_owner_only_control_mode(tmp_path):
+    # Mode where only owner can wake AND only owner can stop
+    c, app = await client(tmp_path, OWNER_ONLY_CONTROL="true", OWNER_EMAILS="boss@firetable.tech")
+    try:
+        # Non-owner checks status: can_wake and can_stop are False
+        r = await c.get("/_gate/status", headers={"CF-Connecting-IP": "2.2.2.2"})
+        status_data = await r.json()
+        assert status_data["can_wake"] is False
+        assert status_data["can_stop"] is False
+
+        # Non-owner attempts wake: 403 owner_only
+        r = await c.post("/_gate/wake", json={}, headers={"CF-Connecting-IP": "2.2.2.2"})
+        assert r.status == 403
+        assert (await r.json())["error"] == "owner_only"
+    finally:
+        await c.close()
+
+

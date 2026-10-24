@@ -93,7 +93,8 @@ def identify(headers: Mapping[str, str], settings: Settings, keys: JWKSCache | N
             return Identity("agent", "agent", True)
         raise AuthError(401, "bad_agent_token", "invalid bearer or access token")
     if settings.auth_disabled:
-        return Identity("dev@localhost", "dev", True)
+        is_own = not settings.owner_emails or "dev@localhost" in settings.owner_emails
+        return Identity("dev@localhost", "dev", is_own)
     token = headers.get("Cf-Access-Jwt-Assertion") or ""
     if not token:
         raise AuthError(401, "no_access_token", "missing Cloudflare Access token")
