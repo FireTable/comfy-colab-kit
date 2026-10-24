@@ -49,14 +49,20 @@
     } catch (e) { /* transient */ }
   }
   async function openDefault() {
-    if (sessionStorage.getItem("kit.opened")) return;
     const a = comfy(); if (!a?.loadGraphData) return setTimeout(openDefault, 500);
-    sessionStorage.setItem("kit.opened", "1");
     try {
       const info = await (await fetch("/kit/info")).json();
       if (!info.default_workflow) return;
-      const wf = await (await fetch(`/api/userdata/${encodeURIComponent("workflows/" + info.default_workflow)}`)).json();
+      if (sessionStorage.getItem("kit.loaded_wf") === info.default_workflow) return;
+      let res = await fetch("/kit/workflow");
+      if (!res.ok) res = await fetch("/kit/workflows/" + encodeURIComponent(info.default_workflow));
+      if (!res.ok) res = await fetch("/default_workflow");
+      if (!res.ok) res = await fetch("/api/userdata/workflows/" + encodeURIComponent(info.default_workflow));
+      if (!res.ok) res = await fetch(`/api/userdata/${encodeURIComponent("workflows/" + info.default_workflow)}`);
+      if (!res.ok) return;
+      const wf = await res.json();
       await a.loadGraphData(wf, true, true, info.default_workflow);
+      sessionStorage.setItem("kit.loaded_wf", info.default_workflow);
       if (info.default_view === "app") setTimeout(() => toggle(true), 300);
     } catch (e) { console.warn("[kit] default workflow", e); }
   }

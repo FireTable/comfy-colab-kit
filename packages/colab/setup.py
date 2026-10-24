@@ -410,7 +410,12 @@ def install_workflows(update_default=True):
             default_file = name
         print(f"  workflow {name} ({wf['title']})", flush=True)
     if update_default:
-        json.dump({"default_workflow": default_file, "default_view": PLAN.get("default_view", "app")},
+        workflows_summary = [
+            {"id": w["id"], "title": w.get("title", w["id"]), "file": f"{w['id']}.json"}
+            for w in PLAN.get("workflows", [])
+        ]
+        json.dump({"default_workflow": default_file, "default_view": PLAN.get("default_view", "app"),
+                   "workflows": workflows_summary},
                   open(f"{COMFY}/user/default/kit.json", "w"))
         if default_file and os.path.exists(f"{d}/{default_file}"):
             shutil.copy(f"{d}/{default_file}", f"{COMFY}/default_workflow.json")
@@ -430,13 +435,41 @@ from aiohttp import web
 from server import PromptServer
 HB = "/content/kit_heartbeat"
 KIT = "/content/ComfyUI/user/default/kit.json"
+COMFY = "/content/ComfyUI"
+
 @PromptServer.instance.routes.post("/kit/heartbeat")
 async def _hb(request):
     open(HB, "w").write(str(time.time()))
     return web.json_response({"ok": True})
+
 @PromptServer.instance.routes.get("/kit/info")
 async def _info(request):
     return web.json_response(json.load(open(KIT)) if os.path.exists(KIT) else {})
+
+@PromptServer.instance.routes.get("/kit/workflow")
+async def _default_wf(request):
+    p = f"{COMFY}/default_workflow.json"
+    if os.path.exists(p):
+        return web.FileResponse(p, headers={"Content-Type": "application/json", "Cache-Control": "no-cache"})
+    return web.Response(status=404, text="default workflow not found")
+
+@PromptServer.instance.routes.get("/kit/workflows/{name:.*}")
+async def _named_wf(request):
+    name = request.match_info["name"]
+    p = f"{COMFY}/user/default/workflows/{name}"
+    if os.path.exists(p):
+        return web.FileResponse(p, headers={"Content-Type": "application/json", "Cache-Control": "no-cache"})
+    return web.Response(status=404, text="workflow not found")
+
+@PromptServer.instance.routes.get("/api/userdata/workflows/{name:.*}")
+@PromptServer.instance.routes.get("/userdata/workflows/{name:.*}")
+async def _subpath_wf(request):
+    name = request.match_info["name"]
+    p = f"{COMFY}/user/default/workflows/{name}"
+    if os.path.exists(p):
+        return web.FileResponse(p, headers={"Content-Type": "application/json", "Cache-Control": "no-cache"})
+    return web.Response(status=404, text="workflow not found")
+
 NODE_CLASS_MAPPINGS = {}
 WEB_DIRECTORY = "./web"
 '''
@@ -450,12 +483,16 @@ app.registerExtension({
     try {
       const info = await (await fetch("/kit/info")).json();
       if (!info.default_workflow) return;
-      if (!sessionStorage.getItem("kit.opened")) {
-        sessionStorage.setItem("kit.opened", "1");
-        const res = await fetch("/api/userdata/" + encodeURIComponent("workflows/" + info.default_workflow));
+      if (sessionStorage.getItem("kit.loaded_wf") !== info.default_workflow) {
+        let res = await fetch("/kit/workflow");
+        if (!res.ok) res = await fetch("/kit/workflows/" + encodeURIComponent(info.default_workflow));
+        if (!res.ok) res = await fetch("/default_workflow");
+        if (!res.ok) res = await fetch("/api/userdata/workflows/" + encodeURIComponent(info.default_workflow));
+        if (!res.ok) res = await fetch("/api/userdata/" + encodeURIComponent("workflows/" + info.default_workflow));
         if (res.ok) {
           const wf = await res.json();
           await app.loadGraphData(wf, true, true, info.default_workflow);
+          sessionStorage.setItem("kit.loaded_wf", info.default_workflow);
           if (info.default_view === "app") {
             setTimeout(async () => {
               try {
