@@ -162,15 +162,9 @@ caddy reload
 Authenticate `google-colab-cli` once inside the container. State is persisted in `/data/colab-cli`:
 
 ```bash
-docker exec -it comfy-gate sh -c "XDG_CONFIG_HOME=/data/colab-cli colab login"
+docker exec -it comfy-gate sh -c "XDG_CONFIG_HOME=/data/colab-cli colab sessions"
 ```
-Follow the OAuth authorization prompt.
-
-Verify authentication:
-```bash
-docker exec comfy-gate sh -c "XDG_CONFIG_HOME=/data/colab-cli colab sessions"
-```
-Should output: `[colab] No active sessions found on server.`
+Follow the one-time OAuth authorization prompt (visit the provided URL and enter verification code). When complete, it outputs: `[colab] No active sessions found on server.`
 
 ---
 

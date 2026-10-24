@@ -39,7 +39,7 @@ openssl rand -hex 32 > secrets/agent_token
 chmod 600 secrets/*
 
 # 6. One-time interactive Google Colab OAuth login
-docker compose -f deploy/docker-compose.yml run --rm comfy-gate colab login
+docker compose -f deploy/docker-compose.yml run --rm comfy-gate colab sessions
 # Follow the prompt and paste the verification code
 
 # 7. Start the comfy-gate container
@@ -98,7 +98,7 @@ After deployment, run these checks to ensure all subsystems are functioning:
 - **Cloudflare returns `403 Forbidden` on tunnel requests**:
   Verify that the Client ID and Secret in `secrets/cf_service.json` match the Service Token authorized in the Cloudflare Access application protecting `COLAB_TUNNEL_HOST`.
 - **Colab CLI displays `OAuth token expired or invalid`**:
-  Re-authenticate by running `docker compose -f deploy/docker-compose.yml run --rm comfy-gate colab login`. Ensure `data/colab-cli` has proper permissions (`chown -R 10001:10001 data`).
+  Re-authenticate by running `docker compose -f deploy/docker-compose.yml run --rm comfy-gate colab sessions`. Ensure `data/colab-cli` has proper permissions (`chown -R 10001:10001 data`).
 
 ---
 

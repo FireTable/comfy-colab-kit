@@ -564,7 +564,7 @@ docker compose -f deploy/docker-compose.yml up -d --build
       </article>
       <article class="card stat">
         <div class="stat-value">
-          <span class="stat-num">461–557</span>
+          <span class="stat-num">185–380</span>
           <span class="stat-unit">s</span>
         </div>
         <span class="stat-label" data-i18n="numbers.s3Label">Cold start from sleep to ready</span>
@@ -572,7 +572,7 @@ docker compose -f deploy/docker-compose.yml up -d --build
     </div>
     <p class="footnote" data-i18n="numbers.footnote">
       <svg class="info-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-      <span>Measured on Colab L4 with the MOSS-Image profile. Actual figures will vary depending on network and GPU quota.</span>
+      <span>Measured on Colab L4 with the MOSS-Image profile (25 GB weights streamed at up to 330 MB/s). Actual figures will vary depending on network and GPU quota.</span>
     </p>
   </div>
 </section>
@@ -697,6 +697,6 @@ docker compose -f deploy/docker-compose.yml up -d --build
 </footer>
 
 <script src="vendor/lenis.min.js" defer></script>
-<script src="main.js?v=f28f921a" defer></script>
+<script src="main.js?v=5de9d1fa" defer></script>
 </body>
 </html>

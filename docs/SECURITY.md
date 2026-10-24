@@ -54,6 +54,15 @@ The gateway fronts a cloud GPU instance that incurs Compute Unit costs and execu
 
 ---
 
-## 4. Vulnerability Reporting
+## 4. Development & Disabling Authentication (`AUTH_DISABLED`)
+
+For local testing or private networks where the gateway is protected by an alternative security layer (e.g. Tailscale or private LAN):
+- Setting `AUTH_DISABLED=true` in `.env` bypasses Cloudflare Access JWT validation entirely and treats all incoming requests as an authorized owner (`dev@localhost`).
+- **Warning**: Do NOT expose a gate with `AUTH_DISABLED=true` directly to the public internet without an external authentication barrier, as anyone with the URL could wake the Colab VM and consume compute units.
+- In production, always leave `AUTH_DISABLED=false` (the default) and secure `PUBLIC_HOST` behind Cloudflare Access, or use Bearer token authentication (`secrets/agent_token`).
+
+---
+
+## 5. Vulnerability Reporting
 
 Please report security issues privately to the repository maintainers via GitHub Security Advisories rather than opening a public issue.

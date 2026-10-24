@@ -803,8 +803,8 @@ function render(){
    const b=$("bg"),g=document.querySelector(".grid");
    if(b)b.style.display="none";if(g)g.style.display="none";
   }
-  const targetUrl=S.backend_url||"https://comfy-colab.firetable.tech";
-  if(!frame.src||frame.src==="about:blank"||!frame.src.startsWith(targetUrl)){
+  const targetUrl=S.backend_url||"";
+  if(targetUrl&&(!frame.src||frame.src==="about:blank"||!frame.src.startsWith(targetUrl))){
    frame.src=targetUrl;
   }
   frame.style.display="block";

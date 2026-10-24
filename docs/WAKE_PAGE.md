@@ -79,4 +79,7 @@ The exact millisecond the state reaches `ready`, the browser automatically trans
 - **Interactive Spotlight**: Cards feature cursor-tracked radial glow that smoothly fades on mouse leave.
 - **Symmetrical 180° Gradient Buttons**: Buttons use vertically symmetric gradients (`linear-gradient(180deg, #FBBF24 0%, #D97706 100%)`) with top inner bevel highlights, avoiding left-edge color asymmetry.
 - **Mobile Responsive Design**: Clean breakpoint handling at 480px, collapsing headers into 38x38px square buttons and preventing text collisions.
+- **Stable Scrollbar Gutter**: Utilizes `scrollbar-gutter: stable;` to guarantee pixel-identical horizontal alignment between the showcase site and the gate interface.
+- **Viewport-Anchored Card Centering**: Card position is anchored to viewport bounds (`clamp(60px, 10vh, 160px)`), preventing awkward vertical jumps when the live telemetry log expands.
+- **Default Expanded Live Console**: Boot logs and stage markers are visible by default in a compact, scroll-managed console drawer for immediate operational clarity.
 - **Anti-Bot Meta Guard**: Injects `<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">` to shield the private gateway from search engines.

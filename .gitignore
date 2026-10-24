@@ -25,5 +25,6 @@ dist/
 .DS_Store
 .deploy-notes.md
 .handoff.md
+.wrangler/
 grok/
 scratch/

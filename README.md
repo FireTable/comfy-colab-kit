@@ -168,7 +168,7 @@ comfy-colab-kit/
 │   ├── AGENT_SKILL.md        # AI agent usage guide (wake, generate, stop)
 │   └── ...
 ├── scripts/                  # CI, validation and secret check utilities
-└── tests/                    # Pytest test suite (108+ tests)
+└── tests/                    # Pytest test suite (117+ tests)
 ```
 
 ## 🛠️ Development
