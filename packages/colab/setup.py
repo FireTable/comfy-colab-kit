@@ -375,6 +375,90 @@ def remap_models(obj, aliases):
     return n
 
 
+def decorate_app_nodes(g, wf):
+    """Ensure nodes and widgets exposed in App Mode have clean, descriptive titles and labels."""
+    nodes = {n["id"]: n for n in g.get("nodes", [])}
+    for item in wf.get("app_inputs", []):
+        nid, wname = item[0], item[1]
+        node = nodes.get(nid)
+        if not node:
+            continue
+        ntype = str(node.get("type", ""))
+        curr_title = str(node.get("title") or "")
+
+        label = None
+        new_title = None
+
+        if wname == "image":
+            label = "参考底图 (Input Image)"
+            new_title = "参考底图 (Input Image)"
+        elif wname == "denoise":
+            label = "重绘幅度 (Denoise Strength 0.0-1.0)"
+            new_title = "重绘幅度 (Denoise)"
+        elif wname == "choice":
+            label = "画质与速度预设 (Preset)"
+            new_title = "画质与速度预设 (Preset)"
+        elif wname in ("seed", "noise_seed"):
+            label = "随机种子 (Seed)"
+            new_title = "随机种子 (Seed)"
+        elif wname == "width":
+            label = "图像宽度 (Width)"
+            new_title = "图像尺寸 (Image Size)"
+        elif wname == "height":
+            label = "图像高度 (Height)"
+            new_title = "图像尺寸 (Image Size)"
+        elif wname == "batch_size":
+            label = "生成张数 (Batch Size)"
+            new_title = "图像尺寸 (Image Size)"
+        elif wname == "switch":
+            label = "提示词增强开关 (Prompt Enhancer)"
+            new_title = "提示词增强 (Prompt Enhancer)"
+        elif wname == "value":
+            if ntype == "PrimitiveInt" or "seed" in curr_title.lower():
+                label = "随机种子 (Seed)"
+                new_title = "随机种子 (Seed)"
+            elif "width" in curr_title.lower():
+                label = "宽度 (Width)"
+                new_title = "宽度 (Width)"
+            elif "height" in curr_title.lower():
+                label = "高度 (Height)"
+                new_title = "高度 (Height)"
+            else:
+                label = "正向提示词 (Positive Prompt)"
+                new_title = "正向提示词 (Positive Prompt)"
+        elif wname == "text":
+            if "neg" in curr_title.lower() or nid in (8, 4):
+                label = "负面提示词 (Negative Prompt)"
+                new_title = "负面提示词 (Negative Prompt)"
+            else:
+                label = "正向提示词 (Positive Prompt)"
+                new_title = "正向提示词 (Positive Prompt)"
+
+        generic_titles = {"", "none", "cliptextencode", "primitivestringmultiline", "primitiveint",
+                          "emptyflux2latentimage", "randomnoise", "basicscheduler", "loadimage", "customcombo"}
+        if new_title and (not curr_title or curr_title.lower() in generic_titles):
+            node["title"] = new_title
+
+        if label:
+            inputs = node.setdefault("inputs", [])
+            found = False
+            for slot in inputs:
+                if slot.get("name") == wname or slot.get("widget", {}).get("name") == wname:
+                    slot["label"] = label
+                    found = True
+            if not found:
+                inputs.append({"name": wname, "type": "STRING", "label": label})
+
+            widgets = node.setdefault("widgets", [])
+            w_found = False
+            for w in widgets:
+                if isinstance(w, dict) and w.get("name") == wname:
+                    w["label"] = label
+                    w_found = True
+            if not w_found:
+                widgets.append({"name": wname, "label": label})
+
+
 def prepare_workflow(wf, data, default_view):
     """Apply declared filename overrides and ComfyUI App-mode metadata; graph otherwise untouched."""
     g = png_workflow(data) if wf["format"] == "png" else json.loads(data)
@@ -385,6 +469,7 @@ def prepare_workflow(wf, data, default_view):
             raise RuntimeError(f"{wf['id']}: override target {o} not found (upstream workflow changed?)")
         n["widgets_values"][o["widget_index"]] = o["value"]
     remap_models(g, PLAN.get("model_aliases") or {})
+    decorate_app_nodes(g, wf)
     extra = g.setdefault("extra", {})
     if wf.get("app_outputs"):
         extra["linearData"] = {"inputs": [list(x) for x in wf.get("app_inputs", [])],

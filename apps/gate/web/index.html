@@ -859,7 +859,27 @@ CKIT_TOKEN="${token}"
 
 ---
 
-### 方案 B: 配置为 MCP 工具 (支持 MCP 协议的 Agent / IDE)
+### 方案 B: 安装配套 Agent Skill (推荐 Skill: \`/comfy-colab-kit\`)
+如果你支持 Agent Skills 技能库标准 (如 Cursor Agent, Claude Code, OpenClaw, Antigravity)，请将技能定义写入 \`~/.agents/skills/comfy-colab-kit/SKILL.md\`，使你随时掌握完整的生图决策与 GPU 运维策略：
+\`\`\`bash
+mkdir -p ~/.agents/skills/comfy-colab-kit
+cat << 'EOF' > ~/.agents/skills/comfy-colab-kit/SKILL.md
+---
+name: comfy-colab-kit
+description: ComfyUI on Colab L4 GPU gate operator. Wake, manage shared session, check CU budget, generate images via text-to-image or image-to-image, and release compute.
+---
+
+# Comfy Colab Kit Skill (/comfy-colab-kit)
+- 网关地址: ${origin}
+- 鉴权方式: Header Authorization: Bearer <TOKEN>
+- 优先调用 MCP 工具 (gate_status, gate_wake, gate_txt2img, gate_generate, gate_stop)
+- 所有 HTTP 接口均使用相对路径拼在网关 Host 之后
+EOF
+\`\`\`
+
+---
+
+### 方案 C: 配置为 MCP 工具 (支持 MCP 协议的 Agent / IDE)
 如果你支持 Model Context Protocol，请将以下服务配置添加到你的 MCP 配置文件中（例如写入通用的 \`~/.agents/mcp.json\`，或当前宿主环境的 MCP 配置文件）：
 
 \`\`\`json
@@ -888,24 +908,44 @@ CKIT_TOKEN="${token}"
 
 ---
 
-### 方案 C: 安装为 Agent Skill (支持 Agent Skills 标准的助手)
-可在通用技能库目录 \`~/.agents/skills/comfy-colab/SKILL.md\` 中记录本网关说明，无需 MCP 也能通过 Python 脚本或 \`ckit\` 命令行直接唤醒 GPU 与生成图像。
+## 3. 任务选型决策树 (Txt2Img vs Img2Img)
+
+1. **纯文字构思 / 概念生图 -> 文生图 (Txt2Img)**:
+   - 调用 MCP: \`gate_txt2img(prompt=..., negative_prompt=..., preset="Fast alt", seed=..., width=1024, height=1024)\`
+   - **默认预设**: \`"Fast alt"\` (10 步超快且画质极佳，内置抗色带条纹 DeBand LoRA)。
+   - **负向提示词**: 默认已注入画质优化负向词。
+2. **提供参考底图 / 修改图片 / 风格迁移 -> 图生图 (Img2Img)**:
+   - 工作流: \`matlowai-img2img\` (或原生透传 \`/prompt\`)。
+   - **重绘幅度 \`denoise\` 调节**:
+     - \`0.2 ~ 0.35\`: 微调细节、画质修复、高清放大，构图完全锁定。
+     - \`0.4 ~ 0.65\`: 改变服装、发型、局部物品或光影风格，主体轮廓保留。
+     - \`0.7 ~ 1.0\`: 剧烈重绘创作，仅保留原图色彩调性。
 
 ---
 
-## 3. 可用 MCP 工具及调用规范 (Available Tools)
+## 4. 权限确认、CU 算力核查与关机释放策略
 
-1. \`gate_status\`: 查询 GPU 会话状态 (\`sleeping\`, \`allocating\`, \`downloading\`, \`ready\` 等)、运行中的 Profile 及 Compute Unit 余额。
-2. \`gate_wake\`: 唤醒或加入共享 GPU 会话。
-   - 参数: \`profile\` (可选，默认 \`"moss-image"\`)。
-3. \`gate_txt2img\`: **推荐的高层文生图工具**！一键运行 MOSS-Image DeBand 高清抗伪影生图管线并自动轮询返回图片 URL：
-   - \`prompt\` (必填): 画面正面描述词 (如 "A breathtaking cinematic cyberpunk city in rain, neon reflections, 8k, photorealistic")
-   - \`negative_prompt\` (可选): 负向提示词 (默认已配置画质增强负向词)
-   - \`preset\` (可选): 速度画质预设，默认 \`"Fast alt"\` (10步超快且画质极佳)，可选 \`"Fast"\` / \`"Balanced"\` / \`"Quality"\`
-   - \`seed\` (可选): 随机种子整数
-   - \`width\` / \`height\` (可选): 图像分辨率 (默认 1024x1024)
-4. \`gate_generate\`: 低层 ComfyUI 原生 API 提示图生成工具 (接收原生 node graph JSON)。
-5. \`gate_stop\`: 当绘画任务结束或用户要求关机时，主动释放 Colab GPU，防止浪费计算单元。
+1. **权限确认**:
+   - 调用 \`gate_status\` (相对路径 \`GET /_gate/status\`)，读取返回中的 \`you\` 节点：
+   - 若 \`you.owner === true\`：你是系统管理员，拥有唤醒 (\`wake\`)、关机 (\`stop\`)、切换模型 (\`switch\`) 的完全权限。
+2. **CU 算力核查**:
+   - 返回中的 \`cu\` 节点包含今日消耗、当月消耗及剩余余额 (\`balance\`)：
+   - 每次绘画完成后，可在回复中向用户汇报当前 CU 余额；若 \`balance < 2.0\` 时提醒算力偏低。
+3. **Owner 关机释放策略**:
+   - Colab L4 GPU 按 CU 持续计费。当生图任务完成且用户表示“已完成/暂时不需要绘图”时，Agent 应**主动询问或执行关机**（调用 \`gate_stop\` 或相对路径 \`POST /_gate/stop\`），释放计算单元，避免闲置浪费！
+
+---
+
+## 5. 原生 ComfyUI 接口透传规范 (API Passthrough)
+
+当 Gateway 状态为 \`ready\` 时，网关作为安全反向代理，所有原生 ComfyUI 接口以相对路径透传：
+- \`POST /prompt\`: 提交原生 node graph 进行绘图排队
+- \`GET /history/{prompt_id}\`: 查询任务执行输出与图片名
+- \`GET /view?filename={filename}&type=output\`: 获取输出图像文件
+- \`GET /ws?clientId={id}\`: 订阅实时执行进度 WebSocket
+- \`GET /object_info\`: 获取 ComfyUI 节点参数 Schema
+
+请求时将相对路径拼接在网关 Base URL 之后，并附带 \`Authorization: Bearer ${token}\` 即可。
 
 ---
 
