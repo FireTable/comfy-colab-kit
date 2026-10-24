@@ -216,6 +216,32 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
  .sel-title{font-size:13px}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+/* Fullscreen ComfyUI Iframe & Floating Dock */
+#comfy-frame{position:fixed;inset:0;width:100%;height:100%;border:none;z-index:40;background:var(--bg)}
+.gate-dock{position:fixed;right:20px;bottom:20px;z-index:9999;display:none;align-items:center;animation:dockIn .28s cubic-bezier(0.16,1,0.3,1);user-select:none}
+@keyframes dockIn{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+.dock-inner{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 8px;border-radius:9999px;
+ background:var(--card);border:1px solid var(--line2);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);
+ box-shadow:0 14px 36px -6px rgba(0,0,0,.6),0 2px 10px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.1);transition:all .2s ease}
+:root[data-theme=light] .dock-inner{background:rgba(255,255,255,.94);border-color:rgba(15,23,42,.12);box-shadow:0 12px 32px -6px rgba(15,23,42,.12),0 2px 8px rgba(15,23,42,.06),inset 0 1px 0 #fff}
+.dock-left{display:flex;align-items:center;gap:7px}
+.dock-logo{width:26px;height:26px;border-radius:7px;display:block;flex-shrink:0;box-shadow:0 2px 8px -2px var(--o)}
+.dock-badge{font:600 11.5px var(--mono);color:var(--y);background:rgba(249,171,0,.14);border:1px solid rgba(249,171,0,.28);padding:3px 9px;border-radius:999px;letter-spacing:.02em;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis}
+.dock-divider{width:1px;height:16px;background:var(--line2);flex-shrink:0}
+.dock-stats{display:flex;align-items:center;gap:12px;font:500 12px var(--mono);color:var(--fg);white-space:nowrap}
+.dock-stat{display:inline-flex;align-items:center;gap:5px}
+.dock-icon{color:var(--muted);flex-shrink:0}
+.dock-btn-stop{height:30px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,107,74,.35);background:rgba(255,107,74,.12);color:var(--bad);font:600 12px var(--mono);cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s ease}
+.dock-btn-stop:hover{background:var(--bad);color:#fff;border-color:var(--bad);box-shadow:0 4px 14px rgba(255,107,74,.4)}
+.dock-btn-stop:active{transform:scale(.96)}
+@media (max-width:480px){
+ .gate-dock{right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom))}
+ .dock-inner{gap:7px;padding:5px 8px 5px 6px}
+ .dock-logo{width:24px;height:24px}
+ .dock-badge{max-width:85px;font-size:11px;padding:2px 7px}
+ .dock-stats{gap:8px;font-size:11px}
+ .dock-btn-stop{height:32px;padding:0 10px;font-size:11px}
+}
 </style>
 </head>
 <body>
@@ -316,6 +342,31 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
 </section>
 </main>
 <footer id="footer-txt">shared session · GPU sleeps when idle</footer>
+<iframe id="comfy-frame" title="ComfyUI" allow="clipboard-read; clipboard-write" style="display:none"></iframe>
+<aside id="gate-dock" class="gate-dock" style="display:none" aria-label="Gate Status & Controls">
+  <div class="dock-inner">
+    <div class="dock-left">
+      <img src="/_gate/static/logo.svg" alt="Kit Logo" class="dock-logo">
+      <span class="dock-badge" id="dock-profile">moss-image</span>
+    </div>
+    <div class="dock-divider"></div>
+    <div class="dock-stats">
+      <span class="dock-stat" title="Running Time">
+        <svg class="dock-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span id="dock-time">00:00</span>
+      </span>
+      <span class="dock-stat" title="Today's Compute Units">
+        <svg class="dock-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span id="dock-cu">0.0 CU</span>
+      </span>
+    </div>
+    <div class="dock-divider"></div>
+    <button type="button" class="dock-btn-stop" id="dock-stop" title="Stop GPU Session">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
+      <span id="dock-stop-txt">关机</span>
+    </button>
+  </div>
+</aside>
 <script src="/_gate/static/bg.js" defer></script>
 <script>
 const $=id=>document.getElementById(id);
@@ -341,6 +392,7 @@ const I18N={
   select_profile:"Select Profile",
   wake_btn:"Wake",retry_btn:"Retry",starting_btn:"Starting…",
   stop_btn:"Stop · release GPU",stop_confirm:"Stop and release the GPU?",
+  dock_stop:"Stop",dock_stopping:"Stopping…",
   console_title:"Console",lines:"{count} lines",
   cu_today:"CU TODAY",cu_month:"MONTH",cu_balance:"BALANCE",
   footer:"shared session · GPU sleeps when idle",
@@ -367,6 +419,7 @@ const I18N={
   select_profile:"选择运行预设",
   wake_btn:"唤醒",retry_btn:"重试",starting_btn:"启动中…",
   stop_btn:"关机 · 释放 GPU",stop_confirm:"确定要停机并释放 GPU 吗？",
+  dock_stop:"关机",dock_stopping:"停机中…",
   console_title:"控制台日志",lines:"{count} 行",
   cu_today:"今日 CU",cu_month:"本月 CU",cu_balance:"CU 余额",
   footer:"全局共享会话 · 空闲自动休眠释放算力",
@@ -683,7 +736,42 @@ function render(){
  if(render.cuHtml!==cuHtml){$("meta").innerHTML=cuHtml;render.cuHtml=cuHtml}
  document.title=st==="sleeping"?t("title"):`${st==="ready"?t("ready_title"):st==="failed"?t("failed_title"):t("waking_title")} · ${t("title")}`;
 
- if(st==="ready"&&!render.go){render.go=1;setTimeout(()=>card.classList.add("out"),900);setTimeout(()=>location.reload(),1200)}
+ const frame=$("comfy-frame"),dock=$("gate-dock");
+ if(st==="ready"){
+  if(!render.readyMounted){
+   render.readyMounted=true;
+   card.classList.add("out");
+   setTimeout(()=>{
+    card.style.display="none";
+    const h=document.querySelector("header"),f=$("footer-txt"),b=$("bg"),g=document.querySelector(".grid");
+    if(h)h.style.display="none";if(f)f.style.display="none";if(b)b.style.display="none";if(g)g.style.display="none";
+   },350);
+  }else{
+   card.style.display="none";
+   const h=document.querySelector("header"),f=$("footer-txt"),b=$("bg"),g=document.querySelector(".grid");
+   if(h)h.style.display="none";if(f)f.style.display="none";if(b)b.style.display="none";if(g)g.style.display="none";
+  }
+  const targetUrl=S.backend_url||"https://comfy-colab.firetable.tech";
+  if(!frame.src||frame.src==="about:blank"||!frame.src.startsWith(targetUrl)){
+   frame.src=targetUrl;
+  }
+  frame.style.display="block";
+  dock.style.display="flex";
+
+  $("dock-profile").textContent=curP||"moss-image";
+  $("dock-time").textContent=fmt(Math.max(0,now-started));
+  $("dock-cu").textContent=`${(cu.today||0).toFixed(2)} CU`;
+  $("dock-stop-txt").textContent=t("dock_stop");
+  document.title=`ComfyUI · ${curP||"Kit"}`;
+ }else{
+  render.readyMounted=false;
+  card.classList.remove("out");
+  card.style.display="";
+  const h=document.querySelector("header"),f=$("footer-txt"),b=$("bg"),g=document.querySelector(".grid");
+  if(h)h.style.display="";if(f)f.style.display="";if(b)b.style.display="";if(g)g.style.display="";
+  if(frame){frame.style.display="none";if(frame.src&&frame.src!=="about:blank")frame.src="about:blank";}
+  if(dock){dock.style.display="none";}
+ }
 }
 
 function log(l){const p=$("log");p.textContent+=l+"\n";lines++;$("lcount").textContent=t("lines",{count:lines});if(p.textContent.length>60000)p.textContent=p.textContent.slice(-40000);p.scrollTop=p.scrollHeight}
@@ -709,6 +797,14 @@ $("wake").onclick=async()=>{
 $("stop").onclick=async()=>{
  if(!confirm(t("stop_confirm")))return;
  try{await api("/_gate/stop",{method:"POST"})}catch(e){$("err").textContent=e.message}
+};
+
+$("dock-stop").onclick=async()=>{
+ if(!confirm(t("stop_confirm")))return;
+ $("dock-stop-txt").textContent=t("dock_stopping");
+ $("dock-stop").disabled=true;
+ try{await api("/_gate/stop",{method:"POST"})}
+ catch(e){alert(e.message);$("dock-stop-txt").textContent=t("dock_stop");$("dock-stop").disabled=false}
 };
 
 function connect(){

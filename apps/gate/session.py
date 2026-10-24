@@ -279,6 +279,7 @@ class Session:
             "can_extend": stopper.can_extend(self.settings.auto_stop, m.extends_used),
             "cu": {"today": self.ledger.today(), "month": self.ledger.month(), "balance": self.ledger.balance,
                    "per_hour": self.settings.auto_stop.cu_per_hour},
+            "backend_url": self.settings.backend_url,
             "clients": self.open_clients,
             "default_view": self.settings.default_view,
             "models": {"on_demand": list(self.on_demand), "fetching": list(self.fetching),

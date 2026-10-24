@@ -386,16 +386,16 @@ async def wake_page(request: web.Request) -> web.Response:
 async def catch_all(request: web.Request) -> web.StreamResponse:
     s = request.app[SESSION]
     s.touch()
+    if request.path in ("/", "/index.html"):
+        if request.app[SETTINGS].auto_stop.wake_on_visit and s.machine.state == State.SLEEPING:
+            await s.wake(None, by=_ident(request).email)
+        return await wake_page(request)
     if s.machine.state == State.READY:
         try:
             return await request.app[PROXY].handle(request)
         except Exception as e:  # noqa: BLE001
             log.warning("proxy error: %s", e)
             return err(502, "backend_unreachable", "ComfyUI backend unreachable")
-    if request.app[SETTINGS].auto_stop.wake_on_visit and s.machine.state == State.SLEEPING and request.path == "/":
-        await s.wake(None, by=_ident(request).email)
-    if request.path in ("/", "/index.html"):
-        return await wake_page(request)
     if request.path.startswith(("/api", "/ws", "/prompt", "/view")):
         return err(503, "asleep", f"ComfyUI is {s.machine.state.value}; POST /_gate/wake first")
     raise web.HTTPFound("/")
