@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Callable
+from typing import Callable, Mapping
 
 import aiohttp
 import yarl
@@ -82,6 +82,20 @@ class Proxy:
             h["User-Agent"] = ua
         return h
 
+    def _clean_resp_headers(self, raw_headers: Mapping[str, str], client_host: str) -> dict[str, str]:
+        headers = {}
+        for k, v in raw_headers.items():
+            kl = k.lower()
+            if kl in HOP_BY_HOP:
+                continue
+            # Strip Cloudflare Access service token cookies from backend so client's CF_Authorization cookie isn't clobbered
+            if kl == "set-cookie" and any(x in v.lower() for x in ("cf_authorization", "cf_appsession", "cf_clearance")):
+                continue
+            if kl == "location":
+                v = v.replace(self.backend, f"https://{client_host}")
+            headers[k] = v
+        return headers
+
     async def probe(self) -> bool:
         try:
             c = await self.client()
@@ -122,7 +136,7 @@ class Proxy:
         body = await req.read() if req.can_read_body else None
         async with c.request(req.method, url, headers=self._headers(req), data=body, allow_redirects=False) as r:
             ctype = r.headers.get("Content-Type", "")
-            headers = {k: v for k, v in r.headers.items() if k.lower() not in HOP_BY_HOP}
+            headers = self._clean_resp_headers(r.headers, req.host)
             if req.rel_url.path in ("/", "/index.html") and "text/html" in ctype:
                 html = inject_overlay(await r.text())
                 return web.Response(status=r.status, text=html, content_type="text/html", headers={

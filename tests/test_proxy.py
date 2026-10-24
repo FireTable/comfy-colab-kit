@@ -109,3 +109,46 @@ async def test_proxy_decompresses_brotli_stream_asset():
             await p.close()
     finally:
         await server.close()
+
+
+async def test_proxy_strips_cf_authorization_cookie_and_rewrites_location():
+    backend = web.Application()
+
+    async def handle_redirect(req: web.Request) -> web.Response:
+        resp = web.Response(status=302)
+        resp.headers["Location"] = f"http://127.0.0.1:{req.app['port']}/somewhere"
+        resp.headers.add("Set-Cookie", "CF_Authorization=corrupted_jwt; Path=/; HttpOnly")
+        resp.headers.add("Set-Cookie", "valid_cookie=hello; Path=/")
+        return resp
+
+    backend.router.add_get("/login_test", handle_redirect)
+    server = TestServer(backend)
+    backend["port"] = server.port
+    await server.start_server()
+    backend["port"] = server.port
+
+    try:
+        p = Proxy(f"http://127.0.0.1:{server.port}", "/nonexistent", lambda: None, lambda: None, lambda: None)
+        gate_app = web.Application()
+
+        async def gate_handler(req: web.Request):
+            return await p.handle(req)
+
+        gate_app.router.add_get("/login_test", gate_handler)
+        client = TestClient(TestServer(gate_app))
+        await client.start_server()
+        try:
+            res = await client.get("/login_test", allow_redirects=False)
+            assert res.status == 302
+            # Location must be rewritten to client host
+            assert res.headers["Location"] == f"https://{client.host}:{client.port}/somewhere"
+            # Set-Cookie for CF_Authorization must be completely stripped
+            set_cookies = res.headers.getall("Set-Cookie", [])
+            assert not any("CF_Authorization" in c for c in set_cookies)
+            # Other valid cookies must be preserved
+            assert any("valid_cookie" in c for c in set_cookies)
+        finally:
+            await client.close()
+            await p.close()
+    finally:
+        await server.close()
