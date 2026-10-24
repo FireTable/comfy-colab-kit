@@ -109,7 +109,7 @@ def call(method, path, body=None):
     )
     
     endpoint_cfg = cfg.get("endpoints", {}).get(base, {})
-    tok = os.environ.get("CKIT_TOKEN") or _read(os.environ.get("CKIT_TOKEN_FILE", "")) or endpoint_cfg.get("token", "")
+    tok = os.environ.get("CKIT_TOKEN") or _read(os.environ.get("CKIT_TOKEN_FILE", "")) or endpoint_cfg.get("token", "") or cfg.get("token", "")
     if tok:
         req.add_header("Authorization", "Bearer " + tok)
     cid = os.environ.get("CF_ACCESS_CLIENT_ID")
