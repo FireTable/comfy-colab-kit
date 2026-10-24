@@ -335,7 +335,8 @@ const I18N={
   badge_sleeping:"Sleeping",badge_ready:"Ready",badge_failed:"Failed",badge_stopping:"Stopping",badge_switching:"Switching",badge_waking:"Waking",
   online:"{count} online",
   stage_allocating:"Allocate GPU",stage_installing:"Install runtime",stage_downloading:"Download models",stage_booting:"Start ComfyUI",stage_smoke_testing:"Smoke test",
-  overall:"Overall",eta:"ETA ~{time}",paused:"paused (prompt running)",stalled_restarted:"{count} download retry",stalled_restarted_p:"{count} download retries",later:"+{size} GB later",
+  overall:"Overall",eta:"ETA ~{time}",paused:"paused (prompt running)",stalled_restarted:"{count} download retry",stalled_restarted_p:"{count} download retries",later:"+{size} later",
+  info_allocating:"Allocating Colab GPU instance…",info_installing:"Setting up runtime & Python dependencies…",info_booting:"Starting ComfyUI engine & loading models…",info_smoke:"Running smoke test generation…",
   profile_label:"Profile",
   select_profile:"Select Profile",
   wake_btn:"Wake",retry_btn:"Retry",starting_btn:"Starting…",
@@ -360,7 +361,8 @@ const I18N={
   badge_sleeping:"休眠中",badge_ready:"就绪",badge_failed:"失败",badge_stopping:"正在停机",badge_switching:"正在切换",badge_waking:"唤醒中",
   online:"{count} 人在线",
   stage_allocating:"分配 GPU 算力",stage_installing:"安装运行时与依赖",stage_downloading:"下载核心模型",stage_booting:"启动 ComfyUI",stage_smoke_testing:"冒烟出图验证",
-  overall:"总体进度",eta:"预计剩余 ~{time}",paused:"已暂停 (正在出图)",stalled_restarted:"网络重试中 ({count}次)",stalled_restarted_p:"网络重试中 ({count}次)",later:"另有 +{size} GB 后续拉取",
+  overall:"总体进度",eta:"预计剩余 ~{time}",paused:"已暂停 (正在出图)",stalled_restarted:"网络重试中 ({count}次)",stalled_restarted_p:"网络重试中 ({count}次)",later:"另有 +{size} 后续拉取",
+  info_allocating:"正在分配 Colab GPU 算力实例…",info_installing:"正在安装 ComfyUI 运行环境与核心依赖…",info_booting:"正在启动 ComfyUI 引擎与载入模型组件…",info_smoke:"正在执行冒烟出图验证…",
   profile_label:"运行预设 (Profile)",
   select_profile:"选择运行预设",
   wake_btn:"唤醒",retry_btn:"重试",starting_btn:"启动中…",
@@ -444,7 +446,13 @@ function dlp(d){if(!d)return null;const G=1e9;
    eta:d.eta_s!=null&&!core?d.eta_s:(d.bytes_per_s>0?((core?d.core_bytes_total-d.core_bytes_done:d.bytes_total-d.bytes_done)/d.bytes_per_s):null),
    paused:!!d.paused,restarts:d.restarts||0,files:`${d.files_done}/${d.files_total}`,files_done:d.files_done,files_total:d.files_total,core_done:!!d.core_done,bg:core&&d.bytes_total>d.core_bytes_total?d.bytes_total-d.core_bytes_total:0}}
  if(!d.total_gb)return null;return{done:d.done_gb*G,total:d.total_gb*G,rate:(d.gbps||0)*G,eta:d.gbps>0?(d.total_gb-d.done_gb)/d.gbps:null,paused:false,restarts:0,files:`${d.files_done}/${d.files_total}`,files_done:d.files_done,files_total:d.files_total,core_done:false,bg:0}}
-const gb=b=>(b/1e9).toFixed(b>=1e10?1:2);
+function formatBytes(b){
+ if(b==null||isNaN(b)||b<=0)return"0 B";
+ if(b<1e6)return`${(b/1e3).toFixed(1)} KB`;
+ if(b<1e9)return`${(b/1e6).toFixed(1)} MB`;
+ return`${(b/1e9).toFixed(b>=1e10?1:2)} GB`;
+}
+const gb=b=>formatBytes(b);
 
 // Custom Select Implementation
 const profTrigger=$("prof-trigger"),profPopover=$("prof-popover"),profItems=$("prof-items"),customSelect=$("custom-select"),profLabel=$("plabel-txt");
@@ -564,7 +572,7 @@ function render(){
    const startT=(sd&&sd.start)||stageT[k]||now;
    tStr=fmt(Math.max(1, now-startT));
   }
-  if(k==="downloading"&&d&&d.total){
+  if(k==="downloading"&&d&&d.total&&i<=ci){
    const dlPct=(d.files_done!=null&&d.files_total!=null&&d.files_done<d.files_total)?Math.min(99,Math.floor(100*d.done/d.total)):Math.min(100,Math.round(100*d.done/d.total));
    tStr=(tStr?tStr+" · ":"")+`${dlPct}%`+(d.paused?` · ${t("paused")}`:"");
   }
@@ -573,21 +581,79 @@ function render(){
 
  $("prog").hidden=!waking;
  if(waking&&ci>=0){
-  const dlw=d&&d.total?Math.max(30,d.total/1e9*8):120;const W=stages.map(s=>s[0]==="downloading"?dlw:s[2]);
-  const tot=W.reduce((a,b)=>a+b,0);let frac=0;
-  if(st==="downloading"&&d){
-   frac=d.total?Math.min(.99,d.done/d.total):0;
-  }else{
-   const sd=durs[st];
-   const elapsed=sd&&sd.start?(now-sd.start):(now-(stageT[st]||now));
-   frac=Math.min(.9,elapsed/W[ci]);
+  const BRACKETS={
+   allocating:[0,12],
+   installing:[12,28],
+   downloading:[28,88],
+   booting:[88,(S&&S.enable_smoke_test===false)?99:97],
+   smoke_testing:[97,99.5]
+  };
+  const [bStart,bEnd]=BRACKETS[st]||[0,99];
+  const bSpan=bEnd-bStart;
+  let frac=0;
+  const sd=durs[st];
+  const elapsed=sd&&sd.start?(now-sd.start):(now-(stageT[st]||now));
+  if(st==="downloading"&&d&&d.total){
+   frac=Math.min(1,Math.max(0,d.done/d.total));
+  }else if(st==="allocating"){
+   frac=Math.min(0.95,elapsed/15);
+  }else if(st==="installing"){
+   frac=Math.min(0.95,elapsed/35);
+  }else if(st==="booting"){
+   frac=Math.min(0.95,elapsed/30);
+  }else if(st==="smoke_testing"){
+   frac=Math.min(0.95,elapsed/25);
   }
-  const done=W.slice(0,ci).reduce((a,b)=>a+b,0)+W[ci]*frac;const pct=Math.min(99,100*done/tot);
+  const curStagePct=bStart+frac*bSpan;
+  if(render.maxPct==null)render.maxPct=0;
+  render.maxPct=Math.max(render.maxPct,bStart,curStagePct);
+  const pct=Math.min(99.5,render.maxPct);
   $("pbar").style.width=pct.toFixed(1)+"%";
-  let eta;if(st==="downloading"&&d&&d.eta!=null)eta=d.eta+W.slice(ci+1).reduce((a,b)=>a+b,0);else eta=Math.max(0,tot-done);
-  $("plabel").textContent=`${pct.toFixed(0)}%`;
+  $("plabel").textContent=`${Math.floor(pct)}%`;
+
+  let eta=null;
+  if(st==="downloading"&&d&&d.eta!=null){
+   eta=d.eta+30;
+  }else if(st==="allocating"){
+   eta=Math.max(15,360-Math.round(now-started));
+  }else if(st==="installing"){
+   eta=Math.max(10,340-Math.round(now-started));
+  }else if(st==="booting"){
+   eta=Math.max(5,30-Math.round(elapsed));
+  }else{
+   eta=Math.max(5,15);
+  }
   $("eta").textContent=t("eta",{time:fmt(eta)});
-  $("pdl").textContent=d&&d.total?`${gb(d.done)} / ${gb(d.total)} GB · ${d.files}${d.rate?` · ${(d.rate/1e6).toFixed(0)} MB/s`:""}${d.paused?" · "+t("paused"):""}${d.restarts?" · "+t(d.restarts>1?"stalled_restarted_p":"stalled_restarted",{count:d.restarts}):""}${d.bg?" · "+t("later",{size:gb(d.bg)}):""}`:"";
+
+  if(st==="downloading"&&d&&d.total){
+   const parts=[`${formatBytes(d.done)} / ${formatBytes(d.total)}`];
+   if(d.files)parts.push(d.files);
+   if(d.rate>0)parts.push(`${(d.rate/1e6).toFixed(1)} MB/s`);
+   if(d.paused)parts.push(t("paused"));
+   if(d.restarts>0)parts.push(t(d.restarts>1?"stalled_restarted_p":"stalled_restarted",{count:d.restarts}));
+   if(d.bg>0)parts.push(t("later",{size:formatBytes(d.bg)}));
+   $("pdl").textContent=parts.join(" · ");
+  }else if(st==="installing"){
+   if(d&&d.done>1e7){
+    $("pdl").textContent=`${t("info_installing")} (${formatBytes(d.done)} / ${formatBytes(d.total)})`;
+   }else{
+    $("pdl").textContent=t("info_installing");
+   }
+  }else if(st==="allocating"){
+   $("pdl").textContent=t("info_allocating");
+  }else if(st==="booting"){
+   $("pdl").textContent=t("info_booting");
+  }else if(st==="smoke_testing"){
+   $("pdl").textContent=t("info_smoke");
+  }else{
+   $("pdl").textContent="";
+  }
+ }else{
+  render.maxPct=0;
+  if(st==="ready"){
+   $("pbar").style.width="100%";
+   $("plabel").textContent="100%";
+  }
  }
 
  $("pick").hidden=!(st==="sleeping"||st==="failed");

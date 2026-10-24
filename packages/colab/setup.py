@@ -242,6 +242,8 @@ class Downloads:
                 print(f"  retry {m['id']} in {wait}s ({text[-120:]})", flush=True)
             time.sleep(wait)
         shutil.move(path, dst)  # local_dir keeps repo subfolders; the file always lands flat at models/<dest>
+        with self.lock:
+            self.live[m["id"]] = dst
         shutil.rmtree(tmp, ignore_errors=True)
 
     def _one(self, m):
@@ -286,8 +288,14 @@ class Downloads:
             live = dict(self.live)
             done, core_done = self.done_bytes, self.core_done_bytes
         inflight = {i: min(du(t), self.size[i] or 1 << 62) for i, t in live.items()}
-        return (done + sum(inflight.values()),
-                core_done + sum(v for i, v in inflight.items() if i in self.core_ids))
+        cur_b = done + sum(inflight.values())
+        cur_cb = core_done + sum(v for i, v in inflight.items() if i in self.core_ids)
+        with self.lock:
+            if not hasattr(self, "_max_b"):
+                self._max_b, self._max_cb = 0, 0
+            self._max_b = max(self._max_b, cur_b)
+            self._max_cb = max(self._max_cb, cur_cb)
+            return (self._max_b, self._max_cb)
 
     def progress(self, rate):
         b, cb = self.snapshot()
@@ -299,7 +307,7 @@ class Downloads:
             "files_done": self.files_done, "files_total": len(self.models),
             "core_done": self.core_done.is_set(), "paused": self.paused, "restarts": self.restarts,
             # legacy, file-granular
-            "done_gb": round(self.done_bytes / 1e9, 2), "total_gb": round(self.total / 1e9, 2),
+            "done_gb": round(b / 1e9, 2), "total_gb": round(self.total / 1e9, 2),
         }
 
     def _report(self):
