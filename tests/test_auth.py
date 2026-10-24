@@ -73,6 +73,26 @@ def test_empty_owner_list_means_everyone_is_owner(keypair):
     assert i.is_owner
 
 
+def test_owner_only_control_mode(keypair):
+    key, jwks = keypair
+    s = settings(OWNER_ONLY_CONTROL="true", OWNER_EMAILS="a@x.com")
+    i_owner = ident(key, jwks, token(key, email="a@x.com"), s)
+    i_user = ident(key, jwks, token(key, email="b@x.com"), s)
+
+    assert i_owner.is_owner
+    assert not i_user.is_owner
+
+    # Owner can wake and stop
+    authorize(i_owner, "wake", s)
+    authorize(i_owner, "stop", s)
+
+    # Non-owner cannot wake or stop
+    with pytest.raises(AuthError):
+        authorize(i_user, "wake", s)
+    with pytest.raises(AuthError):
+        authorize(i_user, "stop", s)
+
+
 @pytest.mark.parametrize("claims,code", [
     ({"aud": ["other"]}, "invalid_token"),
     ({"iss": "https://evil.example.com"}, "invalid_token"),

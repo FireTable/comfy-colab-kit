@@ -346,6 +346,10 @@ class Session:
             if email.lower() in self.settings.owner_emails:
                 return True
 
+        # If owner-only control is enabled, non-owners cannot stop
+        if self.settings.owner_only_control and not is_owner:
+            return False
+
         # 2. Check if the caller is the initiator who woke the session
         # 2a. Match by authenticated user email
         if self.woken_by and email and email != "dev@localhost":

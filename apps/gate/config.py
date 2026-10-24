@@ -110,6 +110,7 @@ class Settings:
     allowed_emails: tuple[str, ...] = ()
     owner_emails: tuple[str, ...] = ()
     owner_only_actions: tuple[str, ...] = ("switch", "stop", "extend")
+    owner_only_control: bool = False
     auth_disabled: bool = False
     cf_service_token_file: str = ""
     cf_tunnel_token_file: str = ""
@@ -140,7 +141,14 @@ class Settings:
     @staticmethod
     def from_env(env: Mapping[str, str] | None = None) -> "Settings":
         env = dict(os.environ if env is None else env)
-        owner_only = tuple(a.lower() for a in _csv(env.get("OWNER_ONLY_ACTIONS", "switch,stop,extend")))
+        owner_only_control = _bool(env, "OWNER_ONLY_CONTROL", False)
+        owner_only_list = [a.lower() for a in _csv(env.get("OWNER_ONLY_ACTIONS", "switch,stop,extend"))]
+        if owner_only_control:
+            if "wake" not in owner_only_list:
+                owner_only_list.append("wake")
+            if "stop" not in owner_only_list:
+                owner_only_list.append("stop")
+        owner_only = tuple(owner_only_list)
         bad = [a for a in owner_only if a not in ACTIONS]
         if bad:
             raise ConfigError(f"OWNER_ONLY_ACTIONS has unknown actions {bad}; allowed: {ACTIONS}")
@@ -177,6 +185,7 @@ class Settings:
             allowed_emails=tuple(e.lower() for e in _csv(env.get("ALLOWED_EMAILS"))),
             owner_emails=tuple(e.lower() for e in _csv(env.get("OWNER_EMAILS"))),
             owner_only_actions=owner_only,
+            owner_only_control=owner_only_control,
             auth_disabled=_bool(env, "AUTH_DISABLED", False),
             cf_service_token_file=(env.get("CF_SERVICE_TOKEN_FILE") or "").strip(),
             cf_tunnel_token_file=(env.get("CF_TUNNEL_TOKEN_FILE") or "").strip(),
