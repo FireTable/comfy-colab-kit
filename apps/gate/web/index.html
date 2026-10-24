@@ -371,21 +371,21 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
           <!-- Owner Only Session & CU Management Section -->
           <div class="user-popover-section owner-ctrl-section" id="owner-ctrl-section" style="display:none">
             <div class="section-title-row">
-              <span class="section-title" id="owner-sec-title">实例运行与算力</span>
+              <span class="section-title" id="owner-sec-title">算力指标与控制</span>
               <span class="badge-role badge-owner">Owner</span>
             </div>
             <div class="panel-metrics-grid">
               <div class="panel-metric-item">
-                <span class="panel-metric-lbl">运行时间</span>
-                <span class="panel-metric-val" id="panel-time">00:00</span>
+                <span class="panel-metric-lbl" id="panel-lbl-today">今日 CU</span>
+                <span class="panel-metric-val" id="panel-cu-today">0.00</span>
               </div>
               <div class="panel-metric-item">
-                <span class="panel-metric-lbl">CU 消耗</span>
-                <span class="panel-metric-val" id="panel-cu">0.00 CU</span>
+                <span class="panel-metric-lbl" id="panel-lbl-month">本月 CU</span>
+                <span class="panel-metric-val" id="panel-cu-month">0.0</span>
               </div>
               <div class="panel-metric-item">
-                <span class="panel-metric-lbl">当前预设</span>
-                <span class="panel-metric-val" id="panel-prof">moss-image</span>
+                <span class="panel-metric-lbl" id="panel-lbl-balance">CU 余额</span>
+                <span class="panel-metric-val" id="panel-cu-balance">—</span>
               </div>
             </div>
             <button type="button" class="btn-panel-stop" id="panel-stop-btn">
@@ -1196,18 +1196,27 @@ function render(){
  const ownerSec=$("owner-ctrl-section");
  if(ownerSec){
   const isRunning=S&&(S.state==="ready"||S.state==="booting"||S.state==="switching"||S.state==="downloading"||S.state==="smoke_testing");
-  if(isOwner&&isRunning){
+  if(isOwner&&S&&S.cu){
    ownerSec.style.display="flex";
-   const started=S.session_started||S.since||now;
-   if($("panel-time"))$("panel-time").textContent=fmt(Math.max(0,now-started));
-   if($("panel-cu"))$("panel-cu").textContent=S.cu?`${(S.cu.today||0).toFixed(2)} CU`:"-- CU";
-   if($("panel-prof"))$("panel-prof").textContent=curP||"moss-image";
+   if($("owner-sec-title"))$("owner-sec-title").textContent=lang==="zh"?"算力指标与控制":"Compute & Control";
+   if($("panel-lbl-today"))$("panel-lbl-today").textContent=t("cu_today");
+   if($("panel-lbl-month"))$("panel-lbl-month").textContent=t("cu_month");
+   if($("panel-lbl-balance"))$("panel-lbl-balance").textContent=t("cu_balance");
+   const cu=S.cu||{};
+   if($("panel-cu-today"))$("panel-cu-today").textContent=(cu.today||0).toFixed(2);
+   if($("panel-cu-month"))$("panel-cu-month").textContent=(cu.month||0).toFixed(1);
+   if($("panel-cu-balance"))$("panel-cu-balance").textContent=cu.balance!=null?cu.balance.toFixed(1):"—";
    const pStopBtn=$("panel-stop-btn");
    if(pStopBtn){
-    const canStop=S.can_stop!==false;
-    pStopBtn.disabled=!canStop;
-    if(!pStopBtn.classList.contains("confirming")){
-     $("panel-stop-txt").textContent=lang==="zh"?"关机 · 释放 GPU":"Stop · Release GPU";
+    if(isRunning){
+     pStopBtn.style.display="inline-flex";
+     const canStop=S.can_stop!==false;
+     pStopBtn.disabled=!canStop;
+     if(!pStopBtn.classList.contains("confirming")){
+      $("panel-stop-txt").textContent=lang==="zh"?"关机 · 释放 GPU":"Stop · Release GPU";
+     }
+    }else{
+     pStopBtn.style.display="none";
     }
    }
   }else{
