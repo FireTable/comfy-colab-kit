@@ -592,25 +592,65 @@ def comfy_cmd():
     return args
 
 
+def _is_comfy_busy() -> bool:
+    try:
+        import urllib.request
+        with urllib.request.urlopen(f"http://127.0.0.1:{PORT}/prompt", timeout=3) as r:
+            data = json.loads(r.read())
+            exec_info = data.get("exec_info", {})
+            if exec_info.get("queue_remaining", 0) > 0:
+                return True
+    except Exception:
+        pass
+    return False
+
+
 def watchdog():
-    lost = PLAN.get("watchdog_gate_lost_min", 40) * 60
+    lost = PLAN.get("watchdog_gate_lost_min", 20) * 60
     max_s = PLAN.get("max_session_hours", 7) * 3600
     open(HB_FILE, "w").write(str(time.time()))
+    consecutive_overdue = 0
     while True:
         time.sleep(60)
+        # Revive cloudflared if process died
+        if os.path.exists("/content/.cf_token") and os.system("pgrep -f 'cloudflared tunnel' > /dev/null") != 0:
+            print("[watchdog] cloudflared died; restarting tunnel", flush=True)
+            start_tunnel()
+
+        if time.time() - T0 > max_s:
+            print("[watchdog] session over limit; releasing VM", flush=True)
+            break
+
         try:
             last = float(open(HB_FILE).read())
         except Exception:
             last = time.time()
-        if time.time() - last > lost or time.time() - T0 > max_s:
-            print("[watchdog] gate lost or session over limit; releasing VM", flush=True)
-            subprocess.run(["bash", "-lc", "pkill -f cloudflared; pkill -f 'main.py --listen'"])
-            try:
-                from google.colab import runtime
-                runtime.unassign()
-            except Exception as e:
-                open(f"{LOG}/watchdog.err", "w").write(repr(e))
-            return
+
+        # Gate heartbeat check with two-phase verification (2 次检测)
+        if time.time() - last > lost:
+            # Check 1: If ComfyUI is generating images, do not release
+            if _is_comfy_busy():
+                print("[watchdog] gate heartbeat overdue but ComfyUI is generating; extending lease", flush=True)
+                open(HB_FILE, "w").write(str(time.time()))
+                consecutive_overdue = 0
+                continue
+
+            consecutive_overdue += 1
+            print(f"[watchdog] gate heartbeat overdue check ({consecutive_overdue}/2)", flush=True)
+            if consecutive_overdue < 2:
+                continue
+
+            print("[watchdog] gate lost confirmed after 2 consecutive checks; releasing VM", flush=True)
+            break
+        else:
+            consecutive_overdue = 0
+
+    subprocess.run(["bash", "-lc", "pkill -f cloudflared; pkill -f 'main.py --listen'"])
+    try:
+        from google.colab import runtime
+        runtime.unassign()
+    except Exception as e:
+        open(f"{LOG}/watchdog.err", "w").write(repr(e))
 
 
 def smoke_prompt(d):

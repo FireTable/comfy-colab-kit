@@ -97,7 +97,7 @@ class AutoStop:
     min_cu_balance: float = 5.0
     cu_per_hour: float = 1.71
     orphan_sweep_min: int = 5
-    watchdog_gate_lost_min: int = 40
+    watchdog_gate_lost_min: int = 20
     wake_on_visit: bool = False
 
 
