@@ -422,10 +422,14 @@ class Session:
         try:
             await self.colab.stop(self.settings.colab_session_name)
         except ColabError as e:
-            self.bus.publish("log", f"stop error: {e}")
-            m.to(State.FAILED, f"stop failed: {e}")
-            self.persist()
-            return
+            msg = str(e).lower()
+            if any(k in msg for k in ("not found", "no such", "404", "unknown", "already")):
+                log.info("colab stop %s: instance already gone (%s)", self.settings.colab_session_name, e)
+            else:
+                self.bus.publish("log", f"stop error: {e}")
+                m.to(State.FAILED, f"stop failed: {e}")
+                self.persist()
+                return
         m.to(State.SLEEPING, reason)
         self.progress = {}
         self.on_demand, self.fetching = [], []

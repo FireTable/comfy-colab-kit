@@ -80,7 +80,14 @@ class ColabCLI:
             raise ColabError(f"colab exec exited with {rc}")
 
     async def stop(self, name: str) -> None:
-        await self._run("stop", "-s", name, timeout=180)
+        try:
+            await self._run("stop", "-s", name, timeout=180)
+        except ColabError as e:
+            msg = str(e).lower()
+            if any(k in msg for k in ("not found", "no such", "404", "unknown")):
+                log.info("colab stop %s: instance already released (%s)", name, e)
+                return
+            raise
 
     async def ccu_info(self) -> float | None:
         try:

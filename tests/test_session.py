@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from gate.config import Settings
+from gate.colab import ColabError
 from gate.profiles import load_profile
 from gate.session import Session
 from gate.state import State
@@ -105,6 +106,18 @@ async def test_stop_releases_vm_and_accrues_cu(tmp_path):
     await s.stop("test")
     assert s.machine.state == State.SLEEPING and "stop" in colab.calls
     assert sum(s.ledger.per_day.values()) == pytest.approx(1.71, rel=1e-3)
+
+
+async def test_stop_when_vm_already_unassigned_goes_to_sleep(tmp_path):
+    colab = FakeColab()
+    async def fake_stop(name):
+        raise ColabError("colab stop failed (1): ColabRequestError: 404: Not Found")
+    colab.stop = fake_stop
+    s = make(tmp_path, colab)
+    await s.wake(None)
+    await wait_for(lambda: s.machine.state == State.READY)
+    await s.stop("user shutdown")
+    assert s.machine.state == State.SLEEPING
 
 
 async def test_setup_failure_marks_failed_then_retry_restarts(tmp_path):

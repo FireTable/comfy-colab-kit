@@ -44,16 +44,16 @@
 *{box-sizing:border-box}[hidden]{display:none!important}html,body{height:100%}
 :root{--header-h:52px}
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 Inter,system-ui,-apple-system,"Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif;
- min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
+ min-height:100dvh;display:flex;flex-direction:column;overflow-x:hidden;overflow-y:auto}
 body.app-ready{height:100vh;height:100dvh;overflow:hidden}
 #bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;transform:scaleY(-1)}
 .grid{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
  background-size:44px 44px;mask-image:radial-gradient(ellipse at 50% 45%,#000 10%,transparent 70%);-webkit-mask-image:radial-gradient(ellipse at 50% 45%,#000 10%,transparent 70%);opacity:.55}
-.site-header{position:sticky;top:0;height:var(--header-h);z-index:100;padding:0 max(18px,env(safe-area-inset-left));
+.site-header{position:sticky;top:0;height:var(--header-h);z-index:100;padding:0 24px;
  background:rgba(14,10,18,.78);border-bottom:1px solid var(--line);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);
  transition:background-color .2s,border-color .2s;display:flex;align-items:center;box-sizing:border-box}
 :root[data-theme=light] .site-header{background:rgba(248,250,252,.92);border-bottom-color:var(--line)}
-.nav-container{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.nav-container{max-width:1180px;width:100%;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
 .header-left{display:flex;align-items:center;gap:10px;flex-shrink:0}
 .brand{display:flex;align-items:center;gap:9px;color:var(--fg);text-decoration:none;font-weight:700;font-size:15px;letter-spacing:-.01em;white-space:nowrap;flex-shrink:0;transition:opacity .15s}
 .brand:hover{opacity:.88}
@@ -118,7 +118,7 @@ h1{font-size:24px;font-weight:700;letter-spacing:-.01em;margin:14px 0 4px;backgr
  background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 4s linear infinite;min-height:36px}
 :root[data-theme=light] h1{background-image:linear-gradient(110deg,var(--fg) 35%,var(--o) 50%,var(--fg) 65%)}
 @keyframes shine{0%{background-position:100% 0}100%{background-position:-150% 0}}
-.muted{color:var(--muted)}.sub{font-size:13px;max-width:380px;min-height:20px;margin:0 auto;text-wrap:balance;word-break:normal;line-break:strict;overflow-wrap:break-word;line-height:1.5}
+.muted{color:var(--muted)}.sub{font-size:13px;max-width:440px;min-height:20px;margin:0 auto;text-wrap:balance;word-break:break-word;overflow-wrap:anywhere;line-height:1.5}
 .stages{list-style:none;padding:0;margin:18px 0 4px;position:relative}
 .stages li{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 0;color:var(--muted);font-size:13.5px}
 .stages li .k{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line2);display:grid;place-items:center;font-size:10px}
@@ -181,7 +181,7 @@ label{display:block;margin:18px 0 6px;font:600 11px var(--mono);letter-spacing:.
 .meta div{border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:rgba(127,127,127,.05)}
 .meta small{display:block;font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}.meta b{font:600 14px var(--mono)}
 /* shadcn Style Collapsible Console */
-details{margin-top:14px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.18);transition:border-color .15s}
+details{margin-top:14px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.18);transition:border-color .15s;overflow:hidden}
 details[open]{border-color:var(--line2)}
 :root[data-theme=light] details{background:rgba(255,255,255,.5)}
 summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px;padding:0 12px;font:12px var(--mono);color:var(--muted);list-style:none;user-select:none}
@@ -190,7 +190,7 @@ summary::-webkit-details-marker{display:none}
 details[open] .con-chevron{transform:rotate(90deg)}
 .con-title{font-weight:600;color:var(--fg);font-size:12.5px}
 summary .n{margin-left:auto;padding:1px 6px;border-radius:4px;background:rgba(127,127,127,.12);font-size:11px}
-pre{font:11.5px/1.55 var(--mono);color:var(--fg);opacity:.9;padding:6px 12px 14px;max-height:260px;overflow-x:auto;white-space:pre-wrap;word-break:normal;overflow-wrap:break-word;margin:0}
+pre{font:11.5px/1.55 var(--mono);color:var(--fg);opacity:.9;padding:8px 12px 14px;max-height:240px;overflow-x:auto;overflow-y:auto;white-space:pre-wrap;word-break:break-all;overflow-wrap:anywhere;margin:0}
 /* Custom Scrollbars */
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -240,10 +240,10 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 /* ComfyUI Iframe & Gate Main Layout */
 #comfy-frame{display:none;width:100%;height:calc(100vh - var(--header-h));height:calc(100dvh - var(--header-h));border:none;background:var(--bg);flex:1}
-.gate-main{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;align-items:center;
- padding:max(24px,calc(46vh - 270px)) 16px 24px;box-sizing:border-box;width:100%}
+.gate-main{position:relative;z-index:1;flex:1 0 auto;display:flex;flex-direction:column;align-items:center;
+ padding:36px 16px 28px;box-sizing:border-box;width:100%}
 footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color:var(--muted);
- padding:12px 16px calc(18px + env(safe-area-inset-bottom));margin-top:auto}
+ padding:16px;margin-top:auto;flex-shrink:0}
 @media (max-width:768px){
  #pill-stat-prof,#pill-div-2{display:none}
 }
@@ -609,9 +609,15 @@ function formatReason(r){
  if(!r)return"";
  if(lang==="zh"){
   if(r==="stopped by agent")return"空闲自动释放";
-  if(r==="stopped by user")return"手动关机";
+  if(r==="stopped by user"||r.startsWith("stopped by "))return"手动关机";
   if(r.startsWith("idle timeout"))return"超时休眠";
   if(r.startsWith("budget exceeded"))return"算力超额";
+ }
+ if(r.includes("Not Found")||r.includes("unassign")||r.includes("stop failed")){
+  return lang==="zh"?"实例已释放并休眠":"Instance released and sleeping";
+ }
+ if(r.length>100||r.includes("Traceback")||r.includes("ColabRequestError")){
+  return lang==="zh"?"运行异常（详细日志见控制台）":"Runtime error (see console)";
  }
  return r;
 }
