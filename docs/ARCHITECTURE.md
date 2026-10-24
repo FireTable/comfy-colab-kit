@@ -168,3 +168,17 @@ Cloudflare Pages caches static files (`.css`, `.js`) for 4 hours by default. To 
 1. Exposes `/robots.txt` disallowing all user agents.
 2. Intercepts automated crawlers (Googlebot, Bingbot, Baiduspider, scrapers) and responds with `403 Forbidden`.
 3. Attaches `X-Robots-Tag: noindex, nofollow, noarchive, nosnippet` to every gateway response.
+
+---
+
+## 8. Session Concurrency & Dual-Mode Access Control
+
+`comfy-gate` manages a single global VM instance under `Session.lock`. To balance cost protection with team usability, it supports two control modes:
+
+- **Mode B: Owner-Only Control (Default, `OWNER_ONLY_CONTROL=true`)**:
+  - `wake`, `stop`, `switch`, and `extend` are strictly restricted to administrators configured in `OWNER_EMAILS`.
+  - The UI automatically disables the Wake and Stop buttons for non-owner authenticated users, displaying clear tooltips.
+  - Once the VM reaches `READY`, **all authenticated team members** (via Google, GitHub, or Email OTP) share access to the ComfyUI canvas and prompt execution without friction.
+- **Mode A: Collaborative Control (`OWNER_ONLY_CONTROL=false`)**:
+  - Any authenticated user can wake the GPU.
+  - Shutdown is governed by the "who woke can stop" principle: only the session initiator (`woken_by` / `woken_by_ip`) or an administrator in `OWNER_EMAILS` can trigger a stop, protecting active sessions from accidental team termination.

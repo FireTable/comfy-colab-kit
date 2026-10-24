@@ -109,8 +109,8 @@ class Settings:
     cf_access_aud: str = ""
     allowed_emails: tuple[str, ...] = ()
     owner_emails: tuple[str, ...] = ()
-    owner_only_actions: tuple[str, ...] = ("switch", "stop", "extend")
-    owner_only_control: bool = False
+    owner_only_actions: tuple[str, ...] = ("wake", "stop", "switch", "extend")
+    owner_only_control: bool = True
     auth_disabled: bool = False
     cf_service_token_file: str = ""
     cf_tunnel_token_file: str = ""
@@ -141,8 +141,9 @@ class Settings:
     @staticmethod
     def from_env(env: Mapping[str, str] | None = None) -> "Settings":
         env = dict(os.environ if env is None else env)
-        owner_only_control = _bool(env, "OWNER_ONLY_CONTROL", False)
-        owner_only_list = [a.lower() for a in _csv(env.get("OWNER_ONLY_ACTIONS", "switch,stop,extend"))]
+        owner_only_control = _bool(env, "OWNER_ONLY_CONTROL", True)
+        default_actions = "wake,stop,switch,extend" if owner_only_control else "switch,stop,extend"
+        owner_only_list = [a.lower() for a in _csv(env.get("OWNER_ONLY_ACTIONS", default_actions))]
         if owner_only_control:
             if "wake" not in owner_only_list:
                 owner_only_list.append("wake")

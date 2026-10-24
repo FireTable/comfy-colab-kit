@@ -54,17 +54,29 @@ Cloudflare Zero Trust supports multiple simultaneous login methods on the login 
 Remember that `PUBLIC_HOST` embeds `COLAB_TUNNEL_HOST` inside an `<iframe>` once ComfyUI is `ready`.
 **Both Cloudflare Access Applications must enable the same Identity Providers and have matching `Allow` policies**; otherwise, the browser will authenticate on the front page, but fail with `403 Forbidden` inside the ComfyUI iframe!
 
-### 1.4 Gateway Roles & Initiator Shutdown Policy
-Once authenticated through Cloudflare Access, the request reaches `comfy-gate`:
-- **`ALLOWED_EMAILS`** (in `.env`):
-  - Set to empty (`ALLOWED_EMAILS=`) to automatically trust any user verified by Cloudflare Access.
-  - Or specify comma-separated emails to enforce an additional gate-side application whitelist.
-- **`OWNER_EMAILS`** (in `.env`):
-  - Configures super-admins (`firetable@foxmail.com`) who can stop any session, switch profiles, and extend runtime.
-- **Initiator-Only Shutdown ("谁开谁关")**:
-  - When a user wakes the Colab VM, the gateway records their verified email (`woken_by`) and client IP (`woken_by_ip`).
-  - **Only the initiator who started the session (or an owner) can stop it**.
-  - For all other users on the page or in ComfyUI, the Stop button is visually disabled (`opacity: 0.38; cursor: not-allowed`) with a tooltip explaining that only the session initiator can release the GPU. Unauthorized stop calls return `403 Forbidden`.
+### 1.4 Gateway Access Control Modes (Mode B Default vs. Mode A)
+
+Because Google Colab GPU Compute Units (CU) represent real financial cost, `comfy-gate` provides granular permission governance:
+
+#### 🛡️ Mode B: Owner-Only Control (Default, `OWNER_ONLY_CONTROL=true`)
+In Mode B (production default), **only administrators listed in `OWNER_EMAILS` can wake or stop the GPU instance**:
+- **Why this is default**: Prevents teammates, guests, or automated web crawlers from accidentally burning Colab compute units or prematurely interrupting ongoing generation tasks.
+- **Wake Protection**: For non-owner signed-in users, the "Wake" button on the sleep page is disabled with `opacity: 0.38` and an informative tooltip (`"仅管理员可开机唤醒 GPU"` / `"Wake is restricted to owners"`). Direct API calls to `POST /_gate/wake` return `403 Forbidden` (`owner_only`).
+- **Stop Protection**: The "Stop" button is disabled for non-owners (`"仅开机者或管理员可关机释放 GPU"` / `"Stop is restricted to owners"`). Calls to `POST /_gate/stop` return `403 Forbidden`.
+- **Shared Access When Ready**: Once an administrator wakes the instance and it reaches `READY`, **all authenticated team members** (logged in via Google, GitHub, or Email OTP) have full access to ComfyUI. They can queue prompts, inspect workflows, and generate images concurrently without restriction!
+
+#### 🤝 Mode A: Collaborative Control (`OWNER_ONLY_CONTROL=false`)
+If you want an open collaborative environment where any authenticated team member can start the GPU:
+- Set `OWNER_ONLY_CONTROL=false` in `.env`.
+- **Anyone Can Wake**: Any user who passes Cloudflare Access (or has an agent token) can click "Wake" to start the instance.
+- **Initiator Shutdown ("谁开谁关")**: When a user wakes the session, the gateway records their verified email (`woken_by`) and client IP (`woken_by_ip`).
+- **Shutdown Authority**: Only the person who woke the instance (or a super-admin in `OWNER_EMAILS`) can stop it. For other users, the Stop button is disabled, preventing teammates from accidentally killing someone else's active session.
+
+#### Configuration Reference
+- **`OWNER_ONLY_CONTROL`**: `true` (default: Mode B) or `false` (Mode A).
+- **`OWNER_EMAILS`**: Comma-separated admin emails (e.g. `you@example.com`). If empty, all signed-in users are treated as owners.
+- **`OWNER_ONLY_ACTIONS`**: Configurable subset of actions restricted to owners: `wake,stop,switch,extend` (defaults to all four when `OWNER_ONLY_CONTROL=true`).
+- **`ALLOWED_EMAILS`**: Optional secondary whitelist on the gateway; leave empty to permit anyone approved by Cloudflare Access.
 
 ---
 

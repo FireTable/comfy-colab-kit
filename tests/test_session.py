@@ -266,7 +266,7 @@ def test_zero_clients_tracking_on_ready(tmp_path):
 
 
 async def test_initiator_tracking_and_can_stop_policy(tmp_path):
-    s = make(tmp_path, OWNER_EMAILS="boss@x.com")
+    s = make(tmp_path, OWNER_ONLY_CONTROL="false", OWNER_EMAILS="boss@x.com")
     assert not s.can_stop(email="alice@x.com", ip="1.2.3.4")
 
     # Alice wakes session from IP 1.2.3.4
@@ -287,7 +287,7 @@ async def test_initiator_tracking_and_can_stop_policy(tmp_path):
 
     # Persistence preserves initiator
     s.persist()
-    s2 = make(tmp_path, OWNER_EMAILS="boss@x.com")
+    s2 = make(tmp_path, OWNER_ONLY_CONTROL="false", OWNER_EMAILS="boss@x.com")
     s2.restore()
     assert s2.woken_by == "alice@x.com"
     assert s2.woken_by_ip == "1.2.3.4"
@@ -300,6 +300,18 @@ async def test_initiator_tracking_and_can_stop_policy(tmp_path):
     assert s.woken_by == ""
     assert s.woken_by_ip == ""
     assert not s.can_stop(email="alice@x.com", ip="1.2.3.4")
+
+
+async def test_owner_only_control_session_policy(tmp_path):
+    # Mode B (default): Only owners can stop even if non-owner is set as initiator
+    s = make(tmp_path, OWNER_ONLY_CONTROL="true", OWNER_EMAILS="boss@x.com")
+    res = await s.wake(None, by="boss@x.com", ip="1.2.3.4")
+    assert not res.joined
+
+    # Non-owner cannot stop
+    assert not s.can_stop(email="alice@x.com", ip="1.2.3.4", is_owner=False)
+    # Boss (owner) can stop
+    assert s.can_stop(email="boss@x.com", ip="9.9.9.9", is_owner=True)
 
 
 

@@ -430,8 +430,8 @@ docker compose -f deploy/docker-compose.yml up -d --build
           <li>
             <span class="comp-icon ok" aria-hidden="true">✓</span>
             <div>
-              <strong data-i18n="comp.m3Title">Cloudflare Access Zero-Trust</strong>
-              <p data-i18n="comp.m3Desc">Protected by enterprise SSO and Email OTP. Granular owner roles and service tokens.</p>
+              <strong data-i18n="comp.m3Title">Zero-Trust & Owner Governance</strong>
+              <p data-i18n="comp.m3Desc">Google/GitHub SSO & Email OTP. Mode B defaults to admin-only wake/stop to protect GPU compute, with seamless team sharing when ready.</p>
             </div>
           </li>
           <li>
@@ -469,9 +469,9 @@ docker compose -f deploy/docker-compose.yml up -d --build
         <p data-i18n="features.f1Desc">Wake from your phone, laptop, or API. The gate provisions Colab, configures ComfyUI, and proxies it on the same URL.</p>
       </article>
       <article class="card">
-        <div class="card-tag"><span>🛡️</span> <span data-i18n="features.f2Tag">Zero-Trust Auth</span></div>
-        <h3 data-i18n="features.f2Title">Cloudflare Access Security</h3>
-        <p data-i18n="features.f2Desc">Protected by zero-trust identity verification (SSO / Email OTP / Service Tokens). No exposed ports, no shared Google passwords.</p>
+        <div class="card-tag"><span>🛡️</span> <span data-i18n="features.f2Tag">Zero-Trust & Governance</span></div>
+        <h3 data-i18n="features.f2Title">Cloudflare Access & Owner Governance</h3>
+        <p data-i18n="features.f2Desc">Multi-IdP login (Google, GitHub, OTP). Default Mode B restricts wake and stop to admins, while Mode A supports collaborative initiator shutdown.</p>
       </article>
       <article class="card">
         <div class="card-tag"><span>🤝</span> <span data-i18n="features.f3Tag">Idempotent</span></div>
@@ -595,10 +595,10 @@ docker compose -f deploy/docker-compose.yml up -d --build
       </details>
       <details class="card">
         <summary>
-          <span class="faq-q" data-i18n="faq.q2">Can I share it with friends?</span>
+          <span class="faq-q" data-i18n="faq.q2">Can I share it with friends or teammates?</span>
           <svg class="faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </summary>
-        <div class="answer" data-i18n="faq.a2">It is designed for personal or small trusted team use. Colab compute belongs to your personal Google account. Keep access to yourself or invite friends via Cloudflare Access emails rather than making it public.</div>
+        <div class="answer" data-i18n="faq.a2">Yes, absolutely! It is designed for personal or small trusted team use. By default, it operates in Mode B (Owner-only control): only administrators can wake or stop the GPU, preventing accidental compute unit spend. Once ready, all authenticated team members can generate images concurrently. You can also toggle to Mode A where any teammate can wake.</div>
       </details>
       <details class="card">
         <summary>
@@ -697,6 +697,6 @@ docker compose -f deploy/docker-compose.yml up -d --build
 </footer>
 
 <script src="vendor/lenis.min.js" defer></script>
-<script src="main.js?v=5de9d1fa" defer></script>
+<script src="main.js?v=e44a67c4" defer></script>
 </body>
 </html>
