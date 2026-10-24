@@ -75,11 +75,11 @@ Two real sessions where an AI agent called the gateway end-to-end — no browser
 <table>
   <tr>
     <td align="center" width="50%">
-      <img src="screenshots/agent-txt2img.png" style="max-height:460px;width:auto;max-width:100%" alt="AI agent text-to-image session" /><br/>
+      <img src="screenshots/agent-txt2img.png" width="100%" alt="AI agent text-to-image session" /><br/>
       <sub><b>Text-to-Image via <code>/comfy-colab-kit</code></b><br/>41 s from prompt to finished PNG</sub>
     </td>
     <td align="center" width="50%">
-      <img src="screenshots/agent-img2img.png" style="max-height:460px;width:auto;max-width:100%" alt="AI agent image-to-image session" /><br/>
+      <img src="screenshots/agent-img2img.png" width="100%" alt="AI agent image-to-image session" /><br/>
       <sub><b>Image-to-Image via <code>/comfy-colab-kit</code></b><br/>2 m 14 s, two variations from one reference</sub>
     </td>
   </tr>
