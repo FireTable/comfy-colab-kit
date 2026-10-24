@@ -120,24 +120,25 @@ body.app-ready{height:100vh;height:100dvh;overflow:hidden}
 .token-info{overflow:hidden;flex:1;min-width:0}
 .token-name{font-size:12.5px;font-weight:600;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .token-time{font-size:10.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.btn-revoke{background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;transition:all .15s}
-.btn-revoke:hover{background:rgba(239,68,68,0.25)}
+.btn-revoke{background:rgba(239,68,68,0.08);color:#f87171;border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;transition:all .15s}
+.btn-revoke:hover{background:#ef4444;color:#fff}
 .token-card.revoked{opacity:0.5;background:transparent}
 .token-card.revoked .btn-revoke{display:none}
 .token-revoked-label{font-size:10.5px;color:var(--muted)}
-.cli-section{display:flex;flex-direction:column;gap:6px;margin-top:2px}
-.btn-copy-ai-prompt{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;height:35px;background:linear-gradient(135deg,var(--primary) 0%,#2563eb 100%);color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(37,99,235,0.25);transition:all .15s}
-.btn-copy-ai-prompt:hover{filter:brightness(1.1);transform:translateY(-1px)}
-.btn-copy-ai-prompt:active{transform:translateY(0)}
-.token-prompt-btn{background:rgba(59,130,246,0.12);color:var(--primary);border:1px solid rgba(59,130,246,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;transition:all .15s}
-.token-prompt-btn:hover{background:var(--primary);color:#fff}
-.ai-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--card);border:1px solid var(--primary);color:var(--fg);padding:10px 18px;border-radius:10px;font-size:12.5px;font-weight:500;box-shadow:0 10px 30px rgba(0,0,0,0.5);z-index:300;opacity:0;pointer-events:none;transition:all .25s ease}
+.cli-section{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.btn-copy-ai-prompt{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:36px;background:transparent;color:var(--fg);border:1px solid var(--line2);border-radius:9px;font-size:12.5px;font-weight:600;cursor:pointer;box-shadow:none;transition:all .18s cubic-bezier(0.16,1,0.3,1)}
+.btn-copy-ai-prompt .sparkle-icon{color:var(--y);transition:transform .2s ease;flex-shrink:0}
+.btn-copy-ai-prompt:hover{background:rgba(249,171,0,0.08);border-color:var(--y);color:var(--y);box-shadow:none}
+.btn-copy-ai-prompt:hover .sparkle-icon{transform:scale(1.18) rotate(12deg)}
+.btn-copy-ai-prompt:active{background:rgba(249,171,0,0.16);transform:scale(0.99)}
+.btn-copy-ai-prompt:disabled{opacity:0.5;cursor:not-allowed;border-color:var(--line)}
+:root[data-theme=light] .btn-copy-ai-prompt{background:rgba(0,0,0,0.02);border-color:rgba(15,23,42,0.14);color:var(--fg)}
+:root[data-theme=light] .btn-copy-ai-prompt:hover{background:rgba(217,119,6,0.08);border-color:var(--y);color:var(--y)}
+.token-prompt-btn{background:rgba(249,171,0,0.08);color:var(--y);border:1px solid rgba(249,171,0,0.25);border-radius:6px;padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;transition:all .15s}
+.token-prompt-btn:hover{background:var(--y);color:#000}
+:root[data-theme=light] .token-prompt-btn:hover{background:var(--y);color:#fff}
+.ai-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--card);border:1px solid var(--y);color:var(--fg);padding:10px 18px;border-radius:10px;font-size:12.5px;font-weight:500;box-shadow:0 10px 30px rgba(0,0,0,0.5);z-index:300;opacity:0;pointer-events:none;transition:all .25s ease}
 .ai-toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
-.cli-connect-title{font-size:10.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin:0}
-.cli-cmd-box{display:flex;align-items:center;background:rgba(0,0,0,0.28);border:1px solid var(--line2);border-radius:8px;padding:4px 8px;gap:8px}
-:root[data-theme=light] .cli-cmd-box{background:rgba(0,0,0,0.04);border-color:rgba(15,23,42,0.1)}
-.cli-cmd-box code{font-family:var(--mono);font-size:11px;color:var(--y);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.copy-cmd-btn{background:rgba(127,127,127,0.2);color:var(--fg);border:0;border-radius:5px;height:24px;padding:0 8px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0}
 .copy-cmd-btn:hover{background:var(--y);color:#000}
 .cli-help-tip{font-size:10px;color:var(--muted);line-height:1.4;margin:0}
 .btn-create-token{background:rgba(249,171,0,0.12);color:var(--y);border:1px solid rgba(249,171,0,0.25);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s}
@@ -423,7 +424,7 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
 
           <div class="cli-section">
             <button type="button" class="btn-copy-ai-prompt" id="copy-ai-prompt-btn" title="一键复制专为 Cursor、Claude Code、OpenClaw 设计的完整接入指令">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="sparkle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1 1.3-1.3Z"/>
               </svg>
               <span id="copy-ai-prompt-txt">复制 AI Agent 接入指令</span>
@@ -568,7 +569,7 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
       </div>
 
       <button type="button" class="btn-copy-ai-prompt" id="copy-ai-prompt-modal-btn" style="margin-top:10px">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg class="sparkle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>
         </svg>
         <span id="copy-modal-prompt-txt">复制完整 AI Agent 提示词</span>
