@@ -120,5 +120,18 @@ async def test_device_auth_endpoints(tmp_path):
         # Step 8: Token is now rejected
         res = await client.get("/_gate/status", headers={"Authorization": f"Bearer {token}"})
         assert res.status == 401
+
+        # Step 9: Test direct token creation (web UI flow without ckit)
+        res = await client.post("/api/agent-tokens", json={"name": "Cursor-Direct"})
+        assert res.status == 200
+        dir_data = await res.json()
+        assert "token" in dir_data
+        assert dir_data["token"].startswith("sk_agent_")
+        assert dir_data["name"] == "Cursor-Direct"
+        assert dir_data["email"] == "dev@localhost"
+
+        # Verify direct token works
+        res = await client.get("/_gate/status", headers={"Authorization": f"Bearer {dir_data['token']}"})
+        assert res.status == 200
     finally:
         await client.close()

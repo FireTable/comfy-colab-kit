@@ -5,7 +5,18 @@ import json
 from pathlib import Path
 from aiohttp import web
 
+from .auth import IDENT, Identity
 from .db import GateDB, DB_KEY
+
+
+def _ident(request: web.Request) -> Identity | None:
+    val = request.get(IDENT)
+    if isinstance(val, Identity):
+        return val
+    val = request.get("identity")
+    if isinstance(val, Identity):
+        return val
+    return None
 
 
 def _get_base_url(request: web.Request) -> str:
@@ -66,7 +77,7 @@ async def device_token_endpoint(request: web.Request) -> web.Response:
 
 async def device_page_endpoint(request: web.Request) -> web.Response:
     """RFC 8628 Step 2: User browser visits /auth/device to approve/deny."""
-    ident = request.get("identity")
+    ident = _ident(request)
     email = ident.email if ident else "unknown"
     is_owner = ident.is_owner if ident else False
     code = (request.query.get("code") or "").strip().upper()
@@ -236,13 +247,18 @@ p.subtitle {{
 </head>
 <body>
 <div class="card">
-  <div class="icon">🤖</div>
+  <div class="icon">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary);margin:0 auto;display:block;">
+      <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+  </div>
   <h1>授权 AI Agent 连接</h1>
   <p class="subtitle">允许外部设备（Cursor / Claude / OpenClaw）调用此 Comfy Colab 实例。</p>
 
   <div class="user-box">
-    <div class="user-email">👤 {email}</div>
-    <div class="badge">{"👑 管理员" if is_owner else "👤 协作者"}</div>
+    <div class="user-email">{email}</div>
+    <div class="badge">{"管理员" if is_owner else "协作者"}</div>
   </div>
 
   <form id="auth-form" onsubmit="event.preventDefault(); submitAuth(true);">
@@ -250,9 +266,9 @@ p.subtitle {{
     <input id="user-code" class="code-input" maxlength="9" placeholder="XXXX-XXXX" value="{code}" required autocomplete="off" autocorrect="off" autocapitalize="characters" />
 
     <div class="scope-list">
-      <div class="scope-item">✓ 唤醒 GPU 实例与查询状态</div>
-      <div class="scope-item">✓ 提交 ComfyUI 工作流绘图 Prompt</div>
-      {"<div class='scope-item' style='color:#10b981;'>✓ 具备停止机器释放算力权限 (Owner)</div>" if is_owner else "<div class='scope-item'>✕ 无权关机释放算力 (需管理员)</div>"}
+      <div class="scope-item">• 唤醒 GPU 实例与查询状态</div>
+      <div class="scope-item">• 提交 ComfyUI 工作流绘图 Prompt</div>
+      {"<div class='scope-item' style='color:#10b981;'>• 具备停止机器释放算力权限 (Owner)</div>" if is_owner else "<div class='scope-item'>• 无权关机释放算力 (需管理员)</div>"}
     </div>
 
     <div class="actions">
@@ -290,8 +306,8 @@ async function submitAuth(approve) {{
     if (res.ok && data.ok) {{
       statusBox.className = "status-msg success";
       statusBox.innerHTML = approve 
-        ? "✅ <b>授权成功！</b><br>AI Agent 客户端已自动连接并获取凭证，您可以关闭此标签页。"
-        : "🚫 已拒绝该设备授权请求。";
+        ? "<b>授权成功</b><br>AI Agent 客户端已自动连接并获取凭证，您可以关闭此标签页。"
+        : "已拒绝该设备授权请求。";
       document.getElementById("auth-form").style.display = "none";
     }} else {{
       statusBox.className = "status-msg error";
@@ -313,7 +329,7 @@ async function submitAuth(approve) {{
 
 async def device_approve_endpoint(request: web.Request) -> web.Response:
     """Approves a device code (gated by auth)."""
-    ident = request.get("identity")
+    ident = _ident(request)
     if not ident:
         return web.json_response({"error": "unauthorized"}, status=401)
     db: GateDB = request.app[DB_KEY]
@@ -351,7 +367,7 @@ async def device_deny_endpoint(request: web.Request) -> web.Response:
 # ── Token Management Endpoints ───────────────────────────────────────────────
 async def list_agent_tokens_endpoint(request: web.Request) -> web.Response:
     """Lists tokens for current user (or all if owner)."""
-    ident = request.get("identity")
+    ident = _ident(request)
     if not ident:
         return web.json_response({"error": "unauthorized"}, status=401)
     db: GateDB = request.app[DB_KEY]
@@ -363,9 +379,26 @@ async def list_agent_tokens_endpoint(request: web.Request) -> web.Response:
     })
 
 
+async def create_agent_token_endpoint(request: web.Request) -> web.Response:
+    """Directly creates a new agent token for the authenticated user."""
+    ident = _ident(request)
+    if not ident:
+        return web.json_response({"error": "unauthorized"}, status=401)
+    db: GateDB = request.app[DB_KEY]
+    body = {}
+    if request.can_read_body:
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+    name = str(body.get("name") or "AI Agent").strip()
+    res = db.create_direct_token(email=ident.email, name=name)
+    return web.json_response(res)
+
+
 async def revoke_agent_token_endpoint(request: web.Request) -> web.Response:
     """Revokes a specific token with secondary confirmation on client."""
-    ident = request.get("identity")
+    ident = _ident(request)
     if not ident:
         return web.json_response({"error": "unauthorized"}, status=401)
     token_id = request.match_info.get("id", "").strip()

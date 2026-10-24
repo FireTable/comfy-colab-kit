@@ -13,11 +13,14 @@ from dataclasses import dataclass
 from typing import Any, Callable, Mapping, TYPE_CHECKING
 
 import jwt
+from aiohttp import web
 
 from .config import Settings
 
 if TYPE_CHECKING:
     from .db import GateDB
+
+IDENT = web.RequestKey("identity", object) if hasattr(web, "RequestKey") else "identity"
 
 
 class AuthError(Exception):
