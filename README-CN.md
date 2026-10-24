@@ -80,7 +80,7 @@ docker compose -f deploy/docker-compose.yml up -d
 # 把 deploy/Caddyfile.snippet 加进 Caddy 并 reload，打开 https://$PUBLIC_HOST
 ```
 
-完整步骤见 [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md) 与 [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md)，从零开始申请凭证与部署指南详见 [docs/AGENT.md](docs/AGENT.md)。
+完整步骤见 [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md)，用户与 Agent 访问指南详见 [docs/ACCESS.md](docs/ACCESS.md)（浏览器/免登链接/局域网/Agent），零门槛申请凭证详见 [docs/AGENT.md](docs/AGENT.md)。
 
 ## 🤖 针对 AI 智能体与自动化运维 (Agent Skill Protocol)
 

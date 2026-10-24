@@ -36,4 +36,4 @@ secrets:
 networks:
   caddy:
     external: true
-    name: ${CADDY_NETWORK:-langgraph-app_default}   # existing Caddy network on the VPS
+    name: ${CADDY_NETWORK:-caddy}   # existing reverse proxy network on the VPS (default: caddy)

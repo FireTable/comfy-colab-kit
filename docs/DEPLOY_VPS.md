@@ -23,6 +23,7 @@ git clone https://github.com/FireTable/comfy-colab-kit.git && cd comfy-colab-kit
 # 2. Configure environment
 cp .env.example .env
 # Edit PUBLIC_HOST, COLAB_TUNNEL_HOST, CF_ACCESS_*, and OWNER_EMAILS
+# If your Caddy Docker network is named differently from 'caddy', set CADDY_NETWORK in .env
 
 # 3. Create secrets and data directories
 mkdir -p secrets data && chmod 700 secrets data
@@ -94,7 +95,7 @@ After deployment, run these checks to ensure all subsystems are functioning:
 ### Troubleshooting Common Errors
 
 - **Caddy returns `502 Bad Gateway`**:
-  Ensure both Caddy and `comfy-gate` share the same Docker network. By default, `docker-compose.yml` expects an external network named `caddy`. Check via `docker network inspect caddy`.
+  Ensure both Caddy and `comfy-gate` share the same Docker network. By default, `docker-compose.yml` connects to the network defined by `CADDY_NETWORK` (default: `caddy`). Verify with `docker network ls` and set `CADDY_NETWORK` in `.env` if yours is named differently.
 - **Cloudflare returns `403 Forbidden` on tunnel requests**:
   Verify that the Client ID and Secret in `secrets/cf_service.json` match the Service Token authorized in the Cloudflare Access application protecting `COLAB_TUNNEL_HOST`.
 - **Colab CLI displays `OAuth token expired or invalid`**:

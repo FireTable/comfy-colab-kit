@@ -15,11 +15,13 @@ Choose the reading path tailored to your specific role and objective:
         │                                │
  👤 End-User / Operator           🛠️ Core Developer             🤖 AI Agent Operator
   ├─ ARCHITECTURE.md (Concept)     ├─ ARCHITECTURE.md (Deep dive)├─ AGENT_SKILL.md (Skill spec)
-  ├─ DEPLOY_VPS.md (Quick deploy)  ├─ PROFILES.md (Model schemas) ├─ API.md (REST & SSE endpoints)
-  ├─ AGENT.md (Full credential run)├─ AUTO_STOP.md (Rules engine) ├─ AGENT.md (VPS automation)
-  └─ WAKE_PAGE.md (UI features)    └─ SECURITY.md (Threat model)  └─ llms.txt (Context index)
+  ├─ ACCESS.md (How to access)     ├─ PROFILES.md (Model schemas) ├─ API.md (REST & SSE endpoints)
+  ├─ DEPLOY_VPS.md (Quick deploy)  ├─ AUTO_STOP.md (Rules engine) ├─ ACCESS.md (Agent auth)
+  ├─ AGENT.md (Full credential run)├─ SECURITY.md (Threat model)  ├─ AGENT.md (VPS automation)
+  └─ WAKE_PAGE.md (UI features)    └─ CLOUDFLARE.md (Dual host)   └─ llms.txt (Context index)
 ```
 
+- **If you want to know how users or agents connect**: Read [`ACCESS.md`](ACCESS.md) for web browser, guest token link, LAN, CLI, and AI agent connection paths.
 - **If you are deploying for the first time**: Start with [`DEPLOY_VPS.md`](DEPLOY_VPS.md) for the fast Docker Compose setup, or consult [`AGENT.md`](AGENT.md) for a complete credentials procurement walkthrough.
 - **If you are adding or customizing models**: Read [`PROFILES.md`](PROFILES.md) to understand YAML schemas, model aliasing, and workflow policies.
 - **If you are building an AI agent**: Read [`AGENT_SKILL.md`](AGENT_SKILL.md) and [`API.md`](API.md) to integrate automated wake, prompt queuing, and shutdown routines.
@@ -33,6 +35,7 @@ Choose the reading path tailored to your specific role and objective:
 | :--- | :--- | :--- |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Dual-phase gateway vs proxy, 10-state machine, Colab bootstrap, shared global session | Developers & Architects |
 | [`DEPLOY_VPS.md`](DEPLOY_VPS.md) | Docker Compose + Caddy production deployment, secrets layout, and upgrades | System Operators |
+| [`ACCESS.md`](ACCESS.md) | Browser login, shareable guest links, LAN/Tailscale mode, agent auth, and in-app navigation | All Users & Agents |
 | [`AGENT.md`](AGENT.md) | End-to-end VPS deployment runbook and complete credential procurement guide | Operators & Coding Agents |
 | [`AGENT_SKILL.md`](AGENT_SKILL.md) | Autonomous agent skill protocol (`comfy_colab_gate`), prompt queuing, and GPU lifecycle | AI Agent Developers |
 | [`API.md`](API.md) | HTTP REST endpoints, Server-Sent Events (SSE) telemetry, and ComfyUI proxy routes | Developers & AI Agents |

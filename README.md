@@ -83,7 +83,7 @@ docker compose -f deploy/docker-compose.yml up -d
 # add deploy/Caddyfile.snippet to Caddy, reload, open https://$PUBLIC_HOST
 ```
 
-Full walkthrough: [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md), [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md), and [docs/AGENT.md](docs/AGENT.md) (comprehensive credential guide).
+Full walkthrough: [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md), [docs/ACCESS.md](docs/ACCESS.md) (browser, guest link, LAN & agent access), [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md), and [docs/AGENT.md](docs/AGENT.md) (comprehensive credential guide).
 
 ## 🤖 For AI Agents & Automation (Agent Skill Protocol)
 
