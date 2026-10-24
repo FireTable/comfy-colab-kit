@@ -83,3 +83,18 @@ If you want to completely disable login prompts (for friends, internal testing, 
      docker compose -f deploy/docker-compose.yml up -d
      ```
    - This instructs `comfy-gate` to accept requests without Cloudflare JWT assertions and grants all visitors owner privileges.
+
+---
+
+## 5. The Symmetry Rule: Restoring / Enabling Protection
+
+Just as **disabling** access requires updating both applications, **enabling (or restoring) protection is strictly symmetrical**:
+
+| Component | Target Host | Required Cloudflare Access Policies | Role in Protected Mode |
+|---|---|---|---|
+| **App 1: Frontend** | `PUBLIC_HOST`<br>(e.g. `comfy.yourdomain.com`) | • Policy 1: `Allow` for `ALLOWED_EMAILS` | Challenges visiting browsers with Email OTP / SSO. Issues JWT assertion. |
+| **App 2: Backend** | `COLAB_TUNNEL_HOST`<br>(e.g. `comfy-colab.yourdomain.com`) | • Policy 1: `Service Auth` for Service Token<br>• Policy 2: `Allow` for `ALLOWED_EMAILS` | • `Service Auth`: lets VPS `comfy-gate` proxy traffic.<br>• `Allow`: lets authenticated browser iframe load ComfyUI. |
+| **VPS Gateway** | `comfy-gate:8080` | `.env`: `AUTH_DISABLED=false`<br>(or remove/comment out `AUTH_DISABLED`) | Cryptographically verifies incoming `Cf-Access-Jwt-Assertion` against Cloudflare JWKS. |
+
+> [!IMPORTANT]
+> **Common Pitfall when Enabling**: If you forget to add Policy 2 (`Allow` for your email) on the Backend App, Cloudflare will accept the gateway's service token on the backend proxy, but the **browser's iframe will be rejected with 403 Forbidden** because Cloudflare Access will block the browser from loading the iframe! Always ensure the Backend App permits BOTH the Service Token and the authorized user emails.

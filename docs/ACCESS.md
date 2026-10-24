@@ -98,6 +98,14 @@ All incoming requests will be automatically authorized as the default owner (`de
 > [!WARNING]
 > Bypassing both applications allows anyone with the URL to wake the Colab VM and consume Compute Units. For public instances, it is strongly recommended to keep Cloudflare Access enabled or use the [Shareable Token Link](#2-guest--friend-access-via-url-token-token) pattern instead.
 
+### 🔄 The Symmetry Rule (Restoring Protection)
+Just as turning off authentication requires bypassing **both** applications, **restoring full Zero Trust protection also requires configuring both applications**:
+1. **Frontend App (`comfy-colab-kit`)**: Remove or disable the `Bypass-All` policy. Ensure an `Allow` policy exists for `ALLOWED_EMAILS`.
+2. **Backend App (`comfy-colab-kit-backend`)**: Remove or disable the `Bypass-All` policy. Ensure it has:
+   - Policy 1 (`Service Auth`): Permits the gateway's Cloudflare Service Token.
+   - Policy 2 (`Allow`): Permits `ALLOWED_EMAILS` so the browser's iframe is allowed to render ComfyUI.
+3. **VPS Gateway**: Set `AUTH_DISABLED=false` (or remove it) in `.env` and restart the container (`docker compose up -d`).
+
 ---
 
 ## 4. AI Agents & Autonomous Workflows (REST & MCP)
