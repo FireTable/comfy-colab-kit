@@ -133,6 +133,30 @@ body.app-ready{height:100vh;height:100dvh;overflow:hidden}
 .copy-cmd-btn{background:rgba(127,127,127,0.2);color:var(--fg);border:0;border-radius:4px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0}
 .copy-cmd-btn:hover{background:var(--y);color:#000}
 .cli-help-tip{font-size:10.5px;color:var(--muted);margin-top:4px}
+.btn-create-token{background:rgba(249,171,0,0.12);color:var(--y);border:1px solid rgba(249,171,0,0.25);border-radius:5px;padding:2px 7px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-create-token:hover{background:var(--y);color:#000}
+.token-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:90;display:flex;align-items:center;justify-content:center;padding:16px}
+.token-modal-box{background:var(--card);border:1px solid var(--line2);border-radius:16px;width:100%;max-width:440px;padding:20px;box-shadow:0 24px 48px rgba(0,0,0,0.5);display:flex;flex-direction:column;gap:12px}
+:root[data-theme=light] .token-modal-box{background:#FFFFFF;border-color:rgba(15,23,42,0.14);box-shadow:0 24px 48px rgba(15,23,42,0.15)}
+.token-modal-head{display:flex;align-items:center;justify-content:space-between}
+.token-modal-title{font-size:14px;font-weight:700;color:var(--fg)}
+.token-modal-close{background:none;border:0;color:var(--muted);font-size:20px;cursor:pointer;padding:4px;line-height:1}
+.token-modal-close:hover{color:var(--fg)}
+.token-modal-desc{font-size:12px;color:var(--muted);line-height:1.45}
+.token-input-lbl{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:4px}
+.token-text-input{background:rgba(0,0,0,0.25);border:1px solid var(--line2);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--fg);outline:none;width:100%;box-sizing:border-box}
+:root[data-theme=light] .token-text-input{background:rgba(0,0,0,0.03)}
+.token-text-input:focus{border-color:var(--y)}
+.token-modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+.token-btn-secondary{background:transparent;border:1px solid var(--line2);color:var(--muted);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer}
+.token-btn-secondary:hover{color:var(--fg);border-color:var(--line)}
+.token-btn-primary{background:var(--y);color:#000;border:0;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .15s}
+.token-btn-primary:hover{opacity:0.9}
+.token-alert-warn{background:rgba(249,171,0,0.12);border:1px solid rgba(249,171,0,0.25);color:var(--y);padding:8px 10px;border-radius:8px;font-size:11.5px;line-height:1.4}
+.mcp-config-box{position:relative;background:rgba(0,0,0,0.3);border:1px solid var(--line2);border-radius:8px;padding:8px}
+:root[data-theme=light] .mcp-config-box{background:rgba(0,0,0,0.03)}
+.mcp-config-box pre{font:10px/1.4 var(--mono);color:var(--fg);margin:0;padding:0;max-height:140px;overflow-y:auto;white-space:pre-wrap}
+.mcp-copy-btn{margin-top:6px;width:100%}
 .menu-popover{position:absolute;right:0;top:calc(100% + 8px);min-width:144px;background:var(--popover);border:1px solid var(--line2);border-radius:14px;padding:6px;
  backdrop-filter:blur(24px) saturate(150%);-webkit-backdrop-filter:blur(24px) saturate(150%);box-shadow:0 16px 36px -8px rgba(0,0,0,.65);z-index:70;display:none;flex-direction:column;gap:2px}
 :root[data-theme=light] .menu-popover{background:#FFFFFF;border-color:rgba(15,23,42,.14);box-shadow:0 16px 36px -8px rgba(15,23,42,.16)}
@@ -363,7 +387,11 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
 
         <div class="menu-popover user-popover" id="user-popover" role="dialog">
           <div class="user-popover-header">
-            <div class="user-avatar-circle" id="user-avatar-circle">👤</div>
+            <div class="user-avatar-circle" id="user-avatar-circle">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+            </div>
             <div class="user-details">
               <div class="user-full-email" id="user-full-email"></div>
               <div class="user-role-tag" id="user-role-tag"></div>
@@ -373,9 +401,12 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
           <div class="user-popover-section">
             <div class="section-title-row">
               <span class="section-title">已绑定的 AI Agent</span>
-              <button type="button" class="refresh-tokens-btn" id="refresh-tokens-btn" title="刷新列表">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-              </button>
+              <div style="display:flex;align-items:center;gap:6px">
+                <button type="button" class="btn-create-token" id="create-token-btn" title="生成新的 Agent Token">+ 新建</button>
+                <button type="button" class="refresh-tokens-btn" id="refresh-tokens-btn" title="刷新列表">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+                </button>
+              </div>
             </div>
             <div id="agent-tokens-list" class="agent-tokens-list">
               <div class="empty-tokens">正在加载...</div>
@@ -491,6 +522,49 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
 </section>
 </main>
 <footer id="footer-txt">shared session · GPU sleeps when idle</footer>
+
+<!-- Agent Token Modal -->
+<div id="token-modal" class="token-modal-backdrop" style="display:none">
+  <div class="token-modal-box">
+    <div class="token-modal-head">
+      <span class="token-modal-title" id="token-modal-title">生成 AI Agent 访问凭证</span>
+      <button type="button" class="token-modal-close" id="token-modal-close" aria-label="关闭">&times;</button>
+    </div>
+
+    <!-- Step 1: Input Name -->
+    <div id="token-step-input">
+      <p class="token-modal-desc" id="token-modal-desc">为你的 AI 编程助手（如 Cursor、Claude Desktop、Cline 等）创建专属访问凭证与 MCP 配置。</p>
+      <label class="token-input-lbl" for="token-name-input" id="token-input-lbl" style="margin-top:10px">客户端备注名</label>
+      <input type="text" id="token-name-input" class="token-text-input" placeholder="例如: Cursor-MacBook" maxlength="40" autocomplete="off" />
+      <div class="token-modal-actions">
+        <button type="button" class="token-btn-secondary" id="token-cancel-btn">取消</button>
+        <button type="button" class="token-btn-primary" id="token-confirm-btn">确认生成</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Show Result -->
+    <div id="token-step-result" style="display:none">
+      <div class="token-alert-warn" id="token-alert-warn">此 Token 仅展示一次，关闭后将无法再次查看完整密钥，请妥善保存。</div>
+      
+      <label class="token-input-lbl" style="margin-top:10px">Agent Bearer Token</label>
+      <div class="cli-cmd-box" style="margin-bottom:12px">
+        <code id="new-token-val">sk_agent_...</code>
+        <button type="button" class="copy-cmd-btn" id="copy-token-val-btn">复制</button>
+      </div>
+
+      <label class="token-input-lbl">MCP 服务配置 (Claude Desktop / Cursor)</label>
+      <div class="mcp-config-box">
+        <pre id="mcp-config-json">...</pre>
+        <button type="button" class="copy-cmd-btn mcp-copy-btn" id="copy-mcp-json-btn">复制 MCP 配置</button>
+      </div>
+
+      <div class="token-modal-actions" style="margin-top:14px">
+        <button type="button" class="token-btn-primary" id="token-done-btn" style="width:100%">完成</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <iframe id="comfy-frame" title="ComfyUI" allow="clipboard-read; clipboard-write" style="display:none"></iframe>
 <script src="/_gate/static/bg.js" defer></script>
 <script>
@@ -645,11 +719,99 @@ function updateUserUI(you){
  const roleBadge=$("user-role-badge");
  roleBadge.textContent=isOwner?"Owner":"Member";
  roleBadge.className="badge-role "+(isOwner?"badge-owner":"badge-member");
- $("user-role-tag").textContent=isOwner?(lang==="zh"?"👑 系统管理员 (具备全部权限)":"👑 Admin (Full Access)"):(lang==="zh"?"👤 协作者 (查询与绘图)":"👤 Member (Query & Generate)");
+ $("user-role-tag").textContent=isOwner?(lang==="zh"?"系统管理员 (具备全部权限)":"Admin (Full Access)"):(lang==="zh"?"协作者 (查询与绘图)":"Member (Query & Generate)");
  $("cli-auth-cmd").textContent=`ckit auth ${window.location.origin}`;
 }
 userBtn.onclick=(e)=>{e.stopPropagation();toggleUserMenu()};
 $("refresh-tokens-btn").onclick=(e)=>{e.stopPropagation();loadAgentTokens()};
+
+// Agent Token Creation Modal Handlers
+const tokenModal=$("token-modal");
+const tokenStepInput=$("token-step-input");
+const tokenStepResult=$("token-step-result");
+const tokenNameInput=$("token-name-input");
+const tokenConfirmBtn=$("token-confirm-btn");
+const tokenCancelBtn=$("token-cancel-btn");
+const tokenModalClose=$("token-modal-close");
+const tokenDoneBtn=$("token-done-btn");
+
+function openTokenModal(){
+ tokenStepInput.style.display="block";
+ tokenStepResult.style.display="none";
+ tokenNameInput.value="";
+ tokenModal.style.display="flex";
+ tokenNameInput.focus();
+}
+function closeTokenModal(){
+ tokenModal.style.display="none";
+}
+$("create-token-btn").onclick=(e)=>{
+ e.stopPropagation();
+ openTokenModal();
+};
+tokenModalClose.onclick=closeTokenModal;
+tokenCancelBtn.onclick=closeTokenModal;
+tokenModal.onclick=(e)=>{if(e.target===tokenModal)closeTokenModal()};
+
+tokenConfirmBtn.onclick=async()=>{
+ const name=tokenNameInput.value.trim()||"Cursor";
+ tokenConfirmBtn.disabled=true;
+ tokenConfirmBtn.textContent=lang==="zh"?"生成中...":"Generating...";
+ try{
+  const res=await api("/api/agent-tokens",{
+   method:"POST",
+   body:JSON.stringify({name})
+  });
+  const tok=res.token;
+  $("new-token-val").textContent=tok;
+  const origin=window.location.origin;
+  const mcpConfig={
+   mcpServers:{
+    "comfy-colab":{
+     url:`${origin}/mcp`,
+     headers:{
+      Authorization:`Bearer ${tok}`
+     }
+    }
+   }
+  };
+  $("mcp-config-json").textContent=JSON.stringify(mcpConfig,null,2);
+  tokenStepInput.style.display="none";
+  tokenStepResult.style.display="block";
+  loadAgentTokens();
+ }catch(err){
+  alert((lang==="zh"?"生成失败: ":"Failed to generate token: ")+err.message);
+ }finally{
+  tokenConfirmBtn.disabled=false;
+  tokenConfirmBtn.textContent=lang==="zh"?"确认生成":"Create";
+ }
+};
+
+$("copy-token-val-btn").onclick=async()=>{
+ const tok=$("new-token-val").textContent;
+ try{
+  await navigator.clipboard.writeText(tok);
+  const orig=$("copy-token-val-btn").textContent;
+  $("copy-token-val-btn").textContent=lang==="zh"?"已复制!":"Copied!";
+  setTimeout(()=>{$("copy-token-val-btn").textContent=orig},2000);
+ }catch(_){
+  prompt(lang==="zh"?"请复制 Token:":"Copy Token:",tok);
+ }
+};
+
+$("copy-mcp-json-btn").onclick=async()=>{
+ const cfg=$("mcp-config-json").textContent;
+ try{
+  await navigator.clipboard.writeText(cfg);
+  const orig=$("copy-mcp-json-btn").textContent;
+  $("copy-mcp-json-btn").textContent=lang==="zh"?"已复制配置!":"Copied Config!";
+  setTimeout(()=>{$("copy-mcp-json-btn").textContent=orig},2000);
+ }catch(_){
+  prompt(lang==="zh"?"请复制配置:":"Copy Config:",cfg);
+ }
+};
+
+tokenDoneBtn.onclick=()=>{closeTokenModal()};
 
 function escapeHtml(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
 

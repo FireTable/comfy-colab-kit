@@ -81,7 +81,7 @@ def do_auth(target_url=None):
         base = "https://" + base
 
     client_name = os.environ.get("CKIT_CLIENT_NAME") or "AI Agent"
-    print(f"🔐 正在请求配对授权: {base} ...")
+    print(f"[auth] Requesting device authorization from {base} ...")
 
     code_req = urllib.request.Request(
         f"{base}/api/auth/device/code",
@@ -92,7 +92,7 @@ def do_auth(target_url=None):
         with urllib.request.urlopen(code_req, timeout=15) as r:
             res = json.loads(r.read())
     except Exception as e:
-        print(f"❌ 无法连接网关 {base}: {e}", file=sys.stderr)
+        print(f"[auth] Error connecting to gateway {base}: {e}", file=sys.stderr)
         sys.exit(1)
 
     device_code = res["device_code"]
@@ -100,9 +100,9 @@ def do_auth(target_url=None):
     verify_url = res.get("verification_uri_complete") or f"{base}/auth/device?code={user_code}"
     interval = max(2, res.get("interval", 3))
 
-    print(f"\n👉 请在浏览器中打开以下链接完成确认：\n   {verify_url}\n")
-    print(f"🔑 设备配对码: {user_code}")
-    print("⏳ 等待浏览器确认授权中 (Ctrl+C 取消)...", flush=True)
+    print(f"\n[auth] Open the following URL in your browser to approve:\n       {verify_url}\n")
+    print(f"[auth] Device code: {user_code}")
+    print("[auth] Waiting for browser confirmation (Ctrl+C to abort)...", flush=True)
 
     try:
         import webbrowser
@@ -134,9 +134,9 @@ def do_auth(target_url=None):
                 cfg["default_endpoint"] = base
                 save_config(cfg)
 
-                print(f"\n✅ 授权成功！已绑定账号: {email}")
-                print(f"📁 凭证已保存至: ~/.config/ckit/config.json")
-                print("🎉 你的 AI Agent / MCP 服务已完全就绪，无需手动复制 Token！\n")
+                print(f"\n[auth] Authorization successful! Account: {email}")
+                print(f"[auth] Credentials saved to: ~/.config/ckit/config.json")
+                print("[auth] AI Agent / MCP is ready to use.\n")
                 return
         except urllib.error.HTTPError as he:
             err_data = {}
@@ -148,18 +148,18 @@ def do_auth(target_url=None):
             if err_code == "authorization_pending":
                 continue
             elif err_code == "access_denied":
-                print("\n🚫 浏览器中拒绝了授权请求。", file=sys.stderr)
+                print("\n[auth] Authorization was denied in browser.", file=sys.stderr)
                 sys.exit(1)
             elif err_code in ("expired_token", "invalid_grant"):
-                print("\n⏰ 配对码已过期，请重新运行 ckit auth。", file=sys.stderr)
+                print("\n[auth] Device code expired. Please re-run: ckit auth", file=sys.stderr)
                 sys.exit(1)
             else:
-                print(f"\n❌ 错误: {err_code or he}", file=sys.stderr)
+                print(f"\n[auth] Error: {err_code or he}", file=sys.stderr)
                 sys.exit(1)
         except Exception:
             continue
 
-    print("\n⏰ 授权超时，请重试。", file=sys.stderr)
+    print("\n[auth] Authorization timed out. Please try again.", file=sys.stderr)
     sys.exit(1)
 
 

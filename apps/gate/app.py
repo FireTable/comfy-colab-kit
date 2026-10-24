@@ -12,11 +12,12 @@ from pathlib import Path
 from aiohttp import web
 
 from . import __version__
-from .auth import AuthError, Identity, JWKSCache, authorize, identify
+from .auth import AuthError, IDENT, Identity, JWKSCache, authorize, identify
 from .colab import ColabCLI, ColabError, ColabRunner
 from .config import Settings, read_secret_file
 from .db import GateDB, DB_KEY
 from .device_auth import (
+    create_agent_token_endpoint,
     device_approve_endpoint,
     device_code_endpoint,
     device_deny_endpoint,
@@ -58,7 +59,6 @@ PROFILE_ERRORS = web.AppKey("profile_errors", dict)
 JWKS = web.AppKey("jwks", object)
 AGENT_TOKEN = web.AppKey("agent_token", str)
 BG = web.AppKey("bg", object)
-IDENT = web.RequestKey("identity", object) if hasattr(web, "RequestKey") else "identity"
 
 
 def _fetch_json(url: str) -> dict:
@@ -100,6 +100,7 @@ async def auth_mw(request: web.Request, handler):
     except AuthError as e:
         return err(e.status, e.code, e.msg)
     request[IDENT] = ident
+    request["identity"] = ident
     resp = await handler(request)
     if query_token and app[AGENT_TOKEN] and hmac.compare_digest(query_token, app[AGENT_TOKEN]):
         resp.set_cookie("agent_token", query_token, path="/", httponly=True, samesite="Lax")
@@ -526,8 +527,12 @@ def build_app(settings: Settings, colab: ColabRunner | None = None,
     r.add_post("/api/auth/device/approve", device_approve_endpoint)
     r.add_post("/api/auth/device/deny", device_deny_endpoint)
     r.add_get("/api/agent-tokens", list_agent_tokens_endpoint)
+    r.add_post("/api/agent-tokens", create_agent_token_endpoint)
     r.add_post("/api/agent-tokens/{id}/revoke", revoke_agent_token_endpoint)
     r.add_delete("/api/agent-tokens/{id}", revoke_agent_token_endpoint)
+    r.add_get("/_gate/tokens", list_agent_tokens_endpoint)
+    r.add_post("/_gate/tokens", create_agent_token_endpoint)
+    r.add_post("/_gate/tokens/{id}/revoke", revoke_agent_token_endpoint)
     r.add_static("/_gate/static/", WEB, show_index=False)
     r.add_route("*", "/{tail:.*}", catch_all)
 
