@@ -423,13 +423,10 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
 
           <div class="cli-section">
             <button type="button" class="btn-copy-ai-prompt" id="copy-ai-prompt-btn" title="一键复制专为 Cursor、Claude Code、OpenClaw 设计的完整接入指令">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/>
-                <path d="M4 11a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-7z"/>
-                <circle cx="9" cy="15" r="1"/>
-                <circle cx="15" cy="15" r="1"/>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>
               </svg>
-              <span id="copy-ai-prompt-txt">🤖 复制 AI Agent 接入指令</span>
+              <span id="copy-ai-prompt-txt">复制 AI Agent 接入指令</span>
             </button>
             <div class="cli-cmd-box" style="margin-top:2px">
               <code id="cli-auth-cmd">ckit auth ...</code>
@@ -576,13 +573,10 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
       </div>
 
       <button type="button" class="btn-copy-ai-prompt" id="copy-ai-prompt-modal-btn" style="margin-top:10px">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/>
-          <path d="M4 11a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-7z"/>
-          <circle cx="9" cy="15" r="1"/>
-          <circle cx="15" cy="15" r="1"/>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>
         </svg>
-        <span id="copy-modal-prompt-txt">🤖 复制完整 AI Agent 提示词</span>
+        <span id="copy-modal-prompt-txt">复制完整 AI Agent 提示词</span>
       </button>
 
       <div class="token-modal-actions" style="margin-top:12px">
@@ -742,8 +736,8 @@ function updateLanguageUI(){
  $("ltext").textContent=lang==="zh"?"简体中文":"English";
  $("opt-lang-zh").classList.toggle("active",lang==="zh");
  $("opt-lang-en").classList.toggle("active",lang==="en");
- if($("copy-ai-prompt-txt"))$("copy-ai-prompt-txt").textContent=lang==="zh"?"🤖 复制 AI Agent 接入指令":"🤖 Copy Prompt for AI Agent";
- if($("copy-modal-prompt-txt"))$("copy-modal-prompt-txt").textContent=lang==="zh"?"🤖 复制完整 AI Agent 提示词":"🤖 Copy Complete AI Prompt";
+ if($("copy-ai-prompt-txt"))$("copy-ai-prompt-txt").textContent=lang==="zh"?"复制 AI Agent 接入指令":"Copy Prompt for AI Agent";
+ if($("copy-modal-prompt-txt"))$("copy-modal-prompt-txt").textContent=lang==="zh"?"复制完整 AI Agent 提示词":"Copy Complete AI Prompt";
  if($("copy-cmd-btn"))$("copy-cmd-btn").textContent=lang==="zh"?"复制命令":"Copy";
  if($("cli-help-tip"))$("cli-help-tip").textContent=lang==="zh"?"复制指令给 Cursor / Claude Code，或终端运行命令一键配对":"Copy prompt to Cursor / Claude, or run CLI command to pair in 1 click";
 }
@@ -918,7 +912,7 @@ with urllib.request.urlopen(req) as r:
 async function copyAIPromptWorkflow(tokenStr=""){
  let tok=tokenStr||latestAgentToken;
  const btn=$("copy-ai-prompt-btn");
- const origTxt=$("copy-ai-prompt-txt")?$("copy-ai-prompt-txt").textContent:"🤖 复制 AI Agent 接入指令";
+ const origTxt=$("copy-ai-prompt-txt")?$("copy-ai-prompt-txt").textContent:(lang==="zh"?"复制 AI Agent 接入指令":"Copy Prompt for AI Agent");
  if(!tok){
   if(btn){
    btn.disabled=true;
@@ -946,7 +940,7 @@ async function copyAIPromptWorkflow(tokenStr=""){
  const promptText=generateAIPrompt(tok);
  try{
   await navigator.clipboard.writeText(promptText);
-  showToast(lang==="zh"?"✅ AI Agent 接入指令与 Token 已复制！直接粘贴给 Cursor / Claude 即可。":"✅ AI Agent setup prompt & token copied! Paste into Cursor / Claude.");
+  showToast(lang==="zh"?"AI Agent 接入指令与 Token 已复制！直接粘贴给 Cursor / Claude 即可。":"AI Agent setup prompt & token copied! Paste into Cursor / Claude.");
   if(btn){
    $("copy-ai-prompt-txt").textContent=lang==="zh"?"已复制到剪贴板!":"Copied to clipboard!";
    setTimeout(()=>{
