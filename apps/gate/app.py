@@ -98,6 +98,56 @@ async def auth_mw(request: web.Request, handler):
         ident = await asyncio.get_running_loop().run_in_executor(
             None, identify, request.headers, app[SETTINGS], app[JWKS], app[AGENT_TOKEN], query_token, cookie_token, app.get(DB_KEY))
     except AuthError as e:
+        accept = request.headers.get("Accept", "")
+        if "text/html" in accept and not request.path.startswith("/_gate/") and not request.path.startswith("/api/"):
+            html = f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>访问受限 · Comfy Colab Kit</title>
+<style>
+:root {{
+  --bg: #090a0f; --card: #12141c; --border: rgba(255, 255, 255, 0.08);
+  --text: #f3f4f6; --muted: #9ca3af; --primary: #3b82f6; --danger: #f87171;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}}
+* {{ box-sizing: border-box; margin: 0; padding: 0; }}
+body {{
+  background: var(--bg); color: var(--text); font-family: var(--font);
+  min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+}}
+.card {{
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  width: 100%; max-width: 440px; padding: 2rem; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}}
+h1 {{ font-size: 1.35rem; font-weight: 700; margin-bottom: 0.75rem; }}
+p {{ font-size: 0.9rem; color: var(--muted); line-height: 1.5; margin-bottom: 1.25rem; }}
+.code-box {{
+  background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); border-radius: 8px;
+  padding: 0.75rem 1rem; font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem;
+  color: var(--danger); margin-bottom: 1.5rem; word-break: break-all;
+}}
+.btn {{
+  display: inline-block; padding: 0.7rem 1.4rem; border-radius: 8px;
+  background: var(--primary); color: #fff; text-decoration: none; font-size: 0.9rem; font-weight: 600;
+  transition: opacity 0.15s;
+}}
+.btn:hover {{ opacity: 0.9; }}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>访问受限 (Access Denied)</h1>
+  <p>您的 Cloudflare 身份认证已通过，但当前账号未在网关允许访问列表中。</p>
+  <div class="code-box">{e.msg}</div>
+  <p style="font-size:0.82rem;margin-bottom:1.5rem">如需访问，请联系管理员将该邮箱加入允许列表，或点击下方重新登录已授权账号。</p>
+  <a class="btn" href="/cdn-cgi/access/logout">重新登录</a>
+</div>
+</body>
+</html>"""
+            return web.Response(text=html, content_type="text/html", status=e.status)
         return err(e.status, e.code, e.msg)
     request[IDENT] = ident
     request["identity"] = ident

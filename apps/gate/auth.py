@@ -8,6 +8,7 @@ Agents may instead use `Authorization: Bearer <AGENT_TOKEN>`; they are treated a
 from __future__ import annotations
 
 import hmac
+import logging
 import time
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping, TYPE_CHECKING
@@ -20,6 +21,7 @@ from .config import Settings
 if TYPE_CHECKING:
     from .db import GateDB
 
+log = logging.getLogger("gate.auth")
 IDENT = web.RequestKey("identity", object) if hasattr(web, "RequestKey") else "identity"
 
 
@@ -126,7 +128,8 @@ def identify(headers: Mapping[str, str], settings: Settings, keys: JWKSCache | N
         # service tokens have no email; they are only for the backend hostname
         raise AuthError(403, "no_email", "token has no user email")
     if settings.allowed_emails and email not in settings.allowed_emails:
-        raise AuthError(403, "not_allowed", "email not in ALLOWED_EMAILS")
+        log.warning("Access denied: email '%s' not in ALLOWED_EMAILS (%s)", email, settings.allowed_emails)
+        raise AuthError(403, "not_allowed", f"邮箱 '{email}' 未在允许访问列表 (ALLOWED_EMAILS) 中")
     return Identity(email, "user", is_owner(email, settings, db))
 
 
