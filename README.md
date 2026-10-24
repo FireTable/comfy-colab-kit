@@ -55,15 +55,50 @@ A tiny gateway, **comfy-gate** (Python / aiohttp), runs on your VPS behind Cloud
   <i>Landing Showcase: WebGL Aurora backdrop, zero-GPU-idle architecture, and community workflow showcase</i>
 </p>
 
-<p align="center">
-  <img src="screenshots/preview-wake.png" width="100%" alt="Cold-Start Wake Gateway" /><br/>
-  <i>Cold-Start Wake Gateway: Real-time SSE stage telemetry, Cloudflare Access Zero-Trust auth, and live CU budget ledger</i>
-</p>
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/preview-wake.png" width="100%" alt="Cold-Start Wake Gateway" /><br/>
+      <sub><b>Cold-Start Wake Gateway</b><br/>Real-time SSE stage telemetry, Cloudflare Access Zero-Trust auth, and live CU budget ledger</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/preview-comfyui.png" width="100%" alt="ComfyUI on Colab L4 GPU" /><br/>
+      <sub><b>ComfyUI on Colab L4 GPU</b><br/>Native ComfyUI web application with App mode, Linear/Graph toggle overlay, and real-time image generation</sub>
+    </td>
+  </tr>
+</table>
 
-<p align="center">
-  <img src="screenshots/preview-comfyui.png" width="100%" alt="ComfyUI on Colab L4 GPU" /><br/>
-  <i>ComfyUI on Colab L4 GPU: Native ComfyUI web application with App mode, Linear/Graph toggle overlay, and real-time image generation</i>
-</p>
+### 🤖 AI Agent Driving the GPU
+
+Two real sessions where an AI agent called the gateway end-to-end — no browser, no manual cell.
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/agent-txt2img.png" style="max-height:460px;width:auto;max-width:100%" alt="AI agent text-to-image session" /><br/>
+      <sub><b>Text-to-Image via <code>/comfy-colab-kit</code></b><br/>41 s from prompt to finished PNG</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/agent-img2img.png" style="max-height:460px;width:auto;max-width:100%" alt="AI agent image-to-image session" /><br/>
+      <sub><b>Image-to-Image via <code>/comfy-colab-kit</code></b><br/>2 m 14 s, two variations from one reference</sub>
+    </td>
+  </tr>
+</table>
+
+| | 🟢 Text-to-Image | 🟣 Image-to-Image |
+|---|---|---|
+| **Agent command** | `text to img: a pic about "hello world: comfy-colab-kit" 1024 × 1024` | `img to img, using the highest quality, generate an image based on the reference image, maintaining the original composition, and completely change the girl's outfit to a bikini.` |
+| **Skill entry** | `/comfy-colab-kit` | `/comfy-colab-kit` |
+| **Pipeline** | MOSS-Image DeBand text-to-image | character matte → beach plate → MOSS-Image DeBand img2img |
+| **Profile preset** | `Fast alt` — 10 steps + anti-banding LoRAs | `Quality` — 25 steps, banding-fix LoRAs at full strength, no turbo LoRAs |
+| **Resolution** | 1024 × 1024 | 1024 × 1024, 2 variations |
+| **GPU state on arrival** | already `ready` — no wake-up needed | already `ready` — session reused |
+| **Wall time** | 41 s | 2 m 14 s |
+| **Output** | one PNG (`outputs/hello-world-comfy-colab-kit-1024.png`) | `beachA` (sheer wrap) and `beachB` (plain two-piece) |
+| **CU ledger** | 22.16 CU left · 1.71 CU/hr while up | 20.99 CU left · 1.71 CU/hr while up |
+| **Afterwards** | agent can call `stop` to release the GPU immediately | agent keeps the GPU warm for the next variation, then releases it |
+
+Both flows run entirely through the gateway's REST/MCP surface: the agent never touches a browser, a notebook cell, or a Colab URL.
 
 ---
 
