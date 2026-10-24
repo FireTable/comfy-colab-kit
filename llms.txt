@@ -10,6 +10,8 @@
 - [AGENTS.md](AGENTS.md): module map, state machine, invariants for coding agents
 - [docs/README.md](docs/README.md): documentation map and agent fast path
 - [docs/AGENT_SKILL.md](docs/AGENT_SKILL.md): how an agent wakes, uses, and stops a deployed gate
+- [skills/comfy-colab-kit/SKILL.md](skills/comfy-colab-kit/SKILL.md): universal AI agent skill definition (/comfy-colab-kit)
+- [docs/MCP.md](docs/MCP.md): Model Context Protocol (MCP) guide (stdio ckit mcp, remote HTTP, tool reference)
 - [docs/AGENT.md](docs/AGENT.md): VPS deployment runbook and credential procurement guide
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): components, data flow, shared session, proxy
 - [docs/PROFILES.md](docs/PROFILES.md): profile format, ComfyUI passthrough, App mode

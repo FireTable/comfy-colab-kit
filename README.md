@@ -78,22 +78,22 @@ Traditional Colab forces you to sit in front of a computer, manually run noteboo
 | **Access & Security** | Ephemeral random `*.trycloudflare.com` URLs with zero auth | **Single Custom Domain + Cloudflare Access**: Enterprise Zero-Trust SSO / OTP, service tokens for agents |
 | **Collaboration** | Teammates accidentally spin up duplicate VMs, burning CU | **Global Idempotent Shared Session**: All visitors join the running instance with live streaming logs |
 | **Budget Safety** | Leaving notebooks running overnight drains entire CU quotas | **Smart Auto-Shutdown**: Automatic spin-down on idle (e.g. 20m), max session time, or CU hard budget |
-| **Automation & MCP** | Inaccessible to headless AI coding agents | **AI Agent Native**: OpenAPI spec, `cli/ckit --json`, upcoming `/mcp` server for Claude / OpenClaw |
+| **Automation & MCP** | Inaccessible to headless AI coding agents | **AI Agent & MCP Native**: Full Model Context Protocol (stdio + HTTP), `ckit` CLI, RFC 8628 device flow, `/comfy-colab-kit` skill |
 
 ## ✨ Features
 
 - **Remote & Mobile Wake** — Wake ComfyUI on Colab L4 from your smartphone, tablet, or terminal. No desktop browser or manual cell execution required.
 - **One shared session** — wake is idempotent; a second visitor (or agent) joins the in-flight boot instead of
   starting another VM. State survives gate restarts (`STATE_DIR/session.json`).
+- **Model Context Protocol (MCP) Native** — Full MCP JSON-RPC 2.0 support via local stdio (`ckit mcp`) and remote HTTP (`/mcp`), exposing `gate_status`, `gate_wake`, `gate_txt2img`, `gate_generate`, and `gate_stop`.
 - **Live progress for everyone** — Server-Sent Events broadcast state, download GB / speed and setup logs.
 - **Dual-Mode Access Control (Mode B Default)** — `OWNER_ONLY_CONTROL=true` restricts wake, stop, profile switch, and extension to administrators (`OWNER_EMAILS`), safeguarding Colab compute units while allowing all authenticated team members to share ComfyUI once ready. Switchable to Mode A collaborative control ("who wakes can stop").
 - **Multi-IdP & Access-verified identity** — Supports Google & GitHub OAuth alongside Email OTP. Every request verifies `Cf-Access-Jwt-Assertion` (RS256, AUD, issuer).
 - **Backend locked to a service token** — the Colab tunnel hostname only admits the gate's Access service token.
 - **Fast cold start** — parallel `hf-transfer` Rust chunked downloads, `uv` installs, 30s stall watchdog, tunnel started first, ComfyUI booted as soon as core weights land (`FAST_START`).
-  core models land (`FAST_START`).
 - **App mode first** — workflows get ComfyUI App-mode metadata; the injected overlay toggles App ⇄ Graph.
-- **ComfyUI passthrough** — per-profile CLI args, frontend settings, env vars and `extra_model_paths`.
-- **Autonomous Agent friendly** — OpenAPI spec, `cli/ckit --json`, `docs/AGENT_SKILL.md`, `llms.txt`, and upcoming `/mcp` server.
+- **Full ComfyUI API passthrough** — transparently proxies `/upload/image` for Img2Img reference images, `/prompt`, `/history`, `/view`, `/object_info`, `/system_stats`, `/queue`, and WebSocket `/ws`.
+- **Autonomous Agent friendly** — RFC 8628 device flow (`ckit auth`), 1-click prompt copy in Web UI, `docs/AGENT_SKILL.md`, `docs/MCP.md`, `skills/comfy-colab-kit/SKILL.md`, and `llms.txt`.
 
 ## 🚀 Quick start (VPS + Cloudflare)
 
@@ -126,14 +126,17 @@ Autonomous coding agents (Claude Code, Cursor, OpenClaw, Codex, LangGraph) can w
 [Agent] ──POST /_gate/stop────────► Releases GPU (or auto-sleep on idle)
 ```
 
-1. **Authentication**: Provide `Authorization: Bearer <agent_token>` (configured in `secrets/agent_token`) or Cloudflare Access Service Token headers (`CF-Access-Client-Id` & `CF-Access-Client-Secret`).
-2. **Status Check**: Call `GET /_gate/status` (or run `packages/cli/ckit status --json`). If `state == "ready"`, reuse the already running instance.
-3. **Idempotent Wake**: Call `POST /_gate/wake` (or run `packages/cli/ckit wake --profile <name> --wait`). Multiple concurrent wakes safely join the in-flight boot.
-4. **ComfyUI API Passthrough**: Once `ready`, call standard ComfyUI endpoints directly through the gate (`POST /prompt`, `GET /history/{prompt_id}`, `GET /view?filename=...`, and WebSocket `/ws`).
-5. **Clean Shutdown**: When execution completes and no humans are active (`clients == 0`), call `POST /_gate/stop`, or simply disconnect and allow the idle auto-stop rule to reclaim the VM.
+1. **Authentication & Pairing**: Provide `Authorization: Bearer <agent_token>` or Cloudflare Access Service Token headers. Alternatively, use RFC 8628 device flow via `ckit auth https://<host>` or click **🤖 Copy Prompt for AI Agent** in the Web UI.
+2. **Status Check & Discovery**: Call `GET /_gate/status` (or `ckit status --json`). Discover supported workflows via `ckit profiles --json` or `GET /_gate/profiles`.
+3. **Idempotent Wake**: Call `POST /_gate/wake` (or `ckit wake --profile <name> --wait`). Multiple concurrent wakes safely join the in-flight boot.
+4. **Model Context Protocol (MCP)**: Run `ckit mcp` locally for Cursor/Claude Desktop, or point streamable MCP clients to `https://<host>/mcp` to use `gate_status`, `gate_wake`, `gate_txt2img`, `gate_generate`, and `gate_stop`.
+5. **ComfyUI API Passthrough**: Once `ready`, call standard ComfyUI endpoints directly through the gate (`POST /upload/image` for Img2Img reference uploads, `POST /prompt`, `GET /history/{prompt_id}`, `GET /view?filename=...`, and WebSocket `/ws`).
+6. **Clean Shutdown**: When execution completes and no humans are active (`clients == 0`), call `POST /_gate/stop` (or MCP `gate_stop`) to immediately release compute, or allow the idle auto-stop rule to reclaim the VM.
 
 📖 **Agent References & Protocols**:
-- [docs/AGENT_SKILL.md](docs/AGENT_SKILL.md) — Formal Agent Skill specification (`comfy_colab_gate`), credential handling, and tool patterns.
+- [docs/MCP.md](docs/MCP.md) — Comprehensive Model Context Protocol guide (stdio `ckit mcp`, remote HTTP `/mcp`, Cursor & Claude setup).
+- [skills/comfy-colab-kit/SKILL.md](skills/comfy-colab-kit/SKILL.md) — Universal Agent Skill specification (`/comfy-colab-kit`) with Txt2Img vs Img2Img decision tree.
+- [docs/AGENT_SKILL.md](docs/AGENT_SKILL.md) — Detailed Agent Skill specification, credential handling, and tool patterns.
 - [docs/AGENT.md](docs/AGENT.md) — Autonomous VPS deployment guide, credential procurement, and Cloudflare Access setup.
 - [apps/gate/openapi.yaml](apps/gate/openapi.yaml) — OpenAPI 3.1 specification for all `/_gate/*` and passthrough routes.
 - [llms.txt](llms.txt) — LLM context index for AI systems.

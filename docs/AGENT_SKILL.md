@@ -28,27 +28,45 @@ This document defines an **Agent Skill** for autonomous AI coding agents (Claude
 
 ## 3. Tool Surface (`ckit` & REST)
 
+`ckit` is a zero-dependency CLI and MCP server built entirely on the Python 3 standard library.
+
+### Installing `ckit`
 ```bash
-# Query current session status and remaining compute units
-packages/cli/ckit status --json
+# Recommended: install via pip from GitHub
+pip install "git+https://github.com/FireTable/comfy-colab-kit.git"
 
-# List available profiles and community workflows
-packages/cli/ckit profiles --json
+# Alternative: install via uv
+uv tool install "git+https://github.com/FireTable/comfy-colab-kit.git"
 
-# Wake or join the shared session (blocks until ComfyUI is ready)
-packages/cli/ckit wake --profile moss-image --wait
-
-# Extend session duration by +1 hour
-packages/cli/ckit extend
-
-# Stop the session immediately to release GPU compute
-packages/cli/ckit stop
-
-# Start Model Context Protocol (MCP) JSON-RPC stdio server
-packages/cli/ckit mcp
+# Standalone execution (no pip needed):
+curl -sSL "https://raw.githubusercontent.com/FireTable/comfy-colab-kit/main/packages/cli/ckit" -o ~/.local/bin/ckit && chmod +x ~/.local/bin/ckit
 ```
 
-Raw HTTP equivalents: `GET /_gate/status`, `GET /_gate/profiles`, `POST /_gate/wake`, `POST /_gate/stop`, `POST /_gate/mcp`; live telemetry on `GET /_gate/events` (SSE).
+### CLI Command Reference
+```bash
+# Query current session status and remaining compute units
+ckit status --json
+
+# List available profiles and community workflows
+ckit profiles --json
+
+# Wake or join the shared session (blocks until ComfyUI is ready)
+ckit wake --profile moss-image --wait
+
+# Generate an image directly via high-level pipeline
+ckit generate --prompt "cinematic cyberpunk portrait" --preset "Fast alt"
+
+# Extend session duration by +1 hour
+ckit extend
+
+# Stop the session immediately to release GPU compute
+ckit stop
+
+# Start Model Context Protocol (MCP) JSON-RPC stdio server
+ckit mcp
+```
+
+Raw HTTP equivalents: `GET /_gate/status`, `GET /_gate/profiles`, `POST /_gate/wake`, `POST /_gate/stop`, `POST /_gate/mcp`; live telemetry on `GET /_gate/events` (SSE). For complete MCP specifications, see [docs/MCP.md](MCP.md) and the agent skill [skills/comfy-colab-kit/SKILL.md](../skills/comfy-colab-kit/SKILL.md).
 
 ---
 
@@ -101,6 +119,22 @@ sequenceDiagram
 ## 5. Concrete Workflow Execution Example
 
 Once `GET /_gate/status` returns `"state": "ready"`, you interact with standard ComfyUI API routes through the gate.
+
+### Step 0: Upload Reference Image (Optional, for Img2Img / Inpaint)
+If the task requires a reference image or mask, upload it first to ComfyUI's input directory:
+```bash
+# Upload reference image via multipart/form-data
+UPLOAD_RESP=$(curl -s -X POST "https://${PUBLIC_HOST}/upload/image" \
+  -H "Authorization: Bearer $(cat secrets/agent_token)" \
+  -F "image=@/path/to/reference.png" \
+  -F "overwrite=true")
+
+# Response contains the assigned server filename:
+# {"name": "reference.png", "subfolder": "", "type": "input"}
+REF_IMAGE_NAME=$(echo "$UPLOAD_RESP" | jq -r '.name')
+echo "Uploaded reference image as: $REF_IMAGE_NAME"
+```
+In your workflow prompt graph below, assign this `$REF_IMAGE_NAME` to your `LoadImage` node's `"image"` property.
 
 ### Step 1: Queue a Workflow Prompt
 ```bash
@@ -238,3 +272,5 @@ To connect Claude Desktop, Cursor, OpenClaw, or Cline to your deployed gate via 
 ### 1-Click Browser "Copy Prompt for AI Agent" & Device Pairing:
 - **In Web UI**: Users can click the **🤖 复制 AI Agent 接入指令 / Copy Prompt for AI Agent** button in the top-right user menu. This instantly creates an Agent Bearer Token in the browser session and copies a structured prompt with MCP configs, tool definitions, and commands directly to the clipboard.
 - **In Terminal (RFC 8628 Device Flow)**: Run `python3 -m ckit auth https://comfy.yourdomain.com`. The CLI displays an authorization URL; the user clicks "Approve" in the browser, and the agent token is saved automatically to `~/.config/ckit/config.json`.
+
+For a dedicated, in-depth guide on Model Context Protocol tools, JSON-RPC schemas, and advanced client integrations, see [docs/MCP.md](MCP.md).
