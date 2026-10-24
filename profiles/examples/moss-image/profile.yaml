@@ -302,6 +302,13 @@ workflows:
   - deband-l32-36
   - lodestones-8step-as-lora
   - darask0-4step-as-lora
+  overrides:
+  - node: 1
+    widget_index: 0
+    value: Fast alt · fix + darask0 0.35 · 10 steps
+  - node: 1
+    widget_index: 1
+    value: 4
   app:
     inputs:
     - - 6
