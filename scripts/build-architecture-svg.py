@@ -494,17 +494,24 @@ def hero_panel(add) -> None:
     # the phone, seen from the back
     add("""    <g transform="translate(52,74)">
       <rect x="0" y="0" width="58" height="104" rx="12" fill="#2c2338" stroke="#6d5a80" stroke-width="1.4" />
-      <rect x="6" y="12" width="46" height="76" rx="5" fill="#191322" />
+      <rect x="6" y="14" width="46" height="72" rx="5" fill="#191322" />
       <rect x="21" y="5" width="16" height="3" rx="1.5" fill="#6d5a80" />
-      <circle cx="29" cy="95" r="4" fill="none" stroke="#6d5a80" stroke-width="1.2" />
-      <circle cx="29" cy="95" r="1.2" fill="#6d5a80" />
+      <rect x="52" y="30" width="3" height="14" rx="1.5" fill="#6d5a80" />
+      <circle cx="16" cy="92" r="4" fill="none" stroke="#6d5a80" stroke-width="1.2" />
+      <circle cx="16" cy="92" r="1.3" fill="#6d5a80" />
+      <circle cx="29" cy="92" r="1.4" fill="#6d5a80" opacity="0.7" />
     </g>""")
 
     # the beam: a tapered ribbon in the brand gradient
-    add('    <path id="hero-beam" d="M110 108 C168 50 250 50 306 100 L306 126 '
-        'C250 80 168 80 110 124 Z" fill="url(#g-beam)" />')
-    add('    <path d="M116 114 C172 64 246 64 300 104" fill="none" stroke="#fff3c4" '
-        'stroke-width="1.5" stroke-linecap="round" opacity="0.5" />')
+    add('    <path id="hero-beam" d="M110 106 C168 46 250 46 306 98 L306 128 '
+        'C250 82 168 82 110 126 Z" fill="url(#g-beam)" />')
+    # 外面罩两圈更淡的光，把边缘化开（不用滤镜）
+    add('    <path d="M110 102 C168 40 250 40 306 94 L306 132 '
+        'C250 86 168 86 110 130 Z" fill="url(#g-beam)" opacity="0.16" />')
+    add('    <path d="M110 98 C168 34 250 34 306 90 L306 136 '
+        'C250 90 168 90 110 134 Z" fill="url(#g-beam)" opacity="0.09" />')
+    add('    <path d="M118 112 C174 60 246 60 298 102" fill="none" stroke="#fff3c4" '
+        'stroke-width="1.4" stroke-linecap="round" opacity="0.55" />')
     # 一道流光沿着光束滑过去
     add('    <path id="hero-shimmer" d="M112 110 C170 52 250 52 304 101" fill="none" '
         'stroke="#fffde0" stroke-width="3" stroke-linecap="round" opacity="0" '
@@ -515,8 +522,10 @@ def hero_panel(add) -> None:
       <path d="M14 40 L96 8 L124 24 L42 56 Z" fill="#3b3049" stroke="#f9ab00" stroke-width="1.4" />
       <path d="M42 56 L124 24 L124 50 L42 82 Z" fill="#241c2f" stroke="#f9ab00" stroke-width="1.4" />
       <path d="M14 40 L42 56 L42 82 L14 66 Z" fill="#2b2236" stroke="#f9ab00" stroke-width="1.4" />
-      <path d="M58 44 L92 28" fill="none" stroke="#f9ab00" stroke-width="1.1" opacity="0.6" />
-      <path d="M62 56 L96 40" fill="none" stroke="#f9ab00" stroke-width="1.1" opacity="0.6" />
+      <path d="M56 42 L94 24" fill="none" stroke="#f9ab00" stroke-width="1" opacity="0.5" />
+      <path d="M60 48 L98 30" fill="none" stroke="#f9ab00" stroke-width="1" opacity="0.5" />
+      <path d="M64 54 L102 36" fill="none" stroke="#f9ab00" stroke-width="1" opacity="0.5" />
+      <path d="M22 52 L34 58 L34 68 L22 62 Z" fill="#f9ab00" opacity="0.35" />
       <circle cx="34" cy="49" r="3" fill="#3ddc84" class="hero-led" />
     </g>""")
 
