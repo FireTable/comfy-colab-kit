@@ -73,10 +73,21 @@ MEASURE_JS = r"""
   const texts = [];
   document.querySelectorAll('text').forEach((t, i) => {
     const b = u(t.getBoundingClientRect());
+    // where the label *starts*: a title that begins inside a card has to fit
+    // in it, even when it is so long that its middle leaves the card
+    let startX = b.x, startY = b.y;
+    try {
+      const range = document.createRange();
+      range.setStart(t.firstChild, 0);
+      range.setEnd(t.firstChild, 1);
+      const r = range.getClientRects()[0];
+      if (r) { startX = r.left; startY = r.top; }
+    } catch (e) { /* no text node */ }
     texts.push({i, s: (t.textContent || '').trim().slice(0, 70),
                 x: +b.x.toFixed(2), y: +b.y.toFixed(2),
                 w: +b.w.toFixed(2), h: +b.h.toFixed(2),
-                cy: +(b.y + b.h / 2).toFixed(2)});
+                cy: +(b.y + b.h / 2).toFixed(2),
+                sx: +startX.toFixed(2), sy: +startY.toFixed(2)});
   });
   // Containers a label is supposed to sit inside. A translucent rect is a
   // shadow, not a container, and a shape drawn inside <defs> or <symbol> is
@@ -212,6 +223,31 @@ MEASURE_JS = r"""
                  dx: (tip.x - prev.x) / sx, dy: (tip.y - prev.y) / sy});
   });
 
+  // a hole at the bottom of a card: the content stops well short of the edge
+  const holes = [];
+  document.querySelectorAll('rect').forEach(el => {
+    if (el.closest('symbol, defs, marker')) return;
+    if (parseFloat(el.getAttribute('opacity') || '1') < 0.5) return;
+    if (el.getAttribute('fill') === 'none') return;
+    const b = u(el.getBoundingClientRect());
+    if (b.w < 100 || b.h < 40) return;
+    const inside = [];
+    document.querySelectorAll('rect, path, text, use, circle').forEach(other => {
+      if (other === el || other.closest('symbol, defs, marker')) return;
+      if (other.tagName.toLowerCase() === 'path' && other.getAttribute('fill') === 'none') return;
+      const ob = u(other.getBoundingClientRect());
+      if (ob.w < 1 || ob.h < 1) return;
+      if (ob.x >= b.x - 1 && ob.x + ob.w <= b.x + b.w + 1
+          && ob.y >= b.y - 1 && ob.y + ob.h <= b.y + b.h + 1) inside.push(ob);
+    });
+    if (inside.length < 2) return;
+    const bottom = Math.max(...inside.map(o => o.y + o.h));
+    const slack = b.y + b.h - bottom;
+    if (slack > 18) holes.push({x: +b.x.toFixed(1), y: +b.y.toFixed(1),
+                                w: +b.w.toFixed(1), h: +b.h.toFixed(1),
+                                slack: +slack.toFixed(1)});
+  });
+
   // moving lights: every one must name a path that exists
   const movers = [];
   document.querySelectorAll('animateMotion').forEach(am => {
@@ -224,7 +260,7 @@ MEASURE_JS = r"""
   const flowPaths = [];
   document.querySelectorAll('path[id]').forEach(p => flowPaths.push(p.id));
 
-  return {vw: vb.width, vh: vb.height, texts, rects, frames, icons, symbols, movers, flowPaths, arrows, siblings};
+  return {vw: vb.width, vh: vb.height, texts, rects, frames, icons, symbols, movers, flowPaths, arrows, siblings, holes};
 })()
 """
 
@@ -239,6 +275,21 @@ def defects(data: dict) -> list[str]:
         if t["w"] == 0:
             continue
         cx, cy = t["x"] + t["w"] / 2, t["y"] + t["h"] / 2
+
+        # a label that starts in the left half of a card has to fit in it
+        cands = [c for c in rects
+                 if c["x"] <= t["sx"] <= c["x"] + c["w"]
+                 and c["y"] <= t["sy"] <= c["y"] + c["h"]
+                 and t["sx"] <= c["x"] + c["w"] / 2]
+        if cands:
+            # the tightest container the label starts in is the one it belongs to
+            c = min(cands, key=lambda c: c["w"] * c["h"])
+            inside = (c["x"] - 1 <= t["x"] and c["y"] - 1 <= t["y"]
+                      and c["x"] + c["w"] + 1 >= t["x"] + t["w"]
+                      and c["y"] + c["h"] + 1 >= t["y"] + t["h"])
+            if not inside:
+                out.append(f"overflow    '{t['s']}' starts inside a box but "
+                           f"runs out of it")
         if t["x"] < -TOLERANCE or t["y"] < -TOLERANCE \
                 or t["x"] + t["w"] > vw + TOLERANCE or t["y"] + t["h"] > vh + TOLERANCE:
             out.append(f"off-canvas  '{t['s']}' extends past the viewBox")
@@ -406,6 +457,11 @@ def defects(data: dict) -> list[str]:
                 gap = max(dx, dy)
                 if gap < MIN_ITEM_GAP:
                     out.append(f"item-tight   two items in the same group are {gap:.0f}px apart")
+
+    # a card whose content stops well short of its bottom edge
+    for hole in data.get("holes", []):
+        out.append(f"hole         a card leaves {hole['slack']:.0f}px of empty space "
+                   f"at the bottom ({hole['w']:.0f}×{hole['h']:.0f})")
 
     # a moving light that is not bound to a real path drifts into empty space
     for mv in data.get("movers", []):

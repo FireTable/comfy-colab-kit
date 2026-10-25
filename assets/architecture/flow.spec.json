@@ -34,7 +34,7 @@
         {
           "id": "agent",
           "card": "chip",
-          "w": 150,
+          "w": 104,
           "h": 52,
           "accent": "blue",
           "label": {
@@ -49,7 +49,7 @@
         {
           "id": "browser",
           "card": "chip",
-          "w": 150,
+          "w": 104,
           "h": 52,
           "accent": "green",
           "label": {
@@ -65,7 +65,7 @@
           "id": "cf",
           "card": "cloudflare",
           "w": 182,
-          "h": 112,
+          "h": 100,
           "label": {
             "en": "Cloudflare Access",
             "zh": "Cloudflare Access"
@@ -122,7 +122,7 @@
           "id": "colab",
           "card": "colab",
           "w": 244,
-          "h": 208,
+          "h": 178,
           "label": {
             "en": "Colab L4 Runtime",
             "zh": "Colab L4 Runtime"

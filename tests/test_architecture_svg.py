@@ -376,6 +376,10 @@ def test_layout_checker_catches_real_defects(tmp_path):
         "item-tight": (grab(r'<rect x="0" y="0" width="242" height="26"[^>]*/>'),
                        grab(r'<rect x="0" y="0" width="242" height="26"[^>]*/>')
                        .replace('height="26"', 'height="30"')),
+        # a card whose content stops well short of its bottom edge
+        "hole": (grab(r'<rect x="0" y="0" width="216" height="88"[^>]*/>'),
+                 grab(r'<rect x="0" y="0" width="216" height="88"[^>]*/>')
+                 .replace('height="88"', 'height="120"')),
     }
     for name, (old, new) in cases.items():
         assert old in src, name
