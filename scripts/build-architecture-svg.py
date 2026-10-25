@@ -480,69 +480,18 @@ def edge_attrs(marker_id: str | None = None, stroke: str = "var(--ink-muted)",
 
 
 def hero_panel(add) -> None:
-    """The illustration in the top right: a phone hands work to a GPU.
+    """The illustration in the top right: the dispatch bench.
 
-    It is drawn, not embedded. GitHub serves raw files with
+    It is built by ``scripts/build-hero.mjs`` with the anatomy kit and inlined
+    here, rather than drawn by hand. GitHub serves raw files with
     ``content-security-policy: default-src 'none'``, which blocks a ``data:``
-    image inside an SVG that is opened directly — the embedded picture turns
-    into a broken-image icon. Pure vector geometry survives every viewer.
+    image inside an SVG opened directly, so the bench is pure vector.
     """
-    add("""  <g transform="translate(700,30)">
-    <rect x="0" y="0" width="440" height="248" rx="14" fill="url(#g-hero)" />
-    <ellipse cx="230" cy="112" rx="150" ry="86" fill="url(#g-hero-glow)" />""")
-
-    # the phone, seen from the back
-    add("""    <g transform="translate(52,74)">
-      <rect x="0" y="0" width="58" height="104" rx="12" fill="#2c2338" stroke="#6d5a80" stroke-width="1.4" />
-      <rect x="6" y="14" width="46" height="72" rx="5" fill="#191322" />
-      <rect x="21" y="5" width="16" height="3" rx="1.5" fill="#6d5a80" />
-      <rect x="52" y="30" width="3" height="14" rx="1.5" fill="#6d5a80" />
-      <circle cx="16" cy="92" r="4" fill="none" stroke="#6d5a80" stroke-width="1.2" />
-      <circle cx="16" cy="92" r="1.3" fill="#6d5a80" />
-      <circle cx="29" cy="92" r="1.4" fill="#6d5a80" opacity="0.7" />
-    </g>""")
-
-    # the beam: a tapered ribbon in the brand gradient
-    add('    <path id="hero-beam" d="M110 106 C168 46 250 46 306 98 L306 128 '
-        'C250 82 168 82 110 126 Z" fill="url(#g-beam)" />')
-    # 外面罩两圈更淡的光，把边缘化开（不用滤镜）
-    add('    <path d="M110 102 C168 40 250 40 306 94 L306 132 '
-        'C250 86 168 86 110 130 Z" fill="url(#g-beam)" opacity="0.16" />')
-    add('    <path d="M110 98 C168 34 250 34 306 90 L306 136 '
-        'C250 90 168 90 110 134 Z" fill="url(#g-beam)" opacity="0.09" />')
-    add('    <path d="M118 112 C174 60 246 60 298 102" fill="none" stroke="#fff3c4" '
-        'stroke-width="1.4" stroke-linecap="round" opacity="0.55" />')
-    # 一道流光沿着光束滑过去
-    add('    <path id="hero-shimmer" d="M112 110 C170 52 250 52 304 101" fill="none" '
-        'stroke="#fffde0" stroke-width="3" stroke-linecap="round" opacity="0" '
-        'class="hero-shimmer" />')
-
-    # the accelerator card, tilted
-    add("""    <g transform="translate(292,84)">
-      <path d="M14 40 L96 8 L124 24 L42 56 Z" fill="#3b3049" stroke="#f9ab00" stroke-width="1.4" />
-      <path d="M42 56 L124 24 L124 50 L42 82 Z" fill="#241c2f" stroke="#f9ab00" stroke-width="1.4" />
-      <path d="M14 40 L42 56 L42 82 L14 66 Z" fill="#2b2236" stroke="#f9ab00" stroke-width="1.4" />
-      <path d="M56 42 L94 24" fill="none" stroke="#f9ab00" stroke-width="1" opacity="0.5" />
-      <path d="M60 48 L98 30" fill="none" stroke="#f9ab00" stroke-width="1" opacity="0.5" />
-      <path d="M64 54 L102 36" fill="none" stroke="#f9ab00" stroke-width="1" opacity="0.5" />
-      <path d="M22 52 L34 58 L34 68 L22 62 Z" fill="#f9ab00" opacity="0.35" />
-      <circle cx="34" cy="49" r="3" fill="#3ddc84" class="hero-led" />
-    </g>""")
-
-    # 请求沿着光束飞向加速卡
-    add("""    <g>
-      <circle r="6" fill="#f2ff59" opacity="0.25"><animateMotion dur="4.2s" begin="0s" repeatCount="indefinite" rotate="auto">
-        <mpath href="#hero-beam" xlink:href="#hero-beam" /></animateMotion></circle>
-      <circle r="3.4" fill="#fff8dc"><animateMotion dur="4.2s" begin="0s" repeatCount="indefinite" rotate="auto">
-        <mpath href="#hero-beam" xlink:href="#hero-beam" /></animateMotion></circle>
-    </g>
-    <g opacity="0">
-      <circle r="5" fill="#f2ff59" opacity="0.2"><animateMotion dur="4.2s" begin="-2.1s" repeatCount="indefinite" rotate="auto">
-        <mpath href="#hero-beam" xlink:href="#hero-beam" /></animateMotion></circle>
-      <circle r="2.6" fill="#fff8dc"><animateMotion dur="4.2s" begin="-2.1s" repeatCount="indefinite" rotate="auto">
-        <mpath href="#hero-beam" xlink:href="#hero-beam" /></animateMotion></circle>
-    </g>""")
-
+    src = (ROOT / "assets" / "architecture" / "hero.svg").read_text(encoding="utf-8")
+    inner = src[src.index(">") + 1:src.rindex("</svg>")]
+    add('  <g transform="translate(700,30)">')
+    add('    <rect x="0" y="0" width="440" height="248" rx="14" fill="#1b1523" />')
+    add(inner)
     add('    <rect x="0" y="0" width="440" height="248" rx="14" fill="none" '
         'stroke="var(--border-card)" stroke-width="1.2" />')
     add("  </g>")
@@ -784,15 +733,6 @@ def build(spec: dict, lang: str) -> tuple[str, float]:
         font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
       }
       @keyframes pulse { 0%,100% { opacity: .35; } 50% { opacity: .9; } }
-      @keyframes hero-led { 0%,100% { opacity: .45; } 50% { opacity: 1; } }
-      @keyframes hero-shimmer {
-        0%   { opacity: 0;   stroke-dasharray: 0 400; stroke-dashoffset: 0; }
-        15%  { opacity: .85; }
-        70%  { opacity: .85; }
-        100% { opacity: 0;   stroke-dasharray: 60 400; stroke-dashoffset: -300; }
-      }
-      .hero-led { animation: hero-led 3.2s ease-in-out infinite; }
-      .hero-shimmer { animation: hero-shimmer 4.2s linear infinite; }
       @keyframes breathe { 0%,100% { opacity: .85; } 50% { opacity: 1; } }
       .pulse { animation: pulse 2.6s ease-in-out infinite; }
       .breathe { animation: breathe 3.4s ease-in-out infinite; }
@@ -811,17 +751,6 @@ def build(spec: dict, lang: str) -> tuple[str, float]:
     add(f"""    <linearGradient id="g-lime" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="{LIME}" /><stop offset="1" stop-color="{AMBER}" />
     </linearGradient>""")
-    add(f"""    <linearGradient id="g-hero" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#251d2f" /><stop offset="1" stop-color="#1b1523" />
-    </linearGradient>""")
-    add(f"""    <linearGradient id="g-beam" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="{AMBER}" /><stop offset="0.55" stop-color="{LIME}" />
-      <stop offset="1" stop-color="{AMBER}" />
-    </linearGradient>""")
-    add("""    <radialGradient id="g-hero-glow" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0" stop-color="#f2ff59" stop-opacity="0.20" />
-      <stop offset="1" stop-color="#f2ff59" stop-opacity="0" />
-    </radialGradient>""")
     for name, path in LOGO_PATHS.items():
         fill, viewbox, _size = LOGO_STYLE[name]
         add(f'    <symbol id="logo-{name}" viewBox="{viewbox}"><path fill="{fill}" d="{path}" /></symbol>')
