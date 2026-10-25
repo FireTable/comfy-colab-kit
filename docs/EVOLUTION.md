@@ -202,6 +202,42 @@ identical 1400×1400 canvas so the gallery row lines up without depending on CSS
 
 ---
 
+## Milestone 11 — Cold start & L4 inference, profiled and rebuilt (10-25 18:00 → 21:30)
+
+The cold start was measured instead of guessed. On a Colab L4 the network was never the
+bottleneck: 8 parallel Range connections reach ~700-850 MB/s, but the VM's disk writes cap at
+~292 MB/s, so the 24.9 GB profile took 77 s no matter how fast the fetch was.
+
+Four major optimizations followed:
+1. **Multi-Connection Range Fetcher & RAM Store**: The downloader became a pure-stdlib
+   multi-connection Range fetcher that re-resolves a signed CDN URL per chunk (sharing one
+   signed URL is throttled to ~65 MB/s), writes each file in a single pass (`pwrite`), and
+   resumes from a `.chunks` bitmap. `MODEL_STORE=ram` moves the weights into a RAM-backed tmpfs
+   so the stage becomes network-bound instead of disk-bound (24.9 GB in ~22-30 s at up to
+   1,096 MB/s / 8.77 Gbps).
+2. **T0 Download Pipelining & Link Sync**: Rather than waiting for tool installation, model
+   downloads start at T0 (the first millisecond of `main()`), running in the background while
+   `cloudflared` deb install and `ComfyUI` git clone run concurrently in parallel processes.
+   Deferred symlinking (`sync_links()`) links weights into ComfyUI models paths as soon as the
+   repository directory structure is ready.
+3. **Ada Lovelace L4 VRAM & Kernel Acceleration**: ComfyUI launches with `--highvram` and
+   `--reserve-vram 0.2`, keeping the entire 18 GB model suite (Qwen3.5 9B int8 + SFT int8/bf16 +
+   VAE) permanently resident in 24 GB VRAM. All 21 computation nodes remain 100% cached in VRAM,
+   completely eliminating PCIe swapping. `CUDA_MODULE_LOADING=LAZY` shaves 2-3 s off Python import
+   times, and `TORCH_CUDNN_V8_API=1` plus `TORCH_ALLOW_TF32_CUBLAS_OVERRIDE=1` maximize Ada Tensor
+   Core throughput (1024×1024 10-step generation in 26.8 s).
+4. **Kernel Decoupling for On-Demand Fetch**: `setup.py` ended in an endless keepalive cell, so
+   the Jupyter kernel stayed occupied and every later `colab exec` — the gate's heartbeat, the
+   `POST /_gate/fetch` model download — queued behind it and timed out. `setup.py` now returns
+   after `KIT_READY` and the cost guard moved into its own process (`KIT_WATCHDOG_ONLY=1`), freeing
+   the kernel while keeping the idle reaper at bay via 90 s gate touches.
+
+Live measured results on production L4 Colab:
+- Cold start: **60.8 s** (allocating 8.8 s, installing 19.3 s, downloading 22.7 s, booting 10.0 s).
+- Warm 1024×1024 generation: **26.8 s** (21 nodes 100% VRAM cached).
+
+---
+
 ## The shape of the history
 
 ```
@@ -215,6 +251,7 @@ identical 1400×1400 canvas so the gallery row lines up without depending on CSS
 10-24 22:37  ┃ ■ 7  owner panel & metric masking
 10-25 01:06  ┃ ■ 8  agent skill & one-click onboarding
 10-25 02:48  ┃ ■ 9  documentation as a product
+10-25 20:00  ┃ ■ 10 cold start profiled, rebuilt, and made visible
 ```
 
 **Commit-type distribution:** 42 `fix` · 30 `feat` · 13 `docs` · 3 `deploy` · 3 `chore` ·

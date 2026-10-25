@@ -134,12 +134,23 @@ A key architectural principle of this project is separation of concerns:
 1. **VM Discovery / Provisioning**: The gate checks `colab sessions`. If a healthy VM matching `COLAB_SESSION_NAME` exists, it reuses it. Otherwise, it calls `colab new -s <NAME> --gpu L4`.
 2. **Bootstrap Payload**: The gate compiles `plan.json` from the profile and uploads a minimal tarball containing `packages/colab/` and the plan.
 3. **Piped Bootstrap on Stdin**: `colab exec` runs the setup runner with secrets passed as JSON strictly over **stdin** (never written to disk or argv).
-4. **Setup Stages**:
-   - `bootstrap` -> `deps` (via `uv`) -> `install_workflows`
-   - `download`: Parallel model weight streaming (`hf-transfer` Rust chunked downloads with 30s stall watchdog). If `FAST_START=true`, ComfyUI boots as soon as core weights land while non-essential models download in the background.
-   - `comfy_boot`: Port 8188 opens; `cloudflared` named tunnel connects.
+4. **Setup Stages & Pipelining**:
+   - **T0 Pipelined Model Download**: Rather than waiting for tool installation, `setup_model_store()` initializes `/mnt/ram` tmpfs and fires `Downloads.start()` at the very first millisecond (T0). A multi-connection HTTP Range fetcher (64 concurrent streams) saturates the VM's network interface immediately (24.89 GB in ~22-30 s at up to >1,000 MB/s / 8.77 Gbps). Chunks are written straight into target file offsets (`pwrite`) with a `.chunks` resume bitmap. `sync_links()` defers symlinking until ComfyUI directories are ready.
+   - `bootstrap`: Runs concurrently with model downloading in the background. Downloads and installs `cloudflared` deb and clones the ComfyUI repository in parallel processes, slashing bootstrap time by 50%.
+   - `deps`: Installs requirements via `uv` in parallel while background downloads progress.
+   - `install_workflows`: Inlines workflows and configures app settings.
+   - `comfy_boot`: Launched before the last weights land (`KIT_PARALLEL booting start`), overlapping ComfyUI Python import and custom node loading with the tail of the download.
+   - **Ada Lovelace Hardware Maximization**:
+     - `--highvram --reserve-vram 0.2`: All model weights (Qwen3.5-9B int8 text encoder + SFT int8/bf16 + VAE ~18GB total) stay 100% memory-resident in L4's 24GB VRAM, completely eliminating PCIe page thrashing and swapping between CPU RAM and GPU.
+     - `CUDA_MODULE_LOADING=LAZY`: Defers CUDA driver module loading, shaving 2-3 s off initial ComfyUI launch.
+     - `TORCH_CUDNN_V8_API=1` & `TORCH_ALLOW_TF32_CUBLAS_OVERRIDE=1`: Engages cuDNN v8 deep execution graphs and Ada 4th Gen Tensor Core TF32 acceleration for GEMM operations.
    - `smoke`: Submits an empty graph or smoke prompt to verify model loading.
-   - Prints `KIT_READY` and transitions to `ready`.
+   - Prints `KIT_READY` and transitions to `ready` (~60.8 s total cold start from asleep).
+   - `setup.py` then **returns** instead of holding the cell forever. A cell that never finishes
+     blocks the Jupyter kernel, and every later `colab exec` (gate heartbeat, on-demand model fetch)
+     would queue behind it until it timed out. With the kernel free the gate keeps the runtime
+     alive by touching it every ~90 s, and the cost-guard watchdog keeps running in its own
+     process (`KIT_WATCHDOG_ONLY=1`).
 
 ---
 

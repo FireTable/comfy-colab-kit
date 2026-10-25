@@ -70,7 +70,17 @@ To create your own model profile (e.g. for a custom Flux or SDXL setup):
    comfyui:
      repo: https://github.com/comfyanonymous/ComfyUI
      commit: bc5f880
-     args: [--preview-method, auto]
+     args:
+       - --preview-method
+       - auto
+       - --highvram
+       - --reserve-vram
+       - '0.2'
+     env:
+       PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
+       CUDA_MODULE_LOADING: LAZY
+       TORCH_CUDNN_V8_API: '1'
+       TORCH_ALLOW_TF32_CUBLAS_OVERRIDE: '1'
    frontend:
      package: comfyui-frontend-package==1.57.1
    models:
@@ -90,10 +100,14 @@ To create your own model profile (e.g. for a custom Flux or SDXL setup):
        upstream_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
        models: [base-checkpoint]
        app:
-         inputs: [[3, "text"]]
+         inputs:
+           - [3, text, "正向提示词 (Positive Prompt)"]  # [node_id, widget_name, optional_label]
          outputs: [9]
    app_default: default-gen
    ```
+  > [!TIP]
+  > `app.inputs` supports either 2-tuples `[node_id, widget_name]` (automatic label inference) or 3-tuples `[node_id, widget_name, custom_label]`. For full App Mode serialization invariants and schema rules, see [`docs/APP_MODE.md`](APP_MODE.md).
+
 4. **Validate the profile**:
    ```bash
    python scripts/validate-profile.py profiles/custom/my-model/

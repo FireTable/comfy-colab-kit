@@ -124,7 +124,7 @@ VPS 上运行一个轻量网关 **comfy-gate**（Python / aiohttp），前端受
 - **权限双模式控制（默认 Mode B 管理员独占）**：默认 `OWNER_ONLY_CONTROL=true`，仅 `OWNER_EMAILS` 可唤醒与停机 GPU，避免点数被误开或误关；就绪后全员无感并发使用 ComfyUI 生图。亦可切为 Mode A 团队协同模式（支持谁开谁关）。
 - **校验 Access 身份与多 IdP 支持**：支持 Google、GitHub 一键登录与邮箱验证码（OTP），严格验证 `Cf-Access-Jwt-Assertion`（RS256、AUD、issuer）。
 - **后端只认服务令牌**：Colab 隧道主机名只放行网关的 Access 服务令牌。
-- **极速冷启动**：`hf-transfer` Rust 多线程分块并发、`uv` 安装、30s 假死自愈看门狗、隧道最先启动、核心模型到位即启动 ComfyUI（`FAST_START`）。
+- **极速冷启动与 L4 硬件性能榨干**：自研并行 HTTP Range 下载器在 T0 第一毫秒将 24.9 GB 模型直灌内存盘 tmpfs（峰值超 1,000 MB/s / 8.77 Gbps），完全重叠依赖安装与 ComfyUI 启动；`--highvram` 启动参数将 18GB 模型全套常驻 L4 的 24GB 显存，100% 缓存保留零 PCIe 颠簸。整机冷启动仅需 ~60 秒，热态 1024×1024 出图仅需 26.8 秒。
 - **App 模式优先**：工作流写入 ComfyUI App 模式元数据；注入的浮层可在 App ⇄ 节点图之间切换。
 - **ComfyUI 完整透传**：透传图生图参考图上传 `/upload/image`、工作流排队 `/prompt`、历史记录 `/history`、图片查看 `/view`、节点 Schema `/object_info`、硬件负载 `/system_stats` 及 WebSocket `/ws`。
 - **对 Agent 极度友好**：RFC 8628 设备码一键配对（`ckit auth`）、网页端一键复制 AI 接入指令（智能复用未激活令牌）、`docs/MCP.md`、`skills/comfy-colab-kit/SKILL.md`、`docs/AGENT_SKILL.md`、`llms.txt`。
@@ -170,6 +170,8 @@ docker compose -f deploy/docker-compose.yml up -d
 📖 **智能体专用文档与规范**：
 - [docs/MCP.md](docs/MCP.md) —— Model Context Protocol (MCP) 完整接入指南（stdio `ckit mcp`、远端 HTTP `/mcp` 与 Cursor/Claude 深度集成）。
 - [skills/comfy-colab-kit/SKILL.md](skills/comfy-colab-kit/SKILL.md) —— 通用 Agent Skill 标准规范（`/comfy-colab-kit`），包含文生图/图生图选型决策树与上传代码。
+- [skills/comfy-workflow-ui/SKILL.md](skills/comfy-workflow-ui/SKILL.md) —— ComfyUI App 模式与表单 UI 审查和维护技能手册。
+- [docs/APP_MODE.md](docs/APP_MODE.md) —— ComfyUI App 模式（Linear 模式）架构定义、JSON 约束与节点序列化红线。
 - [docs/AGENT_SKILL.md](docs/AGENT_SKILL.md) —— 专为 AI Agent 定义的 Skill 协议标准、认证机制与生命周期调用策略。
 - [docs/AGENT.md](docs/AGENT.md) —— 面向智能体的 VPS 生产部署指南与凭证申请流水线。
 - [apps/gate/openapi.yaml](apps/gate/openapi.yaml) —— 机器可读的 OpenAPI 3.1 接口完整定义。
@@ -232,7 +234,11 @@ comfy-colab-kit/
 ├── docs/                     # 完整工程规范与产品技术文档
 │   ├── AGENT.md              # VPS 完整实操部署与凭证申请指南（英文）
 │   ├── AGENT_SKILL.md        # AI Agent 自动化调度指南（唤醒、出图、关机）
+│   ├── APP_MODE.md           # ComfyUI App 模式表单架构与 UI 序列化规范
 │   └── ...
+├── skills/                   # 自包含 Agent Skill 执行清单与运行手册
+│   ├── comfy-colab-kit/      # 网关调度技能（唤醒、生图、关机、查账本）
+│   └── comfy-workflow-ui/    # 工作流 UI 与 App 模式表单巡检与维护技能
 ├── scripts/                  # 验证、校验与敏感信息审计脚本
 └── tests/                    # 完整自动化单元与集成测试套件（145 测试）
 ```

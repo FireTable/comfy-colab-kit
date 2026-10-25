@@ -37,7 +37,9 @@ When Wake is triggered, the card smoothly expands to display the 5-stage progres
 ┌──────────────────────────────────────────────────────────────┐
 │  Stage: Downloading Models (Stage 3 of 5)                    │
 │  [■■■■■■■■■■■■■■■■■■□□□□□□□□□□□□] 64% · ETA: 1m 24s         │
-│  Speed: 420 MB/s · 16.2 GB / 25.4 GB (4/6 files)             │
+│  Speed: 850 MB/s · 16.2 GB / 24.9 GB (4/7 files)             │
+│  ✓ Allocate GPU   ✓ Install runtime   ◐ Download models      │
+│                                          ◐ Start ComfyUI  并行 │
 │                                                              │
 │  ▼ Console Logs (Click to collapse)                          │
 │  [18:42:01] KIT_STAGE download                               │
