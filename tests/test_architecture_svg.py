@@ -20,6 +20,8 @@ ROOT = Path(__file__).resolve().parent.parent
 FLOW = ROOT / "assets" / "architecture" / "flow.svg"
 FLOW_ZH = ROOT / "assets" / "architecture" / "flow.zh.svg"
 GENERATOR = ROOT / "scripts" / "build-architecture-svg.py"
+HERO = ROOT / "assets" / "architecture" / "hero.svg"
+HERO_BUILD = ROOT / "scripts" / "build-hero.mjs"
 
 SVG_NS = "{http://www.w3.org/2000/svg}"
 
@@ -389,3 +391,11 @@ def test_layout_checker_catches_real_defects(tmp_path):
                            cwd=ROOT, capture_output=True, text=True)
         assert r.returncode == 1, f"{name} was not caught:\n{r.stdout}"
         assert name.split("-")[0] in r.stdout, f"{name} was not reported as {name}:\n{r.stdout}"
+
+
+def test_hero_is_reproducible():
+    """The bench is generated; rebuilding it must not change the committed file."""
+    before = HERO.read_bytes()
+    r = subprocess.run(["node", str(HERO_BUILD)], cwd=ROOT, capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    assert HERO.read_bytes() == before, "hero.svg drifted from build-hero.mjs"

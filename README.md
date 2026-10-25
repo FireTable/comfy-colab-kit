@@ -246,6 +246,7 @@ comfy-colab-kit/
 python -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
 npm install                 # Graphviz (WebAssembly) — lays out the architecture diagram
 python -m pytest -q
+node scripts/build-hero.mjs               # the dispatch bench, assets/architecture/hero.svg
 python scripts/build-architecture-svg.py   # regenerate assets/architecture/flow*.svg
 AUTH_DISABLED=true STATE_DIR=/tmp/kit COLAB_BIN=/bin/false python -m gate.app   # wake page on :8080
 ```
