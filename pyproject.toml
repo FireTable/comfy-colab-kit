@@ -21,6 +21,7 @@ testpaths = ["tests"]
 [tool.setuptools.package-dir]
 gate = "apps/gate"
 ckit = "packages/cli"
+diagram = "packages/diagram"
 
 [tool.setuptools.package-data]
 gate = ["web/*", "openapi.yaml"]

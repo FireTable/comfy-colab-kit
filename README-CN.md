@@ -234,7 +234,7 @@ comfy-colab-kit/
 │   ├── AGENT_SKILL.md        # AI Agent 自动化调度指南（唤醒、出图、关机）
 │   └── ...
 ├── scripts/                  # 验证、校验与敏感信息审计脚本
-└── tests/                    # 完整自动化单元与集成测试套件（130 测试）
+└── tests/                    # 完整自动化单元与集成测试套件（145 测试）
 ```
 
 ## 💖 鸣谢与开源致敬 (Acknowledgments)

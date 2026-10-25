@@ -43,7 +43,7 @@ def _boxes_in_user_space(root) -> list[tuple[float, float, float, float]]:
         if el.tag == f"{SVG_NS}rect":
             w, h = float(el.get("width", 0)), float(el.get("height", 0))
             # skip full-canvas backgrounds and tiny chips
-            if 40 <= w <= 400 and 20 <= h <= 200:
+            if 40 <= w <= 400 and 20 <= h <= 220:
                 boxes.append((tx + float(el.get("x", 0)), ty + float(el.get("y", 0)), w, h))
         for child in el:
             walk(child, tx, ty)
@@ -117,7 +117,11 @@ def test_generator_is_deterministic(svgs):
 def test_svg_is_well_formed(svgs, key):
     root = ET.fromstring(svgs[key])
     assert root.tag == f"{SVG_NS}svg"
-    assert root.get("viewBox") == "0 0 1180 1100"
+    vb = root.get("viewBox")
+    assert vb.startswith("0 0 1180 "), vb
+    # the canvas is sized by the layout, but it must match the intrinsic size
+    h = vb.split()[3]
+    assert root.get("width") == "1180" and root.get("height") == h
 
 
 @pytest.mark.parametrize("key", ["en", "zh"])
@@ -125,7 +129,9 @@ def test_no_external_references(svgs, key):
     body = svgs[key]
     # the only allowed URL is the SVG namespace declaration
     urls = re.findall(r"https?://[^\s\"'<>]+", body)
-    assert urls == ["http://www.w3.org/2000/svg"], urls
+    # the only allowed URLs are the SVG and xlink namespace declarations
+    assert set(urls) <= {"http://www.w3.org/2000/svg",
+                         "http://www.w3.org/1999/xlink"}, urls
     assert "@import" not in body
     # every image must be an inline data URI
     for href in re.findall(r'href="([^"]+)"', body):
@@ -188,9 +194,9 @@ def test_english_and_chinese_have_identical_structure(svgs):
     def structure(body: str) -> list[str]:
         """Element skeleton, ignoring elements whose geometry tracks the wording.
 
-        Caption chips are sized to their text, and the legend lays its entries
-        out one after another, so both shift with the language. Everything else
-        must be identical between the two variants.
+        The badge pill and the section tapes are sized to their label, and the
+        legend lays its entries out one after another, so those shift with the
+        language. Everything else must be identical between the two variants.
         """
         root = ET.fromstring(body)
         out = []
@@ -203,10 +209,9 @@ def test_english_and_chinese_have_identical_structure(svgs):
                 out.append(f"{tag}:{x},{el.get('y')},{el.get('font-size')}")
             elif tag in ("rect", "circle", "path", "use", "image", "g"):
                 w = el.get("width")
-                # caption chips are the only rects whose width depends on wording
                 x = el.get("x")
-                if tag == "rect" and w and el.get("rx") == "4" and float(w) < 320:
-                    # caption chips: both width and x depend on the wording
+                if tag == "rect" and w and el.get("rx") in ("4", "15"):
+                    # the badge pill and the section tapes: width follows the words
                     w, x = "*", "*"
                 out.append(f"{tag}:{x},{el.get('y')},{w},{el.get('height')}")
         return out
@@ -220,8 +225,22 @@ def test_service_logos_are_present(svgs):
     for key in ("en", "zh"):
         for name in ("cloudflare", "googlecolab", "comfyui", "huggingface"):
             assert f'id="logo-{name}"' in svgs[key], f"{name} logo missing in {key}"
+        assert 'id="kit-mark"' in svgs[key], f"project mark missing in {key}"
 
 
 def test_hero_image_is_inline(svgs):
     for key in ("en", "zh"):
         assert "data:image/webp;base64," in svgs[key]
+
+
+def test_rendered_layout_has_no_overflow():
+    """Open the committed SVGs in a real browser and check the text fits.
+
+    Character counts cannot catch this: the width depends on the font the
+    browser picks, and a CJK glyph is about twice a Latin one. The checker
+    skips itself when Chrome is not installed, so CI without it still passes.
+    """
+    checker = ROOT / "scripts" / "check-svg-layout.py"
+    r = subprocess.run([sys.executable, str(checker), str(FLOW), str(FLOW_ZH)],
+                       cwd=ROOT, capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout + r.stderr
