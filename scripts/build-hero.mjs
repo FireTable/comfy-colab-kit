@@ -301,21 +301,23 @@ const svg = k.figureSvg({
 // part, green for the lamp on the head.
 const PALETTE = `
 .iso{
-  --anatomy-paper:#1b1523;--anatomy-face:#2b2338;--anatomy-top:#332a42;
-  --anatomy-shade-0:#171220;--anatomy-shade-1:#1c1626;--anatomy-shade-2:#211a2c;--anatomy-shade-3:#261e32;
+  /* the panel is near-black plum, so the machine has to be lighter than it or
+     the whole bench reads as one black shape */
+  --anatomy-paper:#3a3150;--anatomy-face:#4a4064;--anatomy-top:#564c72;
+  --anatomy-shade-0:#241c34;--anatomy-shade-1:#2c2340;--anatomy-shade-2:#332848;--anatomy-shade-3:#3a3052;
   --anatomy-lit-top:#f2ff59;--anatomy-lit-shade:#a8b52e;
-  --anatomy-hi:#f3e7c8;--anatomy-mid:#a08cba;--anatomy-lo:#6d5a83;--anatomy-faint:#453a55;
+  --anatomy-hi:#f6edd4;--anatomy-mid:#c2aed6;--anatomy-lo:#8d78a6;--anatomy-faint:#5d4c74;
   --anatomy-lit:#f2ff59;
-  --anatomy-halo:#100c18;--anatomy-halo-opacity:.95;--anatomy-dot:#f3e7c8;
+  --anatomy-halo:#100c18;--anatomy-halo-opacity:.6;--anatomy-dot:#f6edd4;
   --anatomy-red:#f9ab00;--anatomy-green:#3ddc84;--anatomy-blue:#f2ff59;
   --anatomy-weight:.6px;--anatomy-ease:cubic-bezier(.32,.72,0,1);
 }
 .iso-svg .iso-halo{filter:none}
 /* the one lit part of the machine is the request slug; the head's own lamp is
    green, and the lamp waiting for a request is amber */
-.hero-carriage .iso-solid>.iso-fill{fill:#3b3052}
-.hero-carriage .iso-solid>.iso-top{fill:#483b62}
-.hero-carriage .iso-solid>.iso-shade{fill:#2c2440}
+.hero-carriage .iso-solid>.iso-fill{fill:#6a5c8c}
+.hero-carriage .iso-solid>.iso-top{fill:#7d6ea2}
+.hero-carriage .iso-solid>.iso-shade{fill:#4e446c}
 .iso-solid.hero-slug>.iso-top{fill:#f2ff59}
 .iso-solid.hero-slug>.iso-fill{fill:#3a4a1e}
 .iso-solid.hero-led>.iso-top{fill:#3ddc84}
