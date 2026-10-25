@@ -41,9 +41,14 @@ class CDP:
 
     def __init__(self, url: str, port: int = 9444, timeout: float = 20.0):
         self.port = port
+        args = [CHROME, "--headless=new", "--disable-gpu", f"--remote-debugging-port={port}",
+                "--window-size=1400,1300", "--hide-scrollbars"]
+        if hasattr(os, "geteuid") and os.geteuid() == 0:
+            # a container that runs as root cannot start Chrome without this
+            args.append("--no-sandbox")
+        args.append(url)
         self.proc = subprocess.Popen(
-            [CHROME, "--headless=new", "--disable-gpu", f"--remote-debugging-port={port}",
-             "--window-size=1400,1300", "--hide-scrollbars", url],
+            args,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         )
         self._id = 0
