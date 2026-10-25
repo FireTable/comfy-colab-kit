@@ -315,6 +315,12 @@ def test_layout_checker_catches_real_defects(tmp_path):
                        '<use href="#logo-googlecolab" x="11" y="1" width="18" height="18" />'),
         "mover-void": ('<mpath href="#flow-req-0" xlink:href="#flow-req-0" />',
                        '<mpath href="#flow-nope" xlink:href="#flow-nope" />'),
+        # the head must point at the box it enters, not away from it
+        "arrow-way": ('<path d="M1092.0 704.0 V724.7 H1079.3 V750.0"',
+                      '<path d="M1092.0 704.0 V780.0 H1079.3 V750.0"'),
+        # a box that pokes out of the frame around it
+        "box-out": ('<rect x="0" y="0" width="120" height="34" rx="9" fill="var(--violet)" />',
+                    '<rect x="0" y="0" width="160" height="34" rx="9" fill="var(--violet)" />'),
     }
     for name, (old, new) in cases.items():
         assert old in src, name

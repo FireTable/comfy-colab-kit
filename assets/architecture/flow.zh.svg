@@ -262,11 +262,11 @@
         <rect x="0" y="0" width="96" height="34" rx="9" fill="var(--rose)" />
         <text x="48" y="22" font-weight="650" fill="var(--ink-on-tape)">failed</text>
       </g>
-      <g transform="translate(876.7,750.0)">
+      <g transform="translate(859.3,750.0)">
         <rect x="0" y="0" width="104" height="34" rx="9" fill="var(--blue)" />
         <text x="52" y="22" font-weight="650" fill="var(--ink-on-tape)">stopping</text>
       </g>
-      <g transform="translate(1054.0,750.0)">
+      <g transform="translate(1019.3,750.0)">
         <rect x="0" y="0" width="120" height="34" rx="9" fill="var(--violet)" />
         <text x="60" y="22" font-weight="650" fill="var(--ink-on-tape)">switching</text>
       </g>
@@ -290,12 +290,12 @@
     <path d="M755.3 704.0 V718.7 H755.3 V750.0" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
     <path d="M923.7 704.0 V718.7 H755.3 V750.0" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
     <text x="102" y="734.7" font-size="9.5" class="code-text" fill="var(--ink-muted)">任一开机态失败 → failed → 重试 allocating</text>
-    <path d="M803.60,767.00C803.60,767.00 861.03,767.00 861.03,767.00 L876.65 767.00" stroke="var(--ink-muted)" stroke-width="1.6" fill="none" marker-end="url(#arrow-plum)" />
-    <path d="M981.27,767.00C981.27,767.00 1038.04,767.00 1038.04,767.00 L1053.99 767.00" stroke="var(--ink-muted)" stroke-width="1.6" fill="none" marker-end="url(#arrow-plum)" />
-    <text x="840.0" y="736.7" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="middle">stop</text>
-    <path d="M928.7 784.0 V796.7 H92.0 V704.0" stroke="var(--ink-muted)" stroke-width="1.6" fill="none" marker-end="url(#arrow-plum)" />
+    <path d="M803.83,767.00C803.83,767.00 843.71,767.00 843.71,767.00 L859.32 767.00" stroke="var(--ink-muted)" stroke-width="1.6" fill="none" marker-end="url(#arrow-plum)" />
+    <path d="M963.55,767.00C963.55,767.00 1003.53,767.00 1003.53,767.00 L1019.32 767.00" stroke="var(--ink-muted)" stroke-width="1.6" fill="none" marker-end="url(#arrow-plum)" />
+    <text x="831.3" y="736.7" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="middle">stop</text>
+    <path d="M911.3 784.0 V796.7 H92.0 V704.0" stroke="var(--ink-muted)" stroke-width="1.6" fill="none" marker-end="url(#arrow-plum)" />
     <text x="240" y="789.7" font-size="9.5" class="code-text" fill="var(--ink-muted)">任一非睡眠态均可 stop → 释放 VM</text>
-    <path d="M1092.0 704.0 V770.7 H1114.0 V750.0" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
+    <path d="M1092.0 704.0 V724.7 H1079.3 V750.0" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
     <text x="1132" y="799.0" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="end">switch 冷切换</text>
     <g transform="translate(64,822.6666666666666)">
       <rect x="0" y="0" width="1052" height="22" rx="6" fill="var(--rose)" opacity="0.2" />
