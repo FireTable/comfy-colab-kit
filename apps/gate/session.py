@@ -137,6 +137,8 @@ class Session:
         self.clients_zero_since: float | None = None
         self.queue_busy = False
         self.progress: dict[str, Any] = {}
+        #: steps that run concurrently with the main one (e.g. ComfyUI booting during the download)
+        self.parallel: dict[str, dict[str, Any]] = {}
         self.stage_durations: dict[str, dict[str, Any]] = {}
         self.workflows: list[str] | None = None
         self._task: asyncio.Task | None = None
@@ -244,6 +246,9 @@ class Session:
             log.warning("reconcile failed: %s", e)
             return
         if self.settings.colab_session_name not in names:
+            if self.boot_task_running():
+                # a VM that is still being allocated is not listed yet -- do not kill the boot
+                return
             async with self.lock:
                 self._force(State.SLEEPING, "VM gone (released outside the gate)")
         else:
@@ -286,6 +291,7 @@ class Session:
             "server_time": now,
             "busy": m.state not in (State.SLEEPING, State.READY, State.FAILED),
             "progress": self.progress,
+            "parallel": dict(self.parallel),
             "stage_durations": durs,
             "enable_smoke_test": self.settings.enable_smoke_test,
             "remaining_s": d.remaining_s,
@@ -335,6 +341,7 @@ class Session:
             self.woken_by = by or ""
             self.woken_by_ip = ip or ""
             m.profile, self.workflows, self.progress = pid, workflows, {}
+            self.parallel = {}
             m.to(State.ALLOCATING, f"wake by {by or ip or 'unknown'}")
             self.last_activity = self.clock()
             self.persist()
@@ -489,6 +496,7 @@ class Session:
         self.woken_by = ""
         self.woken_by_ip = ""
         self.progress = {}
+        self.parallel = {}
         self.on_demand, self.fetching = [], []
         if self._fetch_task and not self._fetch_task.done():
             self._fetch_task.cancel()
@@ -549,6 +557,10 @@ class Session:
             "tar -xzf /content/kit.tgz -C /content/kit'], check=True)\n"
             f"os.environ.update(json.loads({json.dumps(json.dumps(secrets))}))\n"
             "os.environ['KIT_PLAN']='/content/kit/plan.json'\n"
+            # pass the download tuning through the kernel env: setup.py reads these directly,
+            # so they work even if the plan json on the VM is an older shape
+            f"os.environ['KIT_MODEL_STORE']={json.dumps(self.settings.model_store)}\n"
+            f"os.environ['KIT_DL_CONNS']={json.dumps(str(self.settings.download_connections))}\n"
             # assign the result: a bare expression would make IPython pretty-print setup.py's globals
             "_kit = runpy.run_path('/content/kit/colab/setup.py', run_name='__main__'); del _kit\n"
         )
@@ -570,9 +582,24 @@ class Session:
                             "comfy_boot": "booting", "smoke": "smoke_testing"}
                     gk = smap.get(parts[1])
                     if gk and gk in self.stage_durations:
-                        self.stage_durations[gk]["duration"] = round(dur, 1)
+                        # bootstrap and deps both map to "installing": accumulate instead of
+                        # overwriting, so the UI shows the real install time
+                        prev = self.stage_durations[gk].get("duration", 0.0) or 0.0
+                        self.stage_durations[gk]["duration"] = round(prev + dur, 1)
                 except ValueError:
                     pass
+        elif clean.startswith("KIT_PARALLEL ") and len(parts) >= 3:
+            name, what = parts[1], parts[2]
+            info: dict[str, Any] = {"state": "running" if what == "start" else "done"}
+            if what == "start":
+                info["start"] = self.clock()
+            elif len(parts) >= 4:
+                try:
+                    info["duration"] = round(float(parts[3]), 1)
+                except ValueError:
+                    pass
+            self.parallel[name] = info
+            self.bus.publish("state", self.status())
         elif clean.startswith("KIT_PROGRESS ") and len(parts) >= 3:
             try:
                 self.progress[parts[1]] = json.loads(clean.split(" ", 2)[2])
@@ -604,6 +631,10 @@ class Session:
         try:
             plan = build_plan(self.profiles[pid], self.settings, self.workflows)
             self.on_demand, self.fetching, self.fetch_error = sorted(plan.get("on_demand") or {}), [], ""
+            # a fresh boot must not inherit the previous session's download telemetry
+            # (stale bytes/ETA would be shown next to "allocating")
+            self.progress = {}
+            self.parallel = {}
             if name not in await self.colab.sessions():
                 self.bus.publish("log", f"allocating Colab {self.settings.colab_accelerator} VM …")
                 await self.colab.new(name, self.settings.colab_accelerator)
@@ -612,12 +643,14 @@ class Session:
                 await self.colab.upload(name, tgz, "/content/kit.tgz")
             finally:
                 Path(tgz).unlink(missing_ok=True)
+            if not await self.colab.wait_for_kernel(name):
+                raise ColabError("kernel did not become ready after upload")
             self.machine.to(State.INSTALLING, "setup started")
             self.persist()
             timeout = self.settings.auto_stop.boot_timeout_min * 60
             for attempt in range(1, 4):
                 try:
-                    async for line in self.colab.exec_stream(name, self._bootstrap_code(), timeout):
+                    async for line in self.colab.exec_stream(name, self._bootstrap_code(), min(timeout, 900)):
                         self.handle_line(line)
                     break
                 except ColabError as ce:

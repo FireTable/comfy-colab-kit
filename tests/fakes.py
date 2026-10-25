@@ -46,3 +46,7 @@ class FakeColab:
     async def touch_heartbeat(self, name: str) -> bool:
         self.calls.append("touch_heartbeat")
         return name in self.live
+
+    async def wait_for_kernel(self, name: str, attempts: int = 5) -> bool:
+        self.calls.append("wait_for_kernel")
+        return True
