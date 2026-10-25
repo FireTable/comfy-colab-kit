@@ -492,6 +492,16 @@ def hero_panel(add) -> None:
 # ── drawing the boxes ──────────────────────────────────────────────────────
 
 
+def band(w: float, h: float, r: float) -> str:
+    """A header band: rounded at the top, square at the bottom.
+
+    Drawn as one path rather than a rounded rect plus a square patch, so a
+    geometry checker sees a single shape instead of two overlapping ones.
+    """
+    return (f"M0 {r:.0f} A{r:.0f} {r:.0f} 0 0 1 {r:.0f} 0 H{w - r:.0f} "
+            f"A{r:.0f} {r:.0f} 0 0 1 {w:.0f} {r:.0f} V{h:.0f} H0 Z")
+
+
 def draw_chip(add, box: Box, node: dict, lang: str) -> None:
     add(f"""  <g transform="translate({box.x:.1f},{box.y:.1f})">
     <rect x="0" y="0" width="{box.w:.0f}" height="{box.h:.0f}" rx="10" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />
@@ -505,8 +515,7 @@ def draw_cloudflare(add, box: Box, node: dict, lang: str) -> None:
     add(f"""  <g transform="translate({box.x:.1f},{box.y:.1f})">
     <rect x="0" y="6" width="{box.w:.0f}" height="{box.h:.0f}" rx="12" fill="#000000" opacity="0.07" />
     <rect x="0" y="0" width="{box.w:.0f}" height="{box.h:.0f}" rx="12" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />
-    <rect x="0" y="0" width="{box.w:.0f}" height="26" rx="12" fill="url(#g-lime)" opacity="0.92" />
-    <rect x="0" y="16" width="{box.w:.0f}" height="10" fill="url(#g-lime)" opacity="0.92" />""")
+    <path d="{band(box.w, 26, 12)}" fill="url(#g-lime)" opacity="0.92" />""")
     add('    <use href="#logo-cloudflare" x="10" y="5" width="17" height="17" />')
     add(f'    <text x="32" y="18" font-size="12.5" font-weight="700" fill="var(--ink-on-tape)">{esc(say(node["label"], lang))}</text>')
     for i, line in enumerate(node["items"]):
@@ -520,8 +529,7 @@ def draw_gateway(add, box: Box, node: dict, lang: str) -> None:
     add(f"""  <g transform="translate({box.x:.1f},{box.y:.1f})">
     <rect x="0" y="10" width="{box.w:.0f}" height="{box.h:.0f}" rx="14" fill="#000000" opacity="0.08" />
     <rect x="0" y="0" width="{box.w:.0f}" height="{box.h:.0f}" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.6" />
-    <rect x="0" y="0" width="{box.w:.0f}" height="30" rx="14" fill="var(--plum)" />
-    <rect x="0" y="18" width="{box.w:.0f}" height="12" fill="var(--plum)" />""")
+    <path d="{band(box.w, 30, 14)}" fill="var(--plum)" />""")
     add('    <use href="#kit-glyph" x="10" y="4" width="24" height="24" />')
     add(f'    <text x="42" y="21" font-size="13" font-weight="700" fill="{AMBER}">{esc(say(node["label"], lang))}</text>')
     add(f'    <text x="128" y="21" font-size="10.5" class="code-text" fill="#a8a29e">{esc(node["sub"])}</text>')
@@ -537,8 +545,7 @@ def draw_colab(add, box: Box, node: dict, lang: str) -> None:
     add(f"""  <g transform="translate({box.x:.1f},{box.y:.1f})">
     <rect x="0" y="10" width="{box.w:.0f}" height="{box.h:.0f}" rx="14" fill="#000000" opacity="0.08" />
     <rect x="0" y="0" width="{box.w:.0f}" height="{box.h:.0f}" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.6" />
-    <rect x="0" y="0" width="{box.w:.0f}" height="30" rx="14" fill="url(#g-amber)" />
-    <rect x="0" y="18" width="{box.w:.0f}" height="12" fill="url(#g-amber)" />""")
+    <path d="{band(box.w, 30, 14)}" fill="url(#g-amber)" />""")
     add('    <use href="#logo-googlecolab" x="11" y="7" width="18" height="18" />')
     add(f'    <text x="35" y="21" font-size="13" font-weight="700" fill="var(--ink-on-tape)">{esc(say(node["label"], lang))}</text>')
     add("""    <g transform="translate(14,40)">

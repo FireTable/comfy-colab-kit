@@ -292,3 +292,35 @@ def test_spec_is_valid_json_and_complete():
         assert section["title"], section["id"]
         if section["kind"] == "grid":
             assert section["columns"] == len(section["cells"]), section["id"]
+
+
+def test_layout_checker_catches_real_defects(tmp_path):
+    """The checker has to actually fail on a broken diagram.
+
+    A checker that never fires is worse than none: it gives the appearance of
+    a safety net that is not there. Each case below breaks one thing in the
+    committed SVG and asserts the checker reports it.
+    """
+    src = FLOW.read_text(encoding="utf-8")
+    checker = ROOT / "scripts" / "check-svg-layout.py"
+
+    cases = {
+        "overflow": ('>Cloudflare Access<',
+                     '>Cloudflare Access and a great deal of extra text that will not fit<'),
+        # two copies of the same label, four pixels apart
+        "collision": ('<text x="52" y="23" font-weight="650" fill="var(--ink-secondary)">sleeping</text>',
+                      '<text x="52" y="23" font-weight="650" fill="var(--ink-secondary)">sleeping</text>'
+                      '<text x="52" y="27" font-weight="650" fill="var(--ink-secondary)">sleeping</text>'),
+        "icon-align": ('<use href="#logo-googlecolab" x="11" y="7" width="18" height="18" />',
+                       '<use href="#logo-googlecolab" x="11" y="1" width="18" height="18" />'),
+        "mover-void": ('<mpath href="#flow-req-0" xlink:href="#flow-req-0" />',
+                       '<mpath href="#flow-nope" xlink:href="#flow-nope" />'),
+    }
+    for name, (old, new) in cases.items():
+        assert old in src, name
+        broken = tmp_path / f"{name}.svg"
+        broken.write_text(src.replace(old, new), encoding="utf-8")
+        r = subprocess.run([sys.executable, str(checker), str(broken)],
+                           cwd=ROOT, capture_output=True, text=True)
+        assert r.returncode == 1, f"{name} was not caught:\n{r.stdout}"
+        assert name.split("-")[0] in r.stdout, f"{name} was not reported as {name}:\n{r.stdout}"

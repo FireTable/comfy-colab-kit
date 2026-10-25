@@ -53,11 +53,28 @@ MEASURE_JS = r"""
                 w: +b.w.toFixed(2), h: +b.h.toFixed(2),
                 cy: +(b.y + b.h / 2).toFixed(2)});
   });
+  // Containers a label is supposed to sit inside. A translucent rect is a
+  // shadow, not a container, and a shape drawn inside <defs> or <symbol> is
+  // a definition rather than part of the picture.
   const rects = [];
+  const isDecoration = (el) => {
+    // a drop shadow is drawn almost transparent; a band at 0.92 still counts
+    const op = parseFloat(el.getAttribute('opacity') || '1');
+    return op < 0.5;
+  };
   document.querySelectorAll('rect').forEach(el => {
+    if (isDecoration(el) || el.closest('symbol, defs')) return;
     const b = u(el.getBoundingClientRect());
     if (b.w > 20 && b.h > 8) rects.push({x: +b.x.toFixed(2), y: +b.y.toFixed(2),
                                          w: +b.w.toFixed(2), h: +b.h.toFixed(2)});
+  });
+  // a filled shape is a container too — header bands are drawn as one path
+  document.querySelectorAll('path').forEach(el => {
+    if (isDecoration(el) || el.closest('symbol, defs, marker')) return;
+    if (el.getAttribute('fill') === 'none') return;
+    const b = u(el.getBoundingClientRect());
+    if (b.w * b.h > 2000) rects.push({x: +b.x.toFixed(2), y: +b.y.toFixed(2),
+                                      w: +b.w.toFixed(2), h: +b.h.toFixed(2)});
   });
 
   // icons: where the glyph actually landed, and whether the symbol's viewBox
