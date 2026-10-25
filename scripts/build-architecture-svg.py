@@ -561,9 +561,10 @@ def draw_gateway(add, box: Box, node: dict, lang: str) -> None:
     add(f'    <text x="42" y="21" font-size="13" font-weight="700" fill="{AMBER}">{esc(say(node["label"], lang))}</text>')
     add(f'    <text x="128" y="21" font-size="10.5" class="code-text" fill="#a8a29e">{esc(node["sub"])}</text>')
     add("""    <g transform="translate(12,40)">""")
+    # 5 行，行高 26、行距 32 —— 行与行之间留 6px 的呼吸
     for i, txt in enumerate(node["items"]):
-        add(f'      <rect x="0" y="{i * 28}" width="242" height="25" rx="6" fill="var(--bg-raise)" stroke="var(--border-card)" stroke-width="1" />')
-        add(f'      <text x="121" y="{i * 28 + 17}" font-size="11" text-anchor="middle" fill="var(--ink-primary)">{esc(say(txt, lang))}</text>')
+        add(f'      <rect x="0" y="{i * 32}" width="242" height="26" rx="6" fill="var(--bg-raise)" stroke="var(--border-card)" stroke-width="1" />')
+        add(f'      <text x="121" y="{i * 32 + 18}" font-size="11" text-anchor="middle" fill="var(--ink-primary)">{esc(say(txt, lang))}</text>')
     add("    </g>")
     add("  </g>")
 
@@ -579,20 +580,18 @@ def draw_colab(add, box: Box, node: dict, lang: str) -> None:
       <rect x="0" y="0" width="216" height="112" rx="10" fill="var(--bg-raise)" stroke="var(--border-card)" stroke-width="1" />
       <rect x="0" y="0" width="216" height="22" rx="10" fill="var(--bg-canvas)" opacity="0.6" />""")
     add(f'      <text x="10" y="15" font-size="10.5" class="code-text" fill="var(--ink-secondary)">{esc(node["path"])}</text>')
-    add('      <rect x="152" y="4" width="17" height="14" rx="3" fill="var(--plum)"/>')
-    add('      <use href="#logo-huggingface" x="154" y="5" width="12" height="12" />')
+    # 品牌标记放在标题行右侧，18px 才认得出；原来 12px 只是一团糊
+    for i, (mark, w, h) in enumerate((("huggingface", 18, 18), ("comfyui", 18, 18))):
+        bx = 152 + i * 24
+        add(f'      <rect x="{bx}" y="2" width="{w}" height="18" rx="4" fill="var(--plum)"/>')
+        add(f'      <use href="#logo-{mark}-light" x="{bx + 1}" y="2" width="{w - 2}" height="18" />')
     items = node["items"]
     # 两枚芯片等宽，中间留 8，两侧各留 10
     chips = [(10, 30, items[0], "var(--rose)"), (112, 30, items[1], "var(--blue)"),
              (10, 56, items[2], "var(--green)"), (112, 56, items[3], "var(--yellow)")]
     for cx, cy, txt, col in chips:
         add(f'      <rect x="{cx}" y="{cy}" width="94" height="20" rx="5" fill="{col}" opacity="0.9" />')
-        if cx == 10 and cy == 56:
-            # this chip carries the ComfyUI mark, so the label starts after it
-            add('      <use href="#logo-comfyui" x="3" y="57" width="20" height="20" />')
-            add(f'      <text x="21" y="{cy + 14}" font-size="9.5" fill="var(--ink-on-tape)">{esc(say(txt, lang))}</text>')
-        else:
-            add(f'      <text x="{cx + 47}" y="{cy + 14}" font-size="9.5" text-anchor="middle" fill="var(--ink-on-tape)">{esc(say(txt, lang))}</text>')
+        add(f'      <text x="{cx + 47}" y="{cy + 14}" font-size="9.5" text-anchor="middle" fill="var(--ink-on-tape)">{esc(say(txt, lang))}</text>')
     add("    </g>")
     add(f'    <text x="14" y="170" font-size="9.5" fill="var(--ink-muted)">{esc(say(node["note"], lang))}</text>')
     add(f'    <text x="14" y="186" font-size="9.5" class="code-text" fill="var(--ink-muted)">{esc(say(node["cost"], lang))}</text>')
@@ -785,6 +784,9 @@ def build(spec: dict, lang: str) -> tuple[str, float]:
     for name, path in LOGO_PATHS.items():
         fill, viewbox, _size = LOGO_STYLE[name]
         add(f'    <symbol id="logo-{name}" viewBox="{viewbox}"><path fill="{fill}" d="{path}" /></symbol>')
+        # 深色底上要用浅色版本，否则 logo 整个看不见
+        add(f'    <symbol id="logo-{name}-light" viewBox="{viewbox}">'
+            f'<path fill="#f5f5f4" d="{path}" /></symbol>')
     # the project's own mark, inlined so the SVG stays self-contained. Its ids are
     # renamed on the way in: the source reuses short ids that would collide here.
     mark = (ROOT / "assets" / "logo" / "logo-e-fusion-dark.svg").read_text(encoding="utf-8")
@@ -971,11 +973,15 @@ def build(spec: dict, lang: str) -> tuple[str, float]:
     for n, (pid, cls) in enumerate(flows):
         r = 3.0 if n % 3 else 2.6
         halo = r * 2.1
+        dur = MOVER_DUR[n % len(MOVER_DUR)]
+        offset = f"{-0.7 * (n % 4):.1f}s"
         add(f'    <g class="{cls}">')
-        add(f'      <animateMotion dur="{MOVER_DUR[n % len(MOVER_DUR)]}" '
-            f'begin="{-0.7 * (n % 4):.1f}s" repeatCount="indefinite" rotate="auto">')
+        add(f'      <animateMotion dur="{dur}" begin="{offset}" repeatCount="indefinite" rotate="auto">')
         add(f'        <mpath href="#{pid}" xlink:href="#{pid}" />')
         add("      </animateMotion>")
+        # 两端淡入淡出：光点不会压在箭头上，回到起点时也看不见瞬移
+        add(f'      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.10;0.80;1" '
+            f'dur="{dur}" begin="{offset}" repeatCount="indefinite" />')
         add(f'      <circle r="{halo:.1f}" fill="var(--amber)" opacity="0.2"/>')
         add(f'      <circle r="{r:.1f}" fill="var(--amber)"/>')
         add("    </g>")
