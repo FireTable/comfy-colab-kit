@@ -160,7 +160,7 @@
     <text x="16" y="22" font-size="13.5" font-weight="650" fill="var(--ink-primary)">Browser</text>
     <text x="16" y="40" font-size="11" class="code-text" fill="var(--ink-secondary)">SSE / WS</text>
   </g>
-  <g transform="translate(216.7,363.3)">
+  <g transform="translate(275.3,363.3)">
     <rect x="0" y="6" width="182" height="112" rx="12" fill="#000000" opacity="0.07" />
     <rect x="0" y="0" width="182" height="112" rx="12" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />
     <path d="M0 12 A12 12 0 0 1 12 0 H170 A12 12 0 0 1 182 12 V26 H0 Z" fill="url(#g-lime)" opacity="0.92" />
@@ -170,7 +170,7 @@
     <text x="14" y="70" font-size="11" fill="var(--ink-secondary)">Email OTP · OAuth · token</text>
     <text x="14" y="90" font-size="9.5" class="code-text" fill="var(--ink-secondary)">Cf-Access-Jwt-Assertion</text>
   </g>
-  <g transform="translate(425.3,315.3)">
+  <g transform="translate(542.7,315.3)">
     <rect x="0" y="10" width="266" height="208" rx="14" fill="#000000" opacity="0.08" />
     <rect x="0" y="0" width="266" height="208" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.6" />
     <path d="M0 14 A14 14 0 0 1 14 0 H252 A14 14 0 0 1 266 14 V30 H0 Z" fill="var(--plum)" />
@@ -190,7 +190,7 @@
       <text x="121" y="129" font-size="11" text-anchor="middle" fill="var(--ink-primary)">Reverse proxy /prompt · /history · /view · /ws</text>
     </g>
   </g>
-  <g transform="translate(718.0,315.3)">
+  <g transform="translate(894.0,315.3)">
     <rect x="0" y="10" width="244" height="208" rx="14" fill="#000000" opacity="0.08" />
     <rect x="0" y="0" width="244" height="208" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.6" />
     <path d="M0 14 A14 14 0 0 1 14 0 H230 A14 14 0 0 1 244 14 V30 H0 Z" fill="url(#g-amber)" />
@@ -216,12 +216,12 @@
     <text x="14" y="186" font-size="9.5" class="code-text" fill="var(--ink-muted)">Billing 1.71 CU/h</text>
   </g>
   <!-- request path edges -->
-  <path id="flow-req-0" d="M190.60,385.67C190.60,385.67 200.93,385.67 200.93,385.67 L216.67 385.67" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
-  <text x="195.8" y="377.7" font-size="10" class="code-text" fill="var(--ink-muted)" text-anchor="middle">Bearer</text>
-  <path id="flow-req-1" d="M190.60,452.33C190.60,452.33 200.93,452.33 200.93,452.33 L216.67 452.33" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
-  <path id="flow-req-2" d="M399.23,419.33C399.23,419.33 409.53,419.33 409.53,419.33 L425.33 419.33" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
-  <path id="flow-req-3" d="M691.73,419.33C691.73,419.33 702.39,419.33 702.39,419.33 L718.00 419.33" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
-  <text x="697.1" y="411.3" font-size="10" class="code-text" fill="var(--ink-muted)" text-anchor="middle">exec</text>
+  <path id="flow-req-0" d="M190.41,385.67C190.41,385.67 259.64,385.67 259.64,385.67 L275.33 385.67" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
+  <text x="230.2" y="377.7" font-size="10" class="code-text" fill="var(--ink-muted)" text-anchor="middle">Bearer</text>
+  <path id="flow-req-1" d="M190.41,452.33C190.41,452.33 259.64,452.33 259.64,452.33 L275.33 452.33" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
+  <path id="flow-req-2" d="M457.88,419.33C457.88,419.33 527.16,419.33 527.16,419.33 L542.67 419.33" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
+  <path id="flow-req-3" d="M809.20,419.33C809.20,419.33 878.03,419.33 878.03,419.33 L894.00 419.33" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
+  <text x="843.6" y="411.3" font-size="10" class="code-text" fill="var(--ink-muted)" text-anchor="middle">exec</text>
   <g transform="translate(40,591)">
     <rect x="0" y="0" width="129" height="24" rx="4" fill="var(--green)" opacity="0.9" />
     <text x="13" y="17" font-size="12.5" font-weight="700" fill="var(--ink-on-tape)">② State machine</text>
@@ -378,8 +378,8 @@
     <text x="233.5" y="0" fill="var(--ink-muted)">stopping</text>
     <circle cx="302.7" cy="-4" r="4" fill="var(--violet)" />
     <text x="313.7" y="0" fill="var(--ink-muted)">switching</text>
-    <path d="M403.7 -8 H431.7" stroke="var(--ink-muted)" stroke-width="1.5" stroke-dasharray="4 4" fill="none" />
-    <text x="439.7" y="0" fill="var(--ink-muted)">failure path</text>
+    <path d="M403.7 -4 H431.7" stroke="var(--ink-muted)" stroke-width="1.5" stroke-dasharray="4 4" fill="none" />
+    <text x="439.7" y="0" fill="var(--ink-muted)">dashed = failure path</text>
     <text x="1100" y="0" class="code-text" fill="var(--ink-muted)" text-anchor="end">comfy-colab-kit</text>
   </g>
   <!-- flow movers: bound to the path they travel, never off the line -->
