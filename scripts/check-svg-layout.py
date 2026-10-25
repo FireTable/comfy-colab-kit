@@ -54,6 +54,15 @@ ICON_TOLERANCE = 2.0
 # when it was meant.
 MIN_PADDING = 6.0
 
+# A brand mark smaller than this is a smudge rather than a logo.
+MIN_ICON_SIZE = 14.0
+
+# How much of its box a brand mark has to fill to read as a mark.
+MIN_ICON_FILL = 0.3
+
+# Two items in the same group need at least this much room between them.
+MIN_ITEM_GAP = 4.0
+
 MEASURE_JS = r"""
 (() => {
   const svg = document.querySelector('svg');
@@ -98,8 +107,34 @@ MEASURE_JS = r"""
                                       w: +b.w.toFixed(2), h: +b.h.toFixed(2)});
   });
 
-  // icons: where the glyph actually landed, and whether the symbol's viewBox
-  // is large enough to hold the path it draws
+  // icons: where the glyph actually landed, what colour it is, and what is
+  // behind it — a logo painted in the colour of its background is invisible
+  const rootStyle = getComputedStyle(document.documentElement);
+  const resolve = (spec) => {
+    if (!spec) return null;
+    const m = spec.match(/var\((--[\w-]+)\)/);
+    return m ? rootStyle.getPropertyValue(m[1]).trim() : spec.trim();
+  };
+  const rgbOf = (spec) => {
+    if (!spec) return null;
+    let m = spec.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/);
+    if (m) return [+m[1], +m[2], +m[3]];
+    m = spec.match(/^#([0-9a-f]{6})$/i);
+    if (m) return [parseInt(m[1].slice(0, 2), 16), parseInt(m[1].slice(2, 4), 16), parseInt(m[1].slice(4, 6), 16)];
+    m = spec.match(/^#([0-9a-f]{3})$/i);
+    if (m) return [parseInt(m[1][0] + m[1][0], 16), parseInt(m[1][1] + m[1][1], 16), parseInt(m[1][2] + m[1][2], 16)];
+    return null;
+  };
+  const painted = [];
+  document.querySelectorAll('rect, path').forEach(el => {
+    if (el.closest('symbol, defs, marker')) return;
+    if (parseFloat(el.getAttribute('opacity') || '1') < 0.5) return;
+    if (el.tagName.toLowerCase() === 'path' && el.getAttribute('fill') === 'none') return;
+    const b = u(el.getBoundingClientRect());
+    if (b.w < 2 || b.h < 2) return;
+    painted.push({el, b});
+  });
+
   const icons = [];
   document.querySelectorAll('use').forEach(el => {
     const b = u(el.getBoundingClientRect());
@@ -108,16 +143,60 @@ MEASURE_JS = r"""
       const t = el.getBBox();
       content = {x: t.x, y: t.y, w: t.width, h: t.height};
     } catch (e) { /* not rendered */ }
-    icons.push({href: el.getAttribute('href') || el.getAttribute('xlink:href'),
+    const href = el.getAttribute('href') || el.getAttribute('xlink:href') || '';
+    const sym = href.startsWith('#') ? document.querySelector(href) : null;
+    const path = sym && sym.querySelector('path');
+    const fill = path ? resolve(path.getAttribute('fill')) : null;
+    // the shape painted right behind the icon
+    const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+    let behind = null;
+    for (const p of painted) {
+      if (p.el.contains(el) || p.el === el) continue;
+      const pb = p.b;
+      if (cx >= pb.x && cx <= pb.x + pb.w && cy >= pb.y && cy <= pb.y + pb.h) behind = p;
+    }
+    const bg = behind ? getComputedStyle(behind.el).fill : null;
+    icons.push({href,
                 x: +b.x.toFixed(2), y: +b.y.toFixed(2), w: +b.w.toFixed(2), h: +b.h.toFixed(2),
-                cy: +(b.y + b.h / 2).toFixed(2), content});
+                cy: +(b.y + b.h / 2).toFixed(2), content,
+                fillRgb: rgbOf(fill),
+                bgRgb: rgbOf(bg && bg.startsWith('rgb') ? bg : null)});
+  });
+
+  // siblings: two boxes in the same group that sit side by side
+  const parentIds = new Map();
+  const siblings = [];
+  document.querySelectorAll('rect, path').forEach(el => {
+    if (el.closest('symbol, defs, marker')) return;
+    if (parseFloat(el.getAttribute('opacity') || '1') < 0.5) return;
+    if (el.tagName.toLowerCase() === 'path' && el.getAttribute('fill') === 'none') return;
+    const b = el.getBoundingClientRect();
+    if (b.width < 12 || b.height < 8) return;
+    const parent = el.parentNode;
+    if (!parentIds.has(parent)) parentIds.set(parent, parentIds.size);
+    // a list of items carries labels; a drawing's parts do not
+    const labelled = !!parent.querySelector('text');
+    siblings.push({group: parentIds.get(parent), labelled,
+                   x: +b.left.toFixed(2), y: +b.top.toFixed(2),
+                   w: +b.width.toFixed(2), h: +b.height.toFixed(2)});
   });
   const symbols = [];
   document.querySelectorAll('symbol').forEach(sym => {
-    const p = sym.querySelector('path');
-    if (!p) return;
+    // the union of every path the symbol draws
     let bb = null;
-    try { const t = p.getBBox(); bb = {x: t.x, y: t.y, w: t.width, h: t.height}; } catch (e) {}
+    sym.querySelectorAll('path, rect').forEach(p => {
+      // clip paths and masks are definitions, not artwork
+      if (p.closest('defs, clipPath, mask')) return;
+      let t;
+      try { t = p.getBBox(); } catch (e) { return; }
+      if (!bb) bb = {x: t.x, y: t.y, w: t.width, h: t.height};
+      else {
+        const x = Math.min(bb.x, t.x), y = Math.min(bb.y, t.y);
+        const r = Math.max(bb.x + bb.w, t.x + t.width), bo = Math.max(bb.y + bb.h, t.y + t.height);
+        bb = {x, y, w: r - x, h: bo - y};
+      }
+    });
+    if (!bb) return;
     const vb = (sym.getAttribute('viewBox') || '').split(/\s+/).map(Number);
     symbols.push({id: sym.id, vb, bb});
   });
@@ -145,7 +224,7 @@ MEASURE_JS = r"""
   const flowPaths = [];
   document.querySelectorAll('path[id]').forEach(p => flowPaths.push(p.id));
 
-  return {vw: vb.width, vh: vb.height, texts, rects, frames, icons, symbols, movers, flowPaths, arrows};
+  return {vw: vb.width, vh: vb.height, texts, rects, frames, icons, symbols, movers, flowPaths, arrows, siblings};
 })()
 """
 
@@ -190,6 +269,12 @@ def defects(data: dict) -> list[str]:
                 or bb["x"] + bb["w"] > vb[0] + vb[2] + 0.5
                 or bb["y"] + bb["h"] > vb[1] + vb[3] + 0.5):
             out.append(f"icon-clip    '{sym['id']}' is cut off by its own viewBox")
+            continue
+        # a viewBox with empty space around the artwork makes the logo render
+        # smaller than the box that was asked for
+        if (bb["w"] < vb[2] * 0.85 or bb["h"] < vb[3] * 0.85):
+            out.append(f"icon-padded  '{sym['id']}' draws only part of its viewBox, "
+                       f"so it renders smaller than it looks")
 
     # an icon must sit on the same optical line as the label beside it
     for ic in data.get("icons", []):
@@ -263,6 +348,64 @@ def defects(data: dict) -> list[str]:
                  + (box["y"] + box["h"] / 2 - arrow["y"]) * arrow["dy"])
         if ahead < 0:
             out.append("arrow-way    an arrow ends on a box but points away from it")
+
+    # a logo painted in the colour of its background cannot be seen
+    for ic in data.get("icons", []):
+        if not ic.get("fillRgb") or not ic.get("bgRgb"):
+            continue
+        f, b = ic["fillRgb"], ic["bgRgb"]
+        distance = sum((f[i] - b[i]) ** 2 for i in range(3)) ** 0.5
+        if distance < 40:
+            out.append(f"icon-faint   '{ic['href']}' is painted in almost the same "
+                       f"colour as the shape behind it")
+
+    # a logo too small to recognise is decoration, not a brand mark. A flat
+    # mark (a cloud, a wordmark) is fine at a small height, so measure the
+    # larger side and how much of the box the artwork actually fills.
+    for ic in data.get("icons", []):
+        c = ic.get("content")
+        if not c or not c["w"] or not c["h"]:
+            continue
+        ink_w, ink_h = c["w"], c["h"]
+        if max(ink_w, ink_h) < MIN_ICON_SIZE:
+            out.append(f"icon-tiny    '{ic['href']}' draws {ink_w:.0f}×{ink_h:.0f}px, "
+                       f"too small to recognise")
+        elif ink_w * ink_h < ic["w"] * ic["h"] * MIN_ICON_FILL:
+            out.append(f"icon-tiny    '{ic['href']}' fills only "
+                       f"{ink_w * ink_h / (ic['w'] * ic['h']) * 100:.0f}% of its box, "
+                       f"so it reads as a smudge")
+
+    # an icon that runs into the label beside it reads as a smudge
+    for ic in data.get("icons", []):
+        if ic["w"] == 0:
+            continue
+        near = [t for t in data["texts"]
+                if t["x"] < ic["x"] + ic["w"] and t["x"] + t["w"] > ic["x"]
+                and abs(t["cy"] - ic["cy"]) < max(ic["h"], t["h"])]
+        if near:
+            out.append(f"icon-crowd   '{ic['href']}' overlaps '{near[0]['s']}'")
+
+    # two items in the same group need room between them
+    groups: dict = {}
+    for b in data.get("siblings", []):
+        groups.setdefault(b["group"], []).append(b)
+    for boxes in groups.values():
+        if len(boxes) < 3:
+            continue          # two shapes side by side are a composition, not a list
+        if not any(b.get("labelled") for b in boxes):
+            continue          # the parts of one drawing, not a list of items
+        for i, a in enumerate(boxes):
+            for c in boxes[i + 1:]:
+                # they overlap only if they overlap on both axes
+                overlap_x = a["x"] < c["x"] + c["w"] and c["x"] < a["x"] + a["w"]
+                overlap_y = a["y"] < c["y"] + c["h"] and c["y"] < a["y"] + a["h"]
+                if overlap_x and overlap_y:
+                    continue          # a band on a card, not two items
+                dx = 0 if overlap_x else max(a["x"] - (c["x"] + c["w"]), c["x"] - (a["x"] + a["w"]))
+                dy = 0 if overlap_y else max(a["y"] - (c["y"] + c["h"]), c["y"] - (a["y"] + a["h"]))
+                gap = max(dx, dy)
+                if gap < MIN_ITEM_GAP:
+                    out.append(f"item-tight   two items in the same group are {gap:.0f}px apart")
 
     # a moving light that is not bound to a real path drifts into empty space
     for mv in data.get("movers", []):
