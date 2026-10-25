@@ -34,6 +34,49 @@ def test_override_on_missing_node_fails_loudly():
         setup.prepare_workflow(wf, json.dumps(GRAPH).encode(), "app")
 
 
+def test_prepare_workflow_preserves_node_cleanliness():
+    wf = {
+        "id": "w",
+        "format": "json",
+        "app_inputs": [
+            [3, "text"],
+            [4, "text", "自定义负向词 (Custom Negative)"]
+        ],
+        "app_outputs": [9]
+    }
+    graph = {
+        "nodes": [
+            {"id": 3, "type": "CLIPTextEncode", "title": "Prompt", "widgets_values": ["prompt"], "inputs": []},
+            {"id": 4, "type": "CLIPTextEncode", "title": "Negative", "widgets_values": ["neg"], "inputs": []},
+            {"id": 9, "type": "SaveImage", "widgets_values": ["x"]}
+        ],
+        "extra": {}
+    }
+    g = setup.prepare_workflow(wf, json.dumps(graph).encode(), "app")
+    node3 = g["nodes"][0]
+    node4 = g["nodes"][1]
+
+    # Invariant: node["widgets"] MUST NOT be created in serialization JSON
+    assert "widgets" not in node3, "Must never serialize 'widgets' key on nodes (clobbers live LiteGraph widgets)"
+    assert "widgets" not in node4, "Must never serialize 'widgets' key on nodes"
+
+    # Canonical backing input slots in node["inputs"] for widget labels
+    assert len(node3.get("inputs", [])) == 1
+    slot3 = node3["inputs"][0]
+    assert slot3.get("widget", {}).get("name") == "text"
+    assert slot3.get("label") == "正向提示词 (Positive Prompt)"
+    assert slot3.get("link") is None
+
+    assert len(node4.get("inputs", [])) == 1
+    slot4 = node4["inputs"][0]
+    assert slot4.get("widget", {}).get("name") == "text"
+    assert slot4.get("label") == "自定义负向词 (Custom Negative)"
+    assert slot4.get("link") is None
+
+    # extra.linearData.inputs must stay clean 2-tuples [nid, wname]
+    assert g["extra"]["linearData"]["inputs"] == [[3, "text"], [4, "text"]]
+
+
 def _png_with(text_chunks):
     def chunk(t, d):
         return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d))

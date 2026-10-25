@@ -278,10 +278,13 @@
                     },
                     {
                       "type": "string"
+                    },
+                    {
+                      "type": "string"
                     }
                   ],
                   "minItems": 2,
-                  "maxItems": 2
+                  "maxItems": 3
                 }
               },
               "outputs": {

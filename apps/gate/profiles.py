@@ -59,7 +59,7 @@ class Workflow:
     format: str  # json | png
     models: tuple[str, ...]
     custom_nodes: tuple[str, ...] = ()
-    app_inputs: tuple[tuple[Any, str], ...] = ()
+    app_inputs: tuple[tuple[Any, ...], ...] = ()
     app_outputs: tuple[Any, ...] = ()
     overrides: tuple[dict, ...] = ()
     optional: bool = False
@@ -216,7 +216,7 @@ def parse_profile(data: dict, path: Path) -> Profile:
             if nid not in nodes:
                 raise ProfileError(f"{ctx}: unknown custom node '{nid}'")
         app = w.get("app") or {}
-        inputs = tuple((x[0], str(x[1])) for x in app.get("inputs") or [])
+        inputs = tuple(tuple(x) for x in app.get("inputs") or [])
         outputs = tuple(app.get("outputs") or [])
         # outputs may be empty: some official templates keep SaveImage inside a subgraph,
         # in which case App mode shows the subgraph's own outputs.

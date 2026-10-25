@@ -24,6 +24,14 @@ LOG = "/content/kit_logs"
 PORT = 8188
 T0 = time.time()
 TIMES = {}
+
+
+def ts(label):
+    """Absolute timestamp marker (KIT_TS <epoch> <label>). The gate forwards it as a plain log line."""
+    print(f"KIT_TS {time.time():.1f} {label}", flush=True)
+
+
+ts("import")
 HB_FILE = "/content/kit_heartbeat"
 
 
@@ -88,17 +96,239 @@ HF_RE = re.compile(r"^https://huggingface\.co/([^/]+/[^/]+)/resolve/([^/]+)/(.+)
 # ─────────────────────────── downloads ───────────────────────────
 # HF files download in a child process each, so a stalled file can be killed/restarted and background (non-core)
 # files can be paused (SIGSTOP) while ComfyUI is executing a prompt.
-HF_DL_SCRIPT = r"""
-import os, sys
-os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
-os.environ["HF_HUB_DISABLE_XET"] = "1"
-from huggingface_hub import hf_hub_download
-print(hf_hub_download(sys.argv[1], sys.argv[2], revision=sys.argv[3], local_dir=sys.argv[4],
-                      token=os.environ.get("HF_TOKEN") or None), flush=True)
+#
+# The downloader is a hand-rolled multi-connection Range fetcher (stdlib only). Rationale, measured on the
+# Colab L4 VM: huggingface_hub's classic path tops out around 130-145 MB/s per file, a plain GET reaches
+# ~226 MB/s, and 8 parallel Range connections on the same object reach ~700 MB/s (the VM egress ceiling).
+# `HF_HUB_ENABLE_HF_TRANSFER` is ignored by huggingface_hub >= 0.32 and Xet stays disabled on purpose
+# (Xet-backed repos report 403/429 stalls on shared Colab IPs), so the Range fan-out is the fast path.
+# Chunks land in <tmp>/<name>.parts/ so a killed file resumes where it stopped instead of restarting.
+DL_SCRIPT = r"""
+import os, sys, time, math, shutil, hashlib, threading, queue
+import urllib.request, urllib.error, urllib.parse
+
+REPO, FNAME, REV, TMP = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+EXPECT_SHA = (sys.argv[5] if len(sys.argv) > 5 else "")
+CONNS = max(1, int(os.environ.get("KIT_DL_CONNS", "8")))
+CHUNK = max(16, int(os.environ.get("KIT_DL_CHUNK_MB", "256"))) * 1024 * 1024
+TOKEN = os.environ.get("HF_TOKEN") or ""
+URL = "https://huggingface.co/{}/resolve/{}/{}".format(REPO, REV or "main", FNAME)
+
+
+class _SafeRedirect(urllib.request.HTTPRedirectHandler):
+    # Follow the HF -> CDN redirect, but never carry the HF token to the CDN host.
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        new = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if new is not None and urllib.parse.urlparse(newurl).netloc != urllib.parse.urlparse(req.full_url).netloc:
+            new.headers = {k: v for k, v in new.headers.items() if k.lower() != "authorization"}
+        return new
+
+
+def total_size(url):
+    # One probe request to learn the object size. The signed CDN URL it redirects to is deliberately
+    # NOT reused: sharing one signed URL across parallel ranges is what throttles the CDN to ~65 MB/s.
+    opener = urllib.request.build_opener(_SafeRedirect)
+    hdrs = {"User-Agent": "comfy-colab-kit", "Range": "bytes=0-0", "Accept-Encoding": "identity"}
+    if TOKEN:
+        hdrs["Authorization"] = "Bearer " + TOKEN
+    with opener.open(urllib.request.Request(url, headers=hdrs), timeout=60) as r:
+        cr = r.headers.get("Content-Range")
+        etag = (r.headers.get("ETag") or r.headers.get("x-linked-etag") or "").strip().strip('"')
+        if r.status != 206 or not cr:
+            raise RuntimeError("server ignored Range (status {})".format(r.status))
+        return int(cr.rsplit("/", 1)[1]), etag
+
+
+def sha256_of(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for blk in iter(lambda: f.read(8 << 20), b""):
+            h.update(blk)
+    return h.hexdigest()
+
+
+def fetch_range(url, total, out_path):
+    # One disk write pass: chunks are written straight into the final file at their offsets.
+    # A sidecar bitmap keeps resume state, so a killed download continues instead of restarting.
+    nchunks = max(1, int(math.ceil(total / float(CHUNK))))
+    bounds = [(i * CHUNK, min(total, (i + 1) * CHUNK) - 1) for i in range(nchunks)]
+    bitmap = out_path + ".chunks"
+    done = set()
+    if os.path.exists(bitmap):
+        with open(bitmap) as f:
+            for line in f:
+                line = line.strip()
+                if line.isdigit():
+                    done.add(int(line))
+    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+    fd = os.open(out_path, os.O_RDWR | os.O_CREAT, 0o644)
+    os.ftruncate(fd, total)
+    state = {"done": sum(bounds[i][1] - bounds[i][0] + 1 for i in done), "inflight": 0}
+    lock = threading.Lock()
+    q = queue.Queue()
+    for i, b in enumerate(bounds):
+        if i not in done:
+            q.put((i, b))
+    errors = []
+
+    def worker():
+        while True:
+            try:
+                i, (start_b, end_b) = q.get_nowait()
+            except queue.Empty:
+                return
+            need = end_b - start_b + 1
+            have = 0
+            attempt = 0
+            while have < need and attempt < 6:
+                attempt += 1
+                try:
+                    s = start_b + have
+                    hdrs = {"User-Agent": "comfy-colab-kit", "Accept-Encoding": "identity",
+                            "Range": "bytes={}-{}".format(s, end_b)}
+                    if TOKEN:
+                        hdrs["Authorization"] = "Bearer " + TOKEN
+                    opener = urllib.request.build_opener(_SafeRedirect)
+                    with opener.open(urllib.request.Request(url, headers=hdrs), timeout=120) as r:
+                        if r.status != 206:
+                            raise RuntimeError("no range support (status {})".format(r.status))
+                        buf = b""
+                        while True:
+                            b = r.read(1 << 20)
+                            if not b:
+                                break
+                            buf += b
+                            if len(buf) >= (8 << 20):
+                                os.pwrite(fd, buf, s + have)
+                                have += len(buf)
+                                with lock:
+                                    state["inflight"] += len(buf)
+                                buf = b""
+                        if buf:
+                            os.pwrite(fd, buf, s + have)
+                            have += len(buf)
+                            with lock:
+                                state["inflight"] += len(buf)
+                except Exception as e:
+                    if attempt >= 6:
+                        errors.append("chunk {}: {!r}".format(i, e))
+                        break
+                    time.sleep(min(20, 2 * attempt))
+            if have >= need:
+                with lock:
+                    state["inflight"] -= need
+                    state["done"] += need
+                with open(bitmap, "a") as f:
+                    f.write("{}\n".format(i))
+
+    threads = [threading.Thread(target=worker, daemon=True) for _ in range(min(CONNS, max(1, nchunks)))]
+    for t in threads:
+        t.start()
+
+    def report():
+        while any(t.is_alive() for t in threads):
+            time.sleep(1)
+            with lock:
+                n = state["done"] + state["inflight"]
+            print("DL_PROGRESS {} {}".format(n, total), flush=True)
+    mon = threading.Thread(target=report, daemon=True)
+    mon.start()
+    for t in threads:
+        t.join()
+    mon.join(2)
+    os.close(fd)
+    if errors:
+        raise RuntimeError("; ".join(errors[:3]))
+    if os.path.getsize(out_path) != total:
+        raise RuntimeError("size mismatch")
+    print("DL_PROGRESS {} {}".format(total, total), flush=True)
+
+
+class Fatal(Exception):
+    pass
+
+
+out = None
+try:
+    total, etag = total_size(URL)
+    out = os.path.join(TMP, os.path.basename(FNAME))
+    fetch_range(URL, total, out)
+    if EXPECT_SHA and os.environ.get("KIT_VERIFY_SHA") == "1":
+        if sha256_of(out).lower() != EXPECT_SHA.lower():
+            os.remove(out)
+            raise Fatal("sha256 mismatch")  # corrupt transfer: retrying the same way will not help
+except Fatal:
+    raise
+except Exception as e:
+    print("  range download failed ({!r}); falling back to huggingface_hub".format(e), flush=True)
+    os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+    os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
+    try:
+        from huggingface_hub import hf_hub_download
+    except ImportError:
+        subprocess.run([sys.executable, "-m", "pip", "install", "-q", "huggingface_hub"], check=False)
+        from huggingface_hub import hf_hub_download
+    out = hf_hub_download(REPO, FNAME, revision=REV or "main", local_dir=TMP, token=TOKEN or None)
+print(out, flush=True)
 """
+HF_DL_SCRIPT = DL_SCRIPT
 HF_TMP = "/content/hf"
+STORE_ROOT = None   # set to a RAM tmpfs root when the RAM model store is active
 STALL_S = int(os.environ.get("KIT_STALL_S", "30"))
 RETRYABLE = re.compile(r"429|Too Many|\b5\d\d\b|timed out|Timeout|Connection|reset by peer")
+
+
+def mem_available():
+    """Bytes of RAM the kernel can hand out right now."""
+    try:
+        with open("/proc/meminfo") as f:
+            for line in f:
+                if line.startswith("MemAvailable:"):
+                    return int(line.split()[1]) * 1024
+    except OSError:
+        pass
+    return 0
+
+
+def setup_model_store(plan):
+    """Optionally keep the model files in a RAM-backed tmpfs instead of on the VM disk.
+
+    Measured on the Colab L4: sequential disk writes top out at ~292 MB/s while /dev/shm does
+    ~2.4 GB/s, so a RAM store turns the download stage from disk-bound into network-bound
+    (the 24.9 GB default profile lands ~45 s instead of ~68 s) and lets ComfyUI boot faster.
+    It costs ~25 GB of RAM, so it is opt-in and falls back to disk whenever RAM is too tight.
+    """
+    mode = os.environ.get("KIT_MODEL_STORE", PLAN.get("model_store", "disk"))
+    if mode != "ram":
+        return None
+    total = sum(int((m.get("size_gb") or 0) * 1e9) for m in plan["models"])
+    avail = mem_available()
+    need = int(total * 1.15) + (4 * 1000 ** 3)  # models + slack for torch/offload
+    if avail < need:
+        print(f"  model store: RAM {avail / 1e9:.0f} GB free < {need / 1e9:.0f} GB needed -> disk", flush=True)
+        return None
+    root = "/mnt/ram"
+    os.makedirs(root, exist_ok=True)
+    size_mb = int((total * 1.1 + 2 * 1000 ** 3) // (1024 * 1024))
+    if root not in open("/proc/mounts").read():
+        rc = sh(f"mount -t tmpfs -o size={size_mb}M,mode=0755 tmpfs {root}", check=False, quiet=True)
+        if rc:
+            print("  model store: tmpfs mount failed -> disk", flush=True)
+            return None
+    os.makedirs(f"{root}/models", exist_ok=True)
+    print(f"  model store: RAM tmpfs at {root} ({total / 1e9:.1f} GB models, {size_mb / 1024:.0f} GB tmpfs)", flush=True)
+    return root
+
+
+def point_models_to(root):
+    """Stage downloads on the RAM filesystem. Model files are placed in the RAM store and exposed to
+    ComfyUI as symlinks, so an on-demand workflow that no longer fits in RAM simply lands on disk
+    instead of failing with ENOSPC."""
+    global HF_TMP, STORE_ROOT
+    os.makedirs(f"{root}/models", exist_ok=True)
+    HF_TMP = f"{root}/hf"  # same filesystem -> the final move is a rename, not a copy
+    STORE_ROOT = root
+    os.makedirs(HF_TMP, exist_ok=True)
 
 
 def du(path):
@@ -134,8 +364,10 @@ class Downloads:
         self.restarts = 0
         self.lock = threading.Lock()
         self.live = {}   # id -> tmp dir of an in-flight HF download
+        self.child_bytes = {}  # id -> bytes the downloader child reports (accurate with sparse writes)
         self.procs = {}  # id -> (Popen, pausable)
         self.paused = False
+        self.pending_links = []  # (target, dst) pairs deferred until COMFY directory exists
         self.busy, self.stall_s = busy, stall_s
         self.pool = ThreadPoolExecutor(max_workers=max(1, concurrency))
         self.bg_pool = ThreadPoolExecutor(max_workers=max(1, concurrency))
@@ -177,10 +409,18 @@ class Downloads:
     def _link_after(self, first_id, m):
         self.futures[first_id].result()
         src = next(x for x in self.models if x["id"] == first_id)
+        src_target = self._ram_target(src) or f"{COMFY}/models/{src['dest']}"
         dst = f"{COMFY}/models/{m['dest']}"
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        if not os.path.exists(dst):
-            os.link(f"{COMFY}/models/{src['dest']}", dst)
+        if not os.path.isdir(COMFY):
+            with self.lock:
+                self.pending_links.append((src_target, dst))
+        else:
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            if not (os.path.islink(dst) or os.path.exists(dst)):
+                if os.path.exists(src_target):
+                    os.symlink(src_target, dst)
+                elif os.path.exists(f"{COMFY}/models/{src['dest']}"):
+                    os.link(f"{COMFY}/models/{src['dest']}", dst)
         self._finish(m)
 
     def _pauser(self):
@@ -203,7 +443,7 @@ class Downloads:
         pausable = not m.get("core")
         attempt = 0
         while True:
-            p = subprocess.Popen([sys.executable, "-c", HF_DL_SCRIPT, repo, fname, rev, tmp],
+            p = subprocess.Popen([sys.executable, "-c", HF_DL_SCRIPT, repo, fname, rev, tmp, m.get("sha256") or ""],
                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace")
             with self.lock:
                 self.live[m["id"]] = tmp
@@ -211,7 +451,19 @@ class Downloads:
             if pausable and self.paused:
                 p.send_signal(signal.SIGSTOP)
             out = []
-            reader = threading.Thread(target=lambda: out.extend(p.stdout), daemon=True)
+
+            def _pump():
+                for line in p.stdout:
+                    if line.startswith("DL_PROGRESS "):
+                        try:
+                            n = int(line.split()[1])
+                            with self.lock:
+                                self.child_bytes[m["id"]] = n
+                        except (IndexError, ValueError):
+                            pass
+                    else:
+                        out.append(line)
+            reader = threading.Thread(target=_pump, daemon=True)
             reader.start()
             last, last_t, stalled = -1, time.time(), False
             while p.poll() is None:
@@ -219,7 +471,9 @@ class Downloads:
                 if pausable and self.paused:
                     last_t = time.time()  # paused time is not a stall
                     continue
-                size = du(tmp)
+                with self.lock:
+                    reported = self.child_bytes.get(m["id"])
+                size = reported if reported is not None else du(tmp)
                 target = int(m.get("size_gb", 0) * 1e9)
                 is_verifying = target > 0 and size >= int(target * 0.98)
                 max_stall = (self.stall_s * 3) if is_verifying else self.stall_s
@@ -252,37 +506,80 @@ class Downloads:
             self.live[m["id"]] = dst
         shutil.rmtree(tmp, ignore_errors=True)
 
+    def _ram_target(self, m):
+        """Where this file should really live: the RAM store when it fits, the disk otherwise."""
+        if not STORE_ROOT:
+            return None
+        try:
+            free = shutil.disk_usage(STORE_ROOT).free
+        except OSError:
+            return None
+        need = int((m.get("size_gb") or 0) * 1e9 * 1.15) + 1 * 1000 ** 3
+        if free > need:
+            return f"{STORE_ROOT}/models/{m['dest']}"
+        return None
+
+    def _link(self, target, dst):
+        if not os.path.isdir(COMFY):
+            with self.lock:
+                self.pending_links.append((target, dst))
+            return
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        if os.path.islink(dst) or os.path.exists(dst):
+            os.remove(dst) if os.path.islink(dst) else os.remove(dst)
+        os.symlink(target, dst)
+
+    def sync_links(self):
+        """Link any downloads that finished before ComfyUI was cloned."""
+        with self.lock:
+            links = list(self.pending_links)
+            self.pending_links.clear()
+        for target, dst in links:
+            try:
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                if os.path.islink(dst) or os.path.exists(dst):
+                    os.remove(dst) if os.path.islink(dst) else os.remove(dst)
+                os.symlink(target, dst)
+            except Exception:
+                pass
+
     def _one(self, m):
         dst = f"{COMFY}/models/{m['dest']}"
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        if os.path.exists(dst):
+        target = self._ram_target(m) or dst
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        if os.path.exists(target):
+            if target != dst:
+                self._link(target, dst)
             return self._finish(m)
         hm = HF_RE.match(m["url"])
         try:
             if hm:
-                self._hf(m, hm.group(1), hm.group(2), hm.group(3), dst)
+                self._hf(m, hm.group(1), hm.group(2), hm.group(3), target)
             else:
-                rc = sh(f"aria2c -q -x16 -s16 -k1M -d '{os.path.dirname(dst)}' -o '{os.path.basename(dst)}' '{m['url']}'",
+                rc = sh(f"aria2c -q -x16 -s16 -k1M -d '{os.path.dirname(target)}' -o '{os.path.basename(target)}' '{m['url']}'",
                         check=False, quiet=True) if shutil.which("aria2c") else 1
                 if rc:
-                    with urllib.request.urlopen(m["url"], timeout=60) as r, open(dst + ".part", "wb") as f:
+                    with urllib.request.urlopen(m["url"], timeout=60) as r, open(target + ".part", "wb") as f:
                         shutil.copyfileobj(r, f, 8 << 20)
-                    os.replace(dst + ".part", dst)
+                    os.replace(target + ".part", target)
                 if m.get("sha256"):
-                    out = subprocess.run(["sha256sum", dst], capture_output=True, text=True).stdout.split()[0]
+                    out = subprocess.run(["sha256sum", target], capture_output=True, text=True).stdout.split()[0]
                     if out.lower() != m["sha256"].lower():
-                        os.remove(dst)
+                        os.remove(target)
                         raise RuntimeError(f"sha256 mismatch for {m['dest']}")
         except Exception as e:
             with self.lock:
                 self.errors.append(f"{m['id']}: {e}")
             print(f"download failed {m['id']}: {e}", flush=True)
             raise
+        if target != dst:
+            self._link(target, dst)
         self._finish(m)
 
     def _finish(self, m):
         with self.lock:
             self.live.pop(m["id"], None)
+            self.child_bytes.pop(m["id"], None)
             self.files_done += 1
             self.done_bytes += self.size[m["id"]]
             if m.get("core"):
@@ -293,7 +590,11 @@ class Downloads:
         with self.lock:
             live = dict(self.live)
             done, core_done = self.done_bytes, self.core_done_bytes
-        inflight = {i: min(du(t), self.size[i] or 1 << 62) for i, t in live.items()}
+        inflight = {}
+        for i, t in live.items():
+            reported = self.child_bytes.get(i)
+            n = reported if reported is not None else du(t)
+            inflight[i] = min(n, self.size[i] or 1 << 62)
         cur_b = done + sum(inflight.values())
         cur_cb = core_done + sum(v for i, v in inflight.items() if i in self.core_ids)
         with self.lock:
@@ -375,88 +676,119 @@ def remap_models(obj, aliases):
     return n
 
 
+def _slot_type_for(wname):
+    if wname in ("text", "value", "prompt"):
+        return "STRING"
+    if wname in ("seed", "noise_seed", "width", "height", "batch_size"):
+        return "INT"
+    if wname == "image":
+        return "IMAGE"
+    if wname == "switch":
+        return "BOOLEAN"
+    if wname == "denoise":
+        return "FLOAT"
+    if wname == "choice":
+        return "COMBO"
+    return "*"
+
+
 def decorate_app_nodes(g, wf):
     """Ensure nodes and widgets exposed in App Mode have clean, descriptive titles and labels."""
     nodes = {n["id"]: n for n in g.get("nodes", [])}
     for item in wf.get("app_inputs", []):
         nid, wname = item[0], item[1]
+        custom_label = item[2] if len(item) > 2 and item[2] else None
         node = nodes.get(nid)
         if not node:
             continue
         ntype = str(node.get("type", ""))
         curr_title = str(node.get("title") or "")
+        curr_lower = curr_title.lower()
 
-        label = None
+        label = custom_label
         new_title = None
 
-        if wname == "image":
-            label = "参考底图 (Input Image)"
-            new_title = "参考底图 (Input Image)"
-        elif wname == "denoise":
-            label = "重绘幅度 (Denoise Strength 0.0-1.0)"
-            new_title = "重绘幅度 (Denoise)"
-        elif wname == "choice":
-            label = "画质与速度预设 (Preset)"
-            new_title = "画质与速度预设 (Preset)"
-        elif wname in ("seed", "noise_seed"):
-            label = "随机种子 (Seed)"
-            new_title = "随机种子 (Seed)"
-        elif wname == "width":
-            label = "图像宽度 (Width)"
-            new_title = "图像尺寸 (Image Size)"
-        elif wname == "height":
-            label = "图像高度 (Height)"
-            new_title = "图像尺寸 (Image Size)"
-        elif wname == "batch_size":
-            label = "生成张数 (Batch Size)"
-            new_title = "图像尺寸 (Image Size)"
-        elif wname == "switch":
-            label = "提示词增强开关 (Prompt Enhancer)"
-            new_title = "提示词增强 (Prompt Enhancer)"
-        elif wname == "value":
-            if ntype == "PrimitiveInt" or "seed" in curr_title.lower():
+        if not label:
+            if wname == "image":
+                if "1" in curr_lower or "first" in curr_lower:
+                    label = "首张参考底图 (First Image)"
+                    new_title = "参考底图 (Input Image)"
+                elif "2" in curr_lower or "second" in curr_lower or nid in (19, 475):
+                    label = "第二张参考底图 (Second Image)"
+                    new_title = "参考底图 (Input Image)"
+                else:
+                    label = "参考底图 (Input Image)"
+                    new_title = "参考底图 (Input Image)"
+            elif wname == "denoise":
+                label = "重绘幅度 (Denoise)"
+                new_title = "重绘幅度 (Denoise)"
+            elif wname == "choice":
+                label = "画质与速度预设 (Preset)"
+                new_title = "画质与速度预设 (Preset)"
+            elif wname in ("seed", "noise_seed"):
                 label = "随机种子 (Seed)"
                 new_title = "随机种子 (Seed)"
-            elif "width" in curr_title.lower():
-                label = "宽度 (Width)"
-                new_title = "宽度 (Width)"
-            elif "height" in curr_title.lower():
-                label = "高度 (Height)"
-                new_title = "高度 (Height)"
-            else:
-                label = "正向提示词 (Positive Prompt)"
-                new_title = "正向提示词 (Positive Prompt)"
-        elif wname == "text":
-            if "neg" in curr_title.lower() or nid in (8, 4):
-                label = "负面提示词 (Negative Prompt)"
-                new_title = "负面提示词 (Negative Prompt)"
-            else:
-                label = "正向提示词 (Positive Prompt)"
-                new_title = "正向提示词 (Positive Prompt)"
+            elif wname == "width":
+                label = "图像宽度 (Width)"
+                new_title = "图像尺寸 (Image Size)"
+            elif wname == "height":
+                label = "图像高度 (Height)"
+                new_title = "图像尺寸 (Image Size)"
+            elif wname == "batch_size":
+                label = "生成张数 (Batch Size)"
+                new_title = "图像尺寸 (Image Size)"
+            elif wname == "switch":
+                label = "提示词增强 (Prompt Enhancer)"
+                new_title = "提示词增强 (Prompt Enhancer)"
+            elif wname in ("value", "text", "prompt"):
+                if "width" in curr_lower:
+                    label = "图像宽度 (Width)"
+                    new_title = "图像宽度 (Width)"
+                elif "height" in curr_lower:
+                    label = "图像高度 (Height)"
+                    new_title = "图像高度 (Height)"
+                elif "batch" in curr_lower:
+                    label = "生成张数 (Batch Size)"
+                    new_title = "生成张数 (Batch Size)"
+                elif "seed" in curr_lower or ntype == "PrimitiveInt":
+                    label = "随机种子 (Seed)"
+                    new_title = "随机种子 (Seed)"
+                elif "neg" in curr_lower or nid in (4, 8, 40) or (nid == 18 and wname == "text") or (nid == 10 and "chinoll" in wf.get("id", "")):
+                    label = "负面提示词 (Negative Prompt)"
+                    new_title = "负面提示词 (Negative Prompt)"
+                else:
+                    label = "正向提示词 (Positive Prompt)"
+                    new_title = "正向提示词 (Positive Prompt)"
 
         generic_titles = {"", "none", "cliptextencode", "primitivestringmultiline", "primitiveint",
                           "emptyflux2latentimage", "randomnoise", "basicscheduler", "loadimage", "customcombo"}
-        if new_title and (not curr_title or curr_title.lower() in generic_titles):
+        if new_title and (not curr_title or curr_lower in generic_titles):
             node["title"] = new_title
 
+        # Set widget label via LiteGraph's canonical backing slot channel:
+        # LiteGraph configure() maps:
+        #   const input = this.inputs.find((i) => i.widget?.name === w.name);
+        #   if (input?.label) w.label = input.label;
+        # CRITICAL:
+        # 1. NEVER inject a 'widgets' key on node dictionary (destroys live widget class instances).
+        # 2. Backing slot in node['inputs'] must carry {"widget": {"name": wname}, "label": label}.
         if label:
             inputs = node.setdefault("inputs", [])
-            found = False
+            matched = False
             for slot in inputs:
-                if slot.get("name") == wname or slot.get("widget", {}).get("name") == wname:
+                if slot.get("widget", {}).get("name") == wname or (slot.get("name") == wname and not slot.get("link")):
                     slot["label"] = label
-                    found = True
-            if not found:
-                inputs.append({"name": wname, "type": "STRING", "label": label})
-
-            widgets = node.setdefault("widgets", [])
-            w_found = False
-            for w in widgets:
-                if isinstance(w, dict) and w.get("name") == wname:
-                    w["label"] = label
-                    w_found = True
-            if not w_found:
-                widgets.append({"name": wname, "label": label})
+                    slot.setdefault("widget", {})["name"] = wname
+                    matched = True
+                    break
+            if not matched:
+                inputs.append({
+                    "name": wname,
+                    "type": _slot_type_for(wname),
+                    "widget": {"name": wname},
+                    "label": label,
+                    "link": None,
+                })
 
 
 def prepare_workflow(wf, data, default_view):
@@ -472,7 +804,7 @@ def prepare_workflow(wf, data, default_view):
     decorate_app_nodes(g, wf)
     extra = g.setdefault("extra", {})
     if wf.get("app_outputs"):
-        extra["linearData"] = {"inputs": [list(x) for x in wf.get("app_inputs", [])],
+        extra["linearData"] = {"inputs": [list(x[:2]) for x in wf.get("app_inputs", [])],
                                "outputs": list(wf["app_outputs"])}
         extra["linearMode"] = default_view == "app"
     return g
@@ -690,9 +1022,26 @@ def _is_comfy_busy() -> bool:
     return False
 
 
+def spawn_watchdog():
+    """Run the gate-loss watchdog in its own process.
+
+    The watchdog has to outlive setup.py: setup.py returns as soon as ComfyUI is ready so the
+    Jupyter kernel stays free for follow-up execs (the gate's heartbeat and the on-demand fetch
+    both need the kernel). A separate process keeps the cost guard alive.
+    """
+    env = {**os.environ, "KIT_WATCHDOG_ONLY": "1", "KIT_T0": str(T0)}
+    try:
+        subprocess.Popen([sys.executable, os.path.abspath(__file__)], env=env,
+                         stdout=open(f"{LOG}/watchdog.log", "w"), stderr=subprocess.STDOUT,
+                         start_new_session=True)
+    except Exception as e:  # noqa: BLE001
+        print(f"[watchdog] spawn failed: {e!r}", flush=True)
+
+
 def watchdog():
     lost = PLAN.get("watchdog_gate_lost_min", 20) * 60
     max_s = PLAN.get("max_session_hours", 7) * 3600
+    t0 = float(os.environ.get("KIT_T0", T0))
     open(HB_FILE, "w").write(str(time.time()))
     consecutive_overdue = 0
     while True:
@@ -702,7 +1051,7 @@ def watchdog():
             print("[watchdog] cloudflared died; restarting tunnel", flush=True)
             start_tunnel()
 
-        if time.time() - T0 > max_s:
+        if time.time() - t0 > max_s:
             print("[watchdog] session over limit; releasing VM", flush=True)
             break
 
@@ -776,10 +1125,14 @@ def fetch_only():
     os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
     os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
     os.environ["HF_HUB_DISABLE_XET"] = "1"
+    os.environ["KIT_DL_CONNS"] = str(PLAN.get("download_connections", 8))
     if PLAN.get("xet_high_performance", True):
-        os.environ["HF_XET_HIGH_PERFORMANCE"] = "1"
+        os.environ["HF_XET_HIGH_PERFORMANCE"] = "1"  # only bites on the huggingface_hub fallback path
     ids = [w["id"] for w in PLAN["workflows"]]
     try:
+        store = setup_model_store(PLAN)
+        if store and not os.path.islink(f"{COMFY}/models"):
+            point_models_to(store)
         install_custom_nodes()
         install_workflows(update_default=False)
         dl = Downloads(PLAN["models"], PLAN.get("download_concurrency", 8))
@@ -800,22 +1153,45 @@ def main():
         print("ComfyUI already running on this VM; skipping setup.", flush=True)
         print("KIT_READY " + json.dumps({"reused": True}), flush=True)
         return
+    ts("main_start")
+
+    # Start model downloads immediately at T0 into RAM tmpfs to saturate the VM's ~7 Gbps network bandwidth.
+    # Model downloads run concurrently with cloudflared installation, ComfyUI git clone, and pip dependencies.
+    os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+    os.environ["HF_HUB_DISABLE_XET"] = "1"
+    os.environ["KIT_DL_CONNS"] = str(PLAN.get("download_connections", 8))
+    if PLAN.get("xet_high_performance", True):
+        os.environ["HF_XET_HIGH_PERFORMANCE"] = "1"  # only bites on the huggingface_hub fallback path
+    os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"  # tqdm bars flood the wake-page log
+
+    store = setup_model_store(PLAN)
+    if store:
+        point_models_to(store)
+    dl = Downloads(PLAN["models"], PLAN.get("download_concurrency", 8))
+    dl.start()  # downloads run in parallel from T0 with everything below
+    ts("downloads_started")
+
     with Stage("bootstrap"):
-        sh("pip install -q -U uv 'huggingface_hub>=0.36' 'hf-transfer>=0.1.8' 'hf-xet>=1.5.2'", quiet=True)
-        os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
-        os.environ["HF_HUB_DISABLE_XET"] = "1"
-        if PLAN.get("xet_high_performance", True):
-            os.environ["HF_XET_HIGH_PERFORMANCE"] = "1"
-        os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"  # tqdm bars flood the wake-page log
+        # uv is only needed by the deps stage -> install it in the background while cloudflared
+        # and the ComfyUI clone run in parallel.
+        pip_uv = subprocess.Popen([sys.executable, "-m", "pip", "install", "-q", "-U", "uv"],
+                                  stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+        procs = []
         if not shutil.which("cloudflared"):
-            sh("wget -q -O /tmp/cf.deb https://github.com/cloudflare/cloudflared/releases/latest/download/"
-               "cloudflared-linux-amd64.deb && dpkg -i /tmp/cf.deb >/dev/null")
+            procs.append(subprocess.Popen(
+                "wget -q -O /tmp/cf.deb https://github.com/cloudflare/cloudflared/releases/latest/download/"
+                "cloudflared-linux-amd64.deb && dpkg -i /tmp/cf.deb >/dev/null", shell=True))
         if not os.path.isdir(COMFY):
-            sh(f"git clone -q {cfg['repo']} {COMFY} && cd {COMFY} && git checkout -q {cfg['commit']}")
+            procs.append(subprocess.Popen(
+                f"git clone -q {cfg['repo']} {COMFY} && cd {COMFY} && git checkout -q {cfg['commit']}", shell=True))
+        for p in procs:
+            if p.wait() != 0:
+                raise RuntimeError("bootstrap step failed")
+        dl.sync_links()
         start_tunnel()  # cloudflared retries until :8188 answers, so start it early
         sh("nvidia-smi --query-gpu=name,memory.total --format=csv,noheader", check=False)
-    dl = Downloads(PLAN["models"], PLAN.get("download_concurrency", 8))
-    dl.start()  # downloads run in parallel with everything below
+        pip_uv.wait()  # uv must be on PATH before the deps stage uses it
+
     with Stage("deps"):
         frontend = cfg.get("frontend_package")
         sh(f"cd {COMFY} && grep -viE '^(torch|torchvision|torchaudio)([<>=~ ]|$)' requirements.txt > /tmp/req.txt && "
@@ -823,18 +1199,37 @@ def main():
               if PLAN.get("pip_installer", "uv") == "uv" else "(")
            + f"pip install -q -r /tmp/req.txt {repr(frontend) if frontend else ''})")
         install_custom_nodes()
+        dl.sync_links()
+
     with Stage("install_workflows"):
         install_workflows()
         apply_settings()
+        dl.sync_links()
+    # ComfyUI is started BEFORE the last models land, so its ~30 s of startup (torch import,
+    # custom nodes) overlaps the tail of the download instead of sitting on the critical path.
+    # Safe because ComfyUI's filename cache is invalidated by folder mtime (folder_paths.py
+    # cached_filename_list_), so the model list refreshes as soon as the files appear.
+    for d in ("checkpoints", "clip", "clip_vision", "configs", "controlnet", "diffusers",
+              "diffusion_models", "embeddings", "gligen", "hypernetworks", "loras", "model_patches",
+              "scene_models", "style_models", "unet", "upscale_models", "vae", "vocoders"):
+        os.makedirs(f"{COMFY}/models/{d}", exist_ok=True)
+    ts("comfy_starting")
+    # the boot runs in parallel with the remaining downloads -> tell the gate so the wake page
+    # can show it as a concurrent step instead of a serial one
+    print("KIT_PARALLEL booting start", flush=True)
+    t_comfy = time.time()
+    cenv = {**os.environ, **{k: str(v) for k, v in (cfg.get("env") or {}).items()}}
+    cenv.pop("CF_TUNNEL_TOKEN", None)
+    cenv.pop("HF_TOKEN", None)
+    subprocess.Popen(comfy_cmd(), cwd=COMFY, env=cenv, stdout=open(f"{LOG}/comfyui.log", "w"),
+                     stderr=subprocess.STDOUT, start_new_session=True)
+    ts("download_wait")
     with Stage("download"):
         core = [m["id"] for m in PLAN["models"] if m.get("core")]
         dl.wait(core if PLAN.get("fast_start", True) else [m["id"] for m in PLAN["models"]])
+        dl.sync_links()
+    ts("comfy_check")
     with Stage("comfy_boot"):
-        env = {**os.environ, **{k: str(v) for k, v in (cfg.get("env") or {}).items()}}
-        env.pop("CF_TUNNEL_TOKEN", None)
-        env.pop("HF_TOKEN", None)
-        subprocess.Popen(comfy_cmd(), cwd=COMFY, env=env, stdout=open(f"{LOG}/comfyui.log", "w"),
-                         stderr=subprocess.STDOUT, start_new_session=True)
         for _ in range(300):
             if up():
                 break
@@ -843,21 +1238,30 @@ def main():
             sh(f"tail -40 {LOG}/comfyui.log", check=False)
             raise RuntimeError("ComfyUI did not start")
         sh(f"grep -iE 'IMPORT FAILED|Traceback' {LOG}/comfyui.log | tail -10", check=False, quiet=True)
+    # report the real boot time (it ran in parallel with the download, not after it)
+    TIMES["comfy_boot"] = round(time.time() - t_comfy, 1)
+    print(f"KIT_PARALLEL booting done {TIMES['comfy_boot']}", flush=True)
     if not any(t.name == "kit_watchdog" for t in threading.enumerate()):
         threading.Thread(target=watchdog, name="kit_watchdog", daemon=True).start()
     if PLAN.get("smoke"):
         with Stage("smoke"):
             smoke()
+    ts("ready")
+    spawn_watchdog()
     print("KIT_READY " + json.dumps({"total_s": round(time.time() - T0), "stages": TIMES,
-                                     "background_downloads": len(PLAN["models"]) - dl.files_done}), flush=True)
-    # Keep the Jupyter kernel connection alive to prevent Google Colab's 12-min idle reaper
-    while True:
-        time.sleep(30)
-        print("KIT_KEEPALIVE", flush=True)
+                                     "background_downloads": len(PLAN["models"]) - dl.files_done,
+                                     "keepalive": "gate-heartbeat"}), flush=True)
+    # Return instead of looping forever: a cell that never finishes blocks the Jupyter kernel, and
+    # every later `colab exec` (gate heartbeat, on-demand fetch) would queue behind it. The runtime
+    # stays alive because the gate touches the kernel every ~90 s (Colab reclaims idle runtimes
+    # after ~12 min), and the cost guard keeps running in its own process.
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KitAbort:
-        pass
+    if os.environ.get("KIT_WATCHDOG_ONLY") == "1":
+        watchdog()
+    else:
+        try:
+            main()
+        except KitAbort:
+            pass
