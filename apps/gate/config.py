@@ -125,6 +125,10 @@ class Settings:
     default_view: str = "app"
     fast_start: bool = True
     download_concurrency: int = 4
+    #: parallel HTTP Range connections per model file (see packages/colab/setup.py DL_SCRIPT)
+    download_connections: int = 8
+    #: "disk" keeps the models on the VM disk, "ram" puts them in a tmpfs (faster, uses ~25 GB RAM)
+    model_store: str = "disk"
     xet_high_performance: bool = True
     pip_installer: str = "uv"
     enable_smoke_test: bool = False
@@ -201,6 +205,8 @@ class Settings:
             default_view=view,
             fast_start=_bool(env, "FAST_START", True),
             download_concurrency=_int(env, "DOWNLOAD_CONCURRENCY", 4, 1),
+            download_connections=_int(env, "DOWNLOAD_CONNECTIONS", 8, 1),
+            model_store=(env.get("MODEL_STORE") or "disk").strip().lower(),
             xet_high_performance=_bool(env, "XET_HIGH_PERFORMANCE", True),
             pip_installer="pip" if (env.get("PIP_INSTALLER") or "uv").strip().lower() == "pip" else "uv",
             enable_smoke_test=_bool(env, "ENABLE_SMOKE_TEST", False),

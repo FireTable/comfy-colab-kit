@@ -27,6 +27,23 @@ class ColabRunner(Protocol):
     def exec_stream(self, name: str, code: str, timeout_s: int) -> AsyncIterator[str]: ...
     async def stop(self, name: str) -> None: ...
     async def ccu_info(self) -> float | None: ...
+    async def wait_for_kernel(self, name: str, attempts: int = 5) -> bool:
+        """Wait until the kernel answers an exec.
+
+        Right after `colab new` + upload the kernel can still be settling; a `colab exec` started
+        in that window can hang in the CLI's connect step (the kernel itself is fine - a later exec
+        works instantly). Probing with a short timeout keeps a stuck connect from parking the
+        whole boot for the full budget.
+        """
+        for i in range(1, attempts + 1):
+            try:
+                await self.exec_quick(name, "print('kit-kernel-ready')", timeout_s=45)
+                return True
+            except Exception as e:  # noqa: BLE001
+                log.warning("kernel probe %d/%d failed: %s", i, attempts, e)
+                await asyncio.sleep(8)
+        return False
+
     async def touch_heartbeat(self, name: str) -> bool: ...
 
 
@@ -72,6 +89,11 @@ class ColabCLI:
     async def upload(self, name: str, src: str, dst: str) -> None:
         await self._run("upload", "-s", name, src, dst, timeout=600)
 
+    async def exec_quick(self, name: str, code: str, timeout_s: int = 60) -> str:
+        """One-shot exec with a hard timeout - used to probe whether the kernel is ready."""
+        return await self._run("exec", "-s", name, "--timeout", str(timeout_s),
+                               stdin=code, timeout=timeout_s + 30)
+
     async def exec_stream(self, name: str, code: str, timeout_s: int):
         proc = await asyncio.create_subprocess_exec(
             self.binary, "exec", "-s", name, "--timeout", str(timeout_s), env=self.env,
@@ -102,6 +124,23 @@ class ColabCLI:
         except ColabError:
             return None
         return parse_ccu_balance(out)
+
+    async def wait_for_kernel(self, name: str, attempts: int = 5) -> bool:
+        """Wait until the kernel answers an exec.
+
+        Right after `colab new` + upload the kernel can still be settling; a `colab exec` started
+        in that window can hang in the CLI's connect step (the kernel itself is fine - a later exec
+        works instantly). Probing with a short timeout keeps a stuck connect from parking the
+        whole boot for the full budget.
+        """
+        for i in range(1, attempts + 1):
+            try:
+                await self.exec_quick(name, "print('kit-kernel-ready')", timeout_s=45)
+                return True
+            except Exception as e:  # noqa: BLE001
+                log.warning("kernel probe %d/%d failed: %s", i, attempts, e)
+                await asyncio.sleep(8)
+        return False
 
     async def touch_heartbeat(self, name: str) -> bool:
         try:

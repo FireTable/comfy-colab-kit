@@ -649,10 +649,19 @@ async def background(app: web.Application) -> None:
     last_sweep = 0.0
     loop = asyncio.get_running_loop()
     consecutive_probe_failures = 0
+    last_hb = 0.0
+    hb_task = None
     while True:
         await asyncio.sleep(30)
         try:
             if s.machine.state == State.READY:
+                # Touch the Colab kernel regularly: the setup script returns after boot so the
+                # kernel is free for execs, and an exec every ~90 s is what keeps the runtime
+                # from being reclaimed as idle. It also refreshes the VM-side heartbeat file the
+                # watchdog uses to decide the gate is still alive.
+                if loop.time() - last_hb > 90 and (hb_task is None or hb_task.done()):
+                    last_hb = loop.time()
+                    hb_task = asyncio.create_task(s.colab.touch_heartbeat(settings.colab_session_name))
                 probe_ok = await proxy.probe()
                 if not probe_ok:
                     consecutive_probe_failures += 1
@@ -676,7 +685,7 @@ async def background(app: web.Application) -> None:
                     if settings.colab_session_name in names:
                         s.bus.publish("log", "orphan VM found while sleeping; stopping it")
                         await s.colab.stop(settings.colab_session_name)
-                elif s.machine.is_billing:
+                elif s.machine.is_billing and not s.boot_task_running():
                     await s.reconcile()
                 bal = await s.colab.ccu_info()
                 if bal is not None:
