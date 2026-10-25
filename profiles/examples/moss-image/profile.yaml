@@ -10,12 +10,16 @@ comfyui:
   args:
   - --preview-method
   - auto
+  - --highvram
   - --reserve-vram
-  - '1'
+  - '0.2'
   settings:
     Comfy.LinkRenderMode: 2
   env:
     PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
+    CUDA_MODULE_LOADING: LAZY
+    TORCH_CUDNN_V8_API: '1'
+    TORCH_ALLOW_TF32_CUBLAS_OVERRIDE: '1'
 frontend:
   package: comfyui-frontend-package==1.57.1
 # One shared base, text encoder and VAE for every workflow (best quality that fits a 24 GB L4 together:
