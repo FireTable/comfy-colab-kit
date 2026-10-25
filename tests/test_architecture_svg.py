@@ -294,6 +294,23 @@ def test_spec_is_valid_json_and_complete():
             assert section["columns"] == len(section["cells"]), section["id"]
 
 
+def test_layout_checker_accepts_a_relative_path():
+    """The checker is used by hand as often as by CI, with relative paths."""
+    r = subprocess.run([sys.executable, str(ROOT / "scripts" / "check-svg-layout.py"),
+                        "assets/architecture/flow.svg"],
+                       cwd=ROOT, capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "flow.svg" in r.stdout
+
+
+def test_layout_checker_fails_on_a_missing_file():
+    """A path that does not exist is an error, not a reason to skip."""
+    r = subprocess.run([sys.executable, str(ROOT / "scripts" / "check-svg-layout.py"),
+                        "assets/architecture/nope.svg"],
+                       cwd=ROOT, capture_output=True, text=True)
+    assert r.returncode == 1, r.stdout + r.stderr
+
+
 def test_layout_checker_catches_real_defects(tmp_path):
     """The checker has to actually fail on a broken diagram.
 
