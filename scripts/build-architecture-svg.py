@@ -501,10 +501,14 @@ def hero_panel(add) -> None:
     </g>""")
 
     # the beam: a tapered ribbon in the brand gradient
-    add('    <path d="M110 108 C168 50 250 50 306 100 L306 126 C250 80 168 80 110 124 Z" '
-        'fill="url(#g-beam)" />')
+    add('    <path id="hero-beam" d="M110 108 C168 50 250 50 306 100 L306 126 '
+        'C250 80 168 80 110 124 Z" fill="url(#g-beam)" />')
     add('    <path d="M116 114 C172 64 246 64 300 104" fill="none" stroke="#fff3c4" '
         'stroke-width="1.5" stroke-linecap="round" opacity="0.5" />')
+    # 一道流光沿着光束滑过去
+    add('    <path id="hero-shimmer" d="M112 110 C170 52 250 52 304 101" fill="none" '
+        'stroke="#fffde0" stroke-width="3" stroke-linecap="round" opacity="0" '
+        'class="hero-shimmer" />')
 
     # the accelerator card, tilted
     add("""    <g transform="translate(292,84)">
@@ -513,7 +517,21 @@ def hero_panel(add) -> None:
       <path d="M14 40 L42 56 L42 82 L14 66 Z" fill="#2b2236" stroke="#f9ab00" stroke-width="1.4" />
       <path d="M58 44 L92 28" fill="none" stroke="#f9ab00" stroke-width="1.1" opacity="0.6" />
       <path d="M62 56 L96 40" fill="none" stroke="#f9ab00" stroke-width="1.1" opacity="0.6" />
-      <circle cx="34" cy="49" r="3" fill="#3ddc84" />
+      <circle cx="34" cy="49" r="3" fill="#3ddc84" class="hero-led" />
+    </g>""")
+
+    # 请求沿着光束飞向加速卡
+    add("""    <g>
+      <circle r="6" fill="#f2ff59" opacity="0.25"><animateMotion dur="4.2s" begin="0s" repeatCount="indefinite" rotate="auto">
+        <mpath href="#hero-beam" xlink:href="#hero-beam" /></animateMotion></circle>
+      <circle r="3.4" fill="#fff8dc"><animateMotion dur="4.2s" begin="0s" repeatCount="indefinite" rotate="auto">
+        <mpath href="#hero-beam" xlink:href="#hero-beam" /></animateMotion></circle>
+    </g>
+    <g opacity="0">
+      <circle r="5" fill="#f2ff59" opacity="0.2"><animateMotion dur="4.2s" begin="-2.1s" repeatCount="indefinite" rotate="auto">
+        <mpath href="#hero-beam" xlink:href="#hero-beam" /></animateMotion></circle>
+      <circle r="2.6" fill="#fff8dc"><animateMotion dur="4.2s" begin="-2.1s" repeatCount="indefinite" rotate="auto">
+        <mpath href="#hero-beam" xlink:href="#hero-beam" /></animateMotion></circle>
     </g>""")
 
     add('    <rect x="0" y="0" width="440" height="248" rx="14" fill="none" '
@@ -757,6 +775,15 @@ def build(spec: dict, lang: str) -> tuple[str, float]:
         font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
       }
       @keyframes pulse { 0%,100% { opacity: .35; } 50% { opacity: .9; } }
+      @keyframes hero-led { 0%,100% { opacity: .45; } 50% { opacity: 1; } }
+      @keyframes hero-shimmer {
+        0%   { opacity: 0;   stroke-dasharray: 0 400; stroke-dashoffset: 0; }
+        15%  { opacity: .85; }
+        70%  { opacity: .85; }
+        100% { opacity: 0;   stroke-dasharray: 60 400; stroke-dashoffset: -300; }
+      }
+      .hero-led { animation: hero-led 3.2s ease-in-out infinite; }
+      .hero-shimmer { animation: hero-shimmer 4.2s linear infinite; }
       @keyframes breathe { 0%,100% { opacity: .85; } 50% { opacity: 1; } }
       .pulse { animation: pulse 2.6s ease-in-out infinite; }
       .breathe { animation: breathe 3.4s ease-in-out infinite; }
