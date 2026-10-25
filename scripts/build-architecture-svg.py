@@ -666,11 +666,6 @@ def build(spec: dict, lang: str) -> tuple[str, float]:
                               edges=[(a, b) for a, b, _ in boot["edges"]]))
     failure = states["failure"]
     fail_sizes = {k: tuple(v) for k, v in failure["sizes"].items()}
-    fail_layout = dot(dot_row(
-        failure["row"], fail_sizes,
-        span=content_w - (boot_layout.box("booting").x - margin),
-        edges=[(a, b) for a, b, _ in failure["edges"]],
-    ))
 
     grid_layouts = {}
     for s in spec["sections"]:
@@ -845,8 +840,14 @@ def build(spec: dict, lang: str) -> tuple[str, float]:
     add(f"""  <g>
     <rect x="{margin}" y="{rail_y}" width="{content_w}" height="{rail_h:.0f}" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.3" />""")
 
-    fail_dx = boot_layout.box("booting").x - fail_layout.box("failed").x
     boot_layout = boot_layout.shift_to(margin).offset(0, states_y)
+    # the failure row starts under `booting` and has to end at the right
+    # margin, so its width follows from where `booting` ended up
+    fail_layout = dot(dot_row(
+        failure["row"], fail_sizes,
+        span=content_w - (boot_layout.box("booting").x - margin),
+        edges=[(a, b) for a, b, _ in failure["edges"]],
+    ))
     fail_layout = fail_layout.shift_to(boot_layout.box("booting").x).offset(0, fails_y)
 
     add('    <g font-size="11.5" text-anchor="middle">')
@@ -903,7 +904,9 @@ def build(spec: dict, lang: str) -> tuple[str, float]:
         f'H{sleeping.cx:.1f} V{sleeping.bottom:.1f}" {edge_attrs("arrow-plum", width=1.6)} />')
     add(f'    <text x="{margin + 200}" y="{ret_y - 7:.1f}" font-size="9.5" class="code-text" '
         f'fill="var(--ink-muted)">{esc(say(states["notes"]["stop"], lang))}</text>')
-    add(f'    <path d="M{ready.cx:.1f} {ready.bottom:.1f} V{ret_y - 26:.1f} '
+    # the drop has to turn *above* the failure row, otherwise the last leg
+    # runs upwards and the head points into the box instead of onto it
+    add(f'    <path d="M{ready.cx:.1f} {ready.bottom:.1f} V{fails_y - 20:.1f} '
         f'H{switching.cx:.1f} V{switching.top:.1f}" {edge_attrs("arrow-plum", width=1.5, dash="4 4")} />')
     add(f'    <text x="{margin + content_w - 8}" y="{switching.bottom + 15:.1f}" font-size="9.5" '
         f'class="code-text" fill="var(--ink-muted)" text-anchor="end">{esc(say(states["notes"]["switch"], lang))}</text>')

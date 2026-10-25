@@ -57,6 +57,7 @@ MEASURE_JS = r"""
   // shadow, not a container, and a shape drawn inside <defs> or <symbol> is
   // a definition rather than part of the picture.
   const rects = [];
+  const frames = [];
   const isDecoration = (el) => {
     // a drop shadow is drawn almost transparent; a band at 0.92 still counts
     const op = parseFloat(el.getAttribute('opacity') || '1');
@@ -65,8 +66,12 @@ MEASURE_JS = r"""
   document.querySelectorAll('rect').forEach(el => {
     if (isDecoration(el) || el.closest('symbol, defs')) return;
     const b = u(el.getBoundingClientRect());
-    if (b.w > 20 && b.h > 8) rects.push({x: +b.x.toFixed(2), y: +b.y.toFixed(2),
-                                         w: +b.w.toFixed(2), h: +b.h.toFixed(2)});
+    if (b.w > 20 && b.h > 8) {
+      const r = {x: +b.x.toFixed(2), y: +b.y.toFixed(2),
+                 w: +b.w.toFixed(2), h: +b.h.toFixed(2)};
+      rects.push(r);
+      frames.push(r);
+    }
   });
   // a filled shape is a container too — header bands are drawn as one path
   document.querySelectorAll('path').forEach(el => {
@@ -101,6 +106,17 @@ MEASURE_JS = r"""
     symbols.push({id: sym.id, vb, bb});
   });
 
+  // arrows: where they end and which way they point there
+  const arrows = [];
+  document.querySelectorAll('path[marker-end]').forEach(p => {
+    const len = p.getTotalLength();
+    if (len < 1) return;
+    const tip = p.getPointAtLength(len);
+    const prev = p.getPointAtLength(Math.max(0, len - 2));
+    arrows.push({x: tip.x / sx, y: tip.y / sy,
+                 dx: (tip.x - prev.x) / sx, dy: (tip.y - prev.y) / sy});
+  });
+
   // moving lights: every one must name a path that exists
   const movers = [];
   document.querySelectorAll('animateMotion').forEach(am => {
@@ -113,7 +129,7 @@ MEASURE_JS = r"""
   const flowPaths = [];
   document.querySelectorAll('path[id]').forEach(p => flowPaths.push(p.id));
 
-  return {vw: vb.width, vh: vb.height, texts, rects, icons, symbols, movers, flowPaths};
+  return {vw: vb.width, vh: vb.height, texts, rects, frames, icons, symbols, movers, flowPaths, arrows};
 })()
 """
 
@@ -175,6 +191,43 @@ def defects(data: dict) -> list[str]:
             out.append(f"icon-align   '{ic['href']}' sits {abs(label['cy'] - ic['cy']):.1f}px "
                        f"{'above' if ic['cy'] < label['cy'] else 'below'} '{label['s']}'")
 
+    # a box that pokes out of the frame around it
+    frames = data.get("frames", [])
+    for r in frames:
+        cx, cy = r["x"] + r["w"] / 2, r["y"] + r["h"] / 2
+        # a parent is at least as big as the box and has it at its centre;
+        # a small box sitting inside a big one is a child, not a frame
+        parents = [c for c in frames
+                   if c is not r
+                   and c["w"] >= r["w"] - 1 and c["h"] >= r["h"] - 1
+                   and c["x"] <= cx <= c["x"] + c["w"] and c["y"] <= cy <= c["y"] + c["h"]]
+        if not parents:
+            continue
+        frame = min(parents, key=lambda c: c["w"] * c["h"])
+        inside = (frame["x"] - 1 <= r["x"] and frame["y"] - 1 <= r["y"]
+                  and frame["x"] + frame["w"] + 1 >= r["x"] + r["w"]
+                  and frame["y"] + frame["h"] + 1 >= r["y"] + r["h"])
+        if not inside:
+            out.append("box-out      a box pokes out of the frame around it")
+
+    # an arrow must point at the box it enters, not away from it
+    for arrow in data.get("arrows", []):
+        if abs(arrow["dx"]) < 0.01 and abs(arrow["dy"]) < 0.01:
+            continue
+        targets = [r for r in rects
+                   if (abs(arrow["x"] - r["x"]) < 1.5 or abs(arrow["x"] - (r["x"] + r["w"])) < 1.5
+                       or abs(arrow["y"] - r["y"]) < 1.5 or abs(arrow["y"] - (r["y"] + r["h"])) < 1.5)
+                   and r["x"] - 1.5 <= arrow["x"] <= r["x"] + r["w"] + 1.5
+                   and r["y"] - 1.5 <= arrow["y"] <= r["y"] + r["h"] + 1.5]
+        if not targets:
+            continue
+        box = min(targets, key=lambda r: r["w"] * r["h"])
+        # the box has to lie ahead of the head, otherwise the arrow points away
+        ahead = ((box["x"] + box["w"] / 2 - arrow["x"]) * arrow["dx"]
+                 + (box["y"] + box["h"] / 2 - arrow["y"]) * arrow["dy"])
+        if ahead < 0:
+            out.append("arrow-way    an arrow ends on a box but points away from it")
+
     # a moving light that is not bound to a real path drifts into empty space
     for mv in data.get("movers", []):
         if not mv["href"] or not mv["resolves"]:
@@ -216,6 +269,10 @@ def main(argv: list[str]) -> int:
         ROOT / "assets" / "architecture" / "flow.svg",
         ROOT / "assets" / "architecture" / "flow.zh.svg",
     ]
+    for t in targets:
+        if not t.is_file():
+            print(f"{t}: no such file")
+            return 1
     failed = False
     skipped = False
     for n, svg in enumerate(targets):
