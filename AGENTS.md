@@ -56,6 +56,10 @@ Billing states (CU accrues): every boot state, `ready`, `switching`, `failed`.
    on text that overflows its box, text that collides, or a moving light that is not bound to a
    drawn path. The layout step needs `npm install` (Graphviz is shipped as WebAssembly, so no
    system package is required).
+6c. **`assets/architecture/flow.spec.json` is the diagram's source of truth.** Every box, its size,
+   its wording in both languages and every wire is declared there — no coordinates, no drawing
+   instructions. Change the picture by changing the spec, then re-run the generator. The Python
+   side only knows how to *draw* a kind of box; it must not carry wording of its own.
 7. `docs/` contains finished product documentation only — no scratch notes, no TODO dumps.
 
 ## ⚠️ Known pitfalls

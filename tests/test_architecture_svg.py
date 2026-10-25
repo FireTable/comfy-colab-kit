@@ -7,6 +7,7 @@ variants in sync.
 """
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import sys
@@ -252,3 +253,42 @@ def test_rendered_layout_has_no_overflow():
     r = subprocess.run([sys.executable, str(checker), str(FLOW), str(FLOW_ZH)],
                        cwd=ROOT, capture_output=True, text=True)
     assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_spec_has_both_languages():
+    """Every label in the spec must exist in both languages.
+
+    The spec is the single place the wording lives, so a missing translation
+    would silently fall back to English in the Chinese diagram.
+    """
+    spec = json.loads((ROOT / "assets" / "architecture" / "flow.spec.json").read_text("utf-8"))
+
+    missing: list[str] = []
+
+    def walk(node, path: str):
+        if isinstance(node, dict):
+            if set(node) == {"en", "zh"}:
+                return
+            for key, value in node.items():
+                walk(value, f"{path}.{key}")
+        elif isinstance(node, list):
+            for i, value in enumerate(node):
+                walk(value, f"{path}[{i}]")
+        elif isinstance(node, str) and path.endswith((".label", ".title", ".note", ".body")):
+            if not node:
+                missing.append(path)
+
+    walk(spec, "spec")
+    assert not missing, f"empty labels: {missing}"
+
+
+def test_spec_is_valid_json_and_complete():
+    """The spec must stay loadable and name the sections the generator expects."""
+    spec = json.loads((ROOT / "assets" / "architecture" / "flow.spec.json").read_text("utf-8"))
+    assert spec["canvas"]["width"] >= 800
+    ids = [s["id"] for s in spec["sections"]]
+    assert ids == ["request", "states", "gates", "props"], ids
+    for section in spec["sections"]:
+        assert section["title"], section["id"]
+        if section["kind"] == "grid":
+            assert section["columns"] == len(section["cells"]), section["id"]

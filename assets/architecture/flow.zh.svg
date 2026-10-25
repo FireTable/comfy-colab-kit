@@ -80,7 +80,6 @@
     <symbol id="logo-googlecolab" viewBox="0 0 24 24"><path fill="#211927" d="M16.9414 4.9757a7.033 7.033 0 0 0-4.9308 2.0646 7.033 7.033 0 0 0-.1232 9.8068l2.395-2.395a3.6455 3.6455 0 0 1 5.1497-5.1478l2.397-2.3989a7.033 7.033 0 0 0-4.8877-1.9297zM7.07 4.9855a7.033 7.033 0 0 0-4.8878 1.9316l2.3911 2.3911a3.6434 3.6434 0 0 1 5.0227.1271l1.7341-2.9737-.0997-.0802A7.033 7.033 0 0 0 7.07 4.9855zm15.0093 2.1721l-2.3892 2.3911a3.6455 3.6455 0 0 1-5.1497 5.1497l-2.4067 2.4068a7.0362 7.0362 0 0 0 9.9456-9.9476zM1.932 7.1674a7.033 7.033 0 0 0-.002 9.6816l2.397-2.397a3.6434 3.6434 0 0 1-.004-4.8916zm7.664 7.4235c-1.38 1.3816-3.5863 1.411-5.0168.1134l-2.397 2.395c2.4693 2.3328 6.263 2.5753 9.0072.5455l.1368-.1115z" /></symbol>
     <symbol id="logo-huggingface" viewBox="0 0 24 24"><path fill="#ffd21e" d="M12.025 1.13c-5.77 0-10.449 4.647-10.449 10.378 0 1.112.178 2.181.503 3.185.064-.222.203-.444.416-.577a.96.96 0 0 1 .524-.15c.293 0 .584.124.84.284.278.173.48.408.71.694.226.282.458.611.684.951v-.014c.017-.324.106-.622.264-.874s.403-.487.762-.543c.3-.047.596.06.787.203s.31.313.4.467c.15.257.212.468.233.542.01.026.653 1.552 1.657 2.54.616.605 1.01 1.223 1.082 1.912.055.537-.096 1.059-.38 1.572.637.121 1.294.187 1.967.187.657 0 1.298-.063 1.921-.178-.287-.517-.44-1.041-.384-1.581.07-.69.465-1.307 1.081-1.913 1.004-.987 1.647-2.513 1.657-2.539.021-.074.083-.285.233-.542.09-.154.208-.323.4-.467a1.08 1.08 0 0 1 .787-.203c.359.056.604.29.762.543s.247.55.265.874v.015c.225-.34.457-.67.683-.952.23-.286.432-.52.71-.694.257-.16.547-.284.84-.285a.97.97 0 0 1 .524.151c.228.143.373.388.43.625l.006.04a10.3 10.3 0 0 0 .534-3.273c0-5.731-4.678-10.378-10.449-10.378M8.327 6.583a1.5 1.5 0 0 1 .713.174 1.487 1.487 0 0 1 .617 2.013c-.183.343-.762-.214-1.102-.094-.38.134-.532.914-.917.71a1.487 1.487 0 0 1 .69-2.803m7.486 0a1.487 1.487 0 0 1 .689 2.803c-.385.204-.536-.576-.916-.71-.34-.12-.92.437-1.103.094a1.487 1.487 0 0 1 .617-2.013 1.5 1.5 0 0 1 .713-.174m-10.68 1.55a.96.96 0 1 1 0 1.921.96.96 0 1 1 0-1.92m13.838 0a.96.96 0 1 1 0 1.92.96.96 0 1 1 0-1.92M8.489 11.458c.588.01 1.965 1.157 3.572 1.164 1.607-.007 2.984-1.155 3.572-1.164.196-.003.305.12.305.454 0 .886-.424 2.328-1.563 3.202-.22-.756-1.396-1.366-1.63-1.32q-.011.001-.02.006l-.044.026-.01.008-.03.024q-.018.017-.035.036l-.032.04a1 1 0 0 0-.058.09l-.014.025q-.049.088-.11.19a.83.83 0 0 1-.083.116 1.2 1.2 0 0 1-.173.18q-.035.029-.075.058a1.3 1.3 0 0 1-.251-.243 1 1 0 0 1-.076-.107c-.124-.193-.177-.363-.337-.444-.034-.016-.104-.008-.2.022q-.094.03-.216.087-.06.028-.125.063l-.13.074q-.067.04-.136.086a3 3 0 0 0-.135.096 3 3 0 0 0-.26.219 2 2 0 0 0-.12.121 1 1 0 0 0-.106.128l-.002.002a1 1 0 0 0-.09.132l-.001.001a1.2 1.2 0 0 0-.105.212q-.013.036-.024.073c-1.139-.875-1.563-2.317-1.563-3.203 0-.334.109-.457.305-.454m.836 10.354c.824-1.19.766-2.082-.365-3.194-1.13-1.112-1.789-2.738-1.789-2.738s-.246-.945-.806-.858-.97 1.499.202 2.362c1.173.864-.233 1.45-.685.64-.45-.812-1.683-2.896-2.322-3.295s-1.089-.175-.938.647 2.822 2.813 2.562 3.244-1.176-.506-1.176-.506-2.866-2.567-3.49-1.898.473 1.23 2.037 2.16c1.564.932 1.686 1.178 1.464 1.53s-3.675-2.511-4-1.297c-.323 1.214 3.524 1.567 3.287 2.405-.238.839-2.71-1.587-3.216-.642-.506.946 3.49 2.056 3.522 2.064 1.29.33 4.568 1.028 5.713-.624m5.349 0c-.824-1.19-.766-2.082.365-3.194 1.13-1.112 1.789-2.738 1.789-2.738s.246-.945.806-.858.97 1.499-.202 2.362c-1.173.864.233 1.45.685.64.451-.812 1.683-2.896 2.322-3.295s1.089-.175.938.647-2.822 2.813-2.562 3.244 1.176-.506 1.176-.506 2.866 2.567 3.49 1.898-.473 1.23-2.037-2.16c-1.564.932-1.686 1.178-1.464 1.53s3.675 2.511 4 1.297c.323-1.214-3.524-1.567-3.287-2.405.238-.839 2.71 1.587 3.216.642.506-.946-3.49-2.056-3.522-2.064-1.29-.33-4.568-1.028-5.713.624" /></symbol>
     <symbol id="logo-comfyui" viewBox="0 0 48 48"><path fill="#211927" d="M31.0126 30.4797C31.0576 30.3275 31.0822 30.1671 31.0822 29.9985C31.0822 29.0649 30.3294 28.3081 29.4006 28.3081H21.8643C21.4593 28.3122 21.1279 27.9832 21.1279 27.576C21.1279 27.5019 21.1401 27.432 21.1565 27.3662L23.1858 20.259C23.2717 19.9465 23.5581 19.7161 23.8936 19.7161L31.4586 19.7079C33.0542 19.7079 34.4003 18.6262 34.8053 17.1497L35.9427 13.1889C35.9795 13.0491 36 12.8969 36 12.7447C36 11.8152 35.2513 11.0625 34.3266 11.0625H25.1742C23.5868 11.0625 22.2448 12.136 21.8316 13.5961L21.0624 16.2983C20.9724 16.6068 20.6901 16.833 20.3546 16.833H18.1575C16.5823 16.833 15.2526 17.8859 14.8271 19.3295L12.0614 29.0402C12.0205 29.1841 12 29.3404 12 29.4967C12 30.4304 12.7528 31.1871 13.6816 31.1871H15.8418C16.2468 31.1871 16.5782 31.5162 16.5782 31.9275C16.5782 31.9974 16.5701 32.0673 16.5496 32.1331L15.7845 34.8107C15.7477 34.9546 15.7232 35.1027 15.7232 35.2549C15.7232 36.1844 16.4719 36.937 17.3965 36.937L26.553 36.9288C28.1446 36.9288 29.4865 35.8512 29.8957 34.3829L31.0085 30.4838L31.0126 30.4797Z" /></symbol>
-    <clipPath id="clip-hero"><rect x="700" y="30" width="440" height="248" rx="14" /></clipPath>
     <symbol id="kit-mark" viewBox="0 0 256 256"><defs><clipPath id="mark-t"><rect width="256" height="256" rx="58"/></clipPath>
   <clipPath id="mark-L"><rect width="128" height="256"/></clipPath>
   <linearGradient id="mark-y" x1="0" x2="1"><stop offset="0" stop-color="#F9AB00"/><stop offset=".35" stop-color="#F2FF59"/></linearGradient>
@@ -220,13 +219,13 @@
     <text x="14" y="186" font-size="9.5" class="code-text" fill="var(--ink-muted)">计费中 1.71 CU/h</text>
   </g>
   <!-- request path edges -->
-  <path id="flow-req-0" d="M190.60,385.67C190.60,385.67 200.94,385.67 200.94,385.67 L216.67 385.67" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
-  <path id="flow-req-1" d="M190.60,452.33C190.60,452.33 200.94,452.33 200.94,452.33 L216.67 452.33" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
-  <path id="flow-req-2" d="M399.23,419.33C399.23,419.33 409.54,419.33 409.54,419.33 L425.33 419.33" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
-  <path id="flow-req-3" d="M691.74,419.33C691.74,419.33 702.39,419.33 702.39,419.33 L718.00 419.33" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
-  <text x="196.5" y="377.7" font-size="10" class="code-text" fill="var(--ink-muted)" text-anchor="middle">Bearer</text>
+  <path id="flow-req-0" d="M190.60,385.67C190.60,385.67 200.93,385.67 200.93,385.67 L216.67 385.67" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
+  <text x="195.8" y="377.7" font-size="10" class="code-text" fill="var(--ink-muted)" text-anchor="middle">Bearer</text>
+  <path id="flow-req-1" d="M190.60,452.33C190.60,452.33 200.93,452.33 200.93,452.33 L216.67 452.33" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
+  <path id="flow-req-2" d="M399.23,419.33C399.23,419.33 409.53,419.33 409.53,419.33 L425.33 419.33" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
+  <path id="flow-req-3" d="M691.73,419.33C691.73,419.33 702.39,419.33 702.39,419.33 L718.00 419.33" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
   <text x="697.1" y="411.3" font-size="10" class="code-text" fill="var(--ink-muted)" text-anchor="middle">exec</text>
-  <g transform="translate(40,590.6666666666666)">
+  <g transform="translate(40,591)">
     <rect x="0" y="0" width="77" height="24" rx="4" fill="var(--green)" opacity="0.9" />
     <text x="13" y="17" font-size="12.5" font-weight="700" fill="var(--ink-on-tape)">② 状态机</text>
     <text x="180" y="17" font-size="12.5" fill="var(--ink-muted)">10 态生命周期 · 虚线为异常回退路径</text>
@@ -293,7 +292,6 @@
     <path d="M591.0 704.0 V718.7 H755.3 V750.0" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
     <path d="M755.3 704.0 V718.7 H755.3 V750.0" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
     <path d="M923.7 704.0 V718.7 H755.3 V750.0" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
-    <path d="M1092.0 704.0 V718.7 H755.3 V750.0" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
     <text x="102" y="734.7" font-size="9.5" class="code-text" fill="var(--ink-muted)">任一开机态失败 → failed → 重试 allocating</text>
     <path d="M803.60,767.00C803.60,767.00 861.03,767.00 861.03,767.00 L876.65 767.00" stroke="var(--ink-muted)" stroke-width="1.6" fill="none" marker-end="url(#arrow-plum)" />
     <path d="M981.27,767.00C981.27,767.00 1038.04,767.00 1038.04,767.00 L1053.99 767.00" stroke="var(--ink-muted)" stroke-width="1.6" fill="none" marker-end="url(#arrow-plum)" />
@@ -307,42 +305,42 @@
       <text x="526" y="15" font-size="10.5" text-anchor="middle" fill="var(--ink-secondary)">计费区间 BILLING_STATES · 五个开机态 + ready + switching + failed —— 此区间内 Colab 实例存在，按 1.71 CU/小时 计费</text>
     </g>
   </g>
-  <g transform="translate(40,902.6666666666666)">
+  <g transform="translate(40,903)">
     <rect x="0" y="0" width="90" height="24" rx="4" fill="var(--rose)" opacity="0.9" />
     <text x="13" y="17" font-size="12.5" font-weight="700" fill="var(--ink-on-tape)">③ 自动停机</text>
     <text x="180" y="17" font-size="12.5" fill="var(--ink-muted)">五道闸门 · 任意一条命中即释放 GPU 与 CU</text>
   </g>
   <g transform="translate(40.0,948.0)">
     <rect x="0" y="0" width="212" height="74" rx="11" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />
-    <rect x="0" y="0" width="212" height="4" rx="2" fill="#f9ab00" />
+    <rect x="0" y="0" width="212" height="4" rx="2" fill="var(--amber)" />
     <text x="14" y="26" font-size="13" font-weight="650" fill="var(--ink-primary)">空闲超时</text>
     <text x="14" y="45" font-size="11.5" class="code-text" fill="var(--ink-secondary)">IDLE_TIMEOUT_MIN = 30</text>
     <text x="14" y="62" font-size="10.5" fill="var(--ink-muted)">队列非空时跳过</text>
   </g>
   <g transform="translate(262.7,948.0)">
     <rect x="0" y="0" width="212" height="74" rx="11" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />
-    <rect x="0" y="0" width="212" height="4" rx="2" fill="#e8710a" />
+    <rect x="0" y="0" width="212" height="4" rx="2" fill="var(--orange)" />
     <text x="14" y="26" font-size="13" font-weight="650" fill="var(--ink-primary)">会话上限</text>
     <text x="14" y="45" font-size="11.5" class="code-text" fill="var(--ink-secondary)">MAX_SESSION_HOURS = 6</text>
     <text x="14" y="62" font-size="10.5" fill="var(--ink-muted)">可 extend 一次 +1h</text>
   </g>
   <g transform="translate(485.3,948.0)">
     <rect x="0" y="0" width="212" height="74" rx="11" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />
-    <rect x="0" y="0" width="212" height="4" rx="2" fill="#7b4ba8" />
+    <rect x="0" y="0" width="212" height="4" rx="2" fill="var(--violet)" />
     <text x="14" y="26" font-size="13" font-weight="650" fill="var(--ink-primary)">CU 预算</text>
     <text x="14" y="45" font-size="11.5" class="code-text" fill="var(--ink-secondary)">日 12 / 月 150 CU</text>
     <text x="14" y="62" font-size="10.5" fill="var(--ink-muted)">余额低于 5 CU 拒绝开机</text>
   </g>
   <g transform="translate(708.0,948.0)">
     <rect x="0" y="0" width="212" height="74" rx="11" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />
-    <rect x="0" y="0" width="212" height="4" rx="2" fill="#0ea5e9" />
+    <rect x="0" y="0" width="212" height="4" rx="2" fill="var(--sky)" />
     <text x="14" y="26" font-size="13" font-weight="650" fill="var(--ink-primary)">看门狗</text>
     <text x="14" y="45" font-size="11.5" class="code-text" fill="var(--ink-secondary)">WATCHDOG_GATE_LOST_MIN = 20</text>
     <text x="14" y="62" font-size="10.5" fill="var(--ink-muted)">网关失联 VM 自毁</text>
   </g>
   <g transform="translate(930.7,948.0)">
     <rect x="0" y="0" width="212" height="74" rx="11" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />
-    <rect x="0" y="0" width="212" height="4" rx="2" fill="#3ddc84" />
+    <rect x="0" y="0" width="212" height="4" rx="2" fill="var(--mint)" />
     <text x="14" y="26" font-size="13" font-weight="650" fill="var(--ink-primary)">显式停机</text>
     <text x="14" y="45" font-size="11.5" class="code-text" fill="var(--ink-secondary)">POST /_gate/stop</text>
     <text x="14" y="62" font-size="10.5" fill="var(--ink-muted)">Agent 完成即释放</text>

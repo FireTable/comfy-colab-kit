@@ -1,0 +1,495 @@
+{
+  "_comment": "Declarative description of the architecture diagram. The generator reads this and draws it; Graphviz computes where every box goes. Edit here, not in the SVG. Every label has an `en` and a `zh` value; a plain string is used for both.",
+  "canvas": {
+    "width": 1180,
+    "margin": 40
+  },
+  "header": {
+    "subtitle": {
+      "en": "An always-available, wake-on-demand ComfyUI on Google Colab",
+      "zh": "按需唤醒的 ComfyUI 网关 · 从请求到算力回收的完整链路"
+    },
+    "badge": {
+      "en": "Zero-GPU idle · single shared instance · automatic shutdown",
+      "zh": "Zero-GPU idle · 单实例幂等 · 自动停机"
+    },
+    "headline": {
+      "en": "From “press Wake” to “GPU released”: request path, 10-state lifecycle, five shutdown gates",
+      "zh": "从「按下唤醒」到「GPU 释放」：请求链路、10 态生命周期与五道停机闸门"
+    }
+  },
+  "sections": [
+    {
+      "id": "request",
+      "kind": "flow",
+      "title": {
+        "en": "① Request path",
+        "zh": "① 请求链路"
+      },
+      "note": {
+        "en": "Agents and browsers travel the very same gateway path",
+        "zh": "Agent 与浏览器走同一条网关路径"
+      },
+      "nodes": [
+        {
+          "id": "agent",
+          "card": "chip",
+          "w": 150,
+          "h": 52,
+          "accent": "blue",
+          "label": {
+            "en": "AI Agent",
+            "zh": "AI Agent"
+          },
+          "sub": {
+            "en": "MCP / REST",
+            "zh": "MCP / REST"
+          }
+        },
+        {
+          "id": "browser",
+          "card": "chip",
+          "w": 150,
+          "h": 52,
+          "accent": "green",
+          "label": {
+            "en": "Browser",
+            "zh": "浏览器"
+          },
+          "sub": {
+            "en": "SSE / WS",
+            "zh": "SSE / WS"
+          }
+        },
+        {
+          "id": "cf",
+          "card": "cloudflare",
+          "w": 182,
+          "h": 112,
+          "label": {
+            "en": "Cloudflare Access",
+            "zh": "Cloudflare Access"
+          },
+          "items": [
+            {
+              "en": "Zero Trust · RS256 JWT",
+              "zh": "Zero Trust · RS256 JWT"
+            },
+            {
+              "en": "Email OTP · OAuth · token",
+              "zh": "邮箱 OTP · OAuth · 令牌"
+            },
+            {
+              "en": "Cf-Access-Jwt-Assertion",
+              "zh": "Cf-Access-Jwt-Assertion"
+            }
+          ]
+        },
+        {
+          "id": "gate",
+          "card": "gateway",
+          "w": 266,
+          "h": 208,
+          "label": {
+            "en": "comfy-gate",
+            "zh": "comfy-gate"
+          },
+          "sub": "aiohttp · :8080",
+          "items": [
+            {
+              "en": "Auth · owner decision",
+              "zh": "鉴权 · owner 判定"
+            },
+            {
+              "en": "10-state machine",
+              "zh": "10 态状态机"
+            },
+            {
+              "en": "SSE progress broadcast",
+              "zh": "SSE 进度广播"
+            },
+            {
+              "en": "CU ledger · budget gate",
+              "zh": "CU 账本 · 预算闸"
+            },
+            {
+              "en": "Reverse proxy /prompt · /history · /view · /ws",
+              "zh": "反向代理 /prompt · /history · /view · /ws"
+            }
+          ]
+        },
+        {
+          "id": "colab",
+          "card": "colab",
+          "w": 244,
+          "h": 208,
+          "label": {
+            "en": "Colab L4 Runtime",
+            "zh": "Colab L4 Runtime"
+          },
+          "path": "/content · 易失",
+          "items": [
+            {
+              "en": "Models 24.9 GB",
+              "zh": "模型 24.9 GB"
+            },
+            {
+              "en": "Workflows · nodes",
+              "zh": "工作流 · 节点"
+            },
+            {
+              "en": "ComfyUI :8188",
+              "zh": "ComfyUI :8188"
+            },
+            {
+              "en": "Outputs output/",
+              "zh": "出图 output/"
+            }
+          ],
+          "note": {
+            "en": "watchdog · 20 min without heartbeat",
+            "zh": "watchdog · 心跳 20 min 自毁"
+          },
+          "cost": {
+            "en": "Billing 1.71 CU/h",
+            "zh": "计费中 1.71 CU/h"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "from": "agent",
+          "to": "cf",
+          "label": {
+            "en": "Bearer",
+            "zh": "Bearer"
+          }
+        },
+        {
+          "from": "browser",
+          "to": "cf"
+        },
+        {
+          "from": "cf",
+          "to": "gate"
+        },
+        {
+          "from": "gate",
+          "to": "colab",
+          "label": {
+            "en": "exec",
+            "zh": "exec"
+          }
+        }
+      ]
+    },
+    {
+      "id": "states",
+      "kind": "states",
+      "title": {
+        "en": "② State machine",
+        "zh": "② 状态机"
+      },
+      "note": {
+        "en": "10-state lifecycle · dashed lines are failure fallbacks",
+        "zh": "10 态生命周期 · 虚线为异常回退路径"
+      },
+      "boot": {
+        "row": [
+          "sleeping",
+          "allocating",
+          "installing",
+          "downloading",
+          "booting",
+          "smoke_testing",
+          "ready"
+        ],
+        "sizes": {
+          "sleeping": [
+            104,
+            36
+          ],
+          "allocating": [
+            104,
+            36
+          ],
+          "installing": [
+            104,
+            36
+          ],
+          "downloading": [
+            110,
+            36
+          ],
+          "booting": [
+            96,
+            36
+          ],
+          "smoke_testing": [
+            118,
+            36
+          ],
+          "ready": [
+            96,
+            36
+          ]
+        },
+        "edges": [
+          [
+            "sleeping",
+            "allocating",
+            "wake"
+          ],
+          [
+            "allocating",
+            "installing",
+            "setup"
+          ],
+          [
+            "installing",
+            "downloading",
+            "24.9GB"
+          ],
+          [
+            "downloading",
+            "booting",
+            "tunnel"
+          ],
+          [
+            "booting",
+            "smoke_testing",
+            "smoke"
+          ],
+          [
+            "smoke_testing",
+            "ready",
+            "serve"
+          ]
+        ]
+      },
+      "failure": {
+        "row": [
+          "failed",
+          "stopping",
+          "switching"
+        ],
+        "sizes": {
+          "failed": [
+            96,
+            34
+          ],
+          "stopping": [
+            104,
+            34
+          ],
+          "switching": [
+            120,
+            34
+          ]
+        },
+        "edges": [
+          [
+            "failed",
+            "stopping",
+            "stop"
+          ],
+          [
+            "stopping",
+            "switching",
+            ""
+          ]
+        ],
+        "bus_from": [
+          "allocating",
+          "installing",
+          "downloading",
+          "booting",
+          "smoke_testing"
+        ]
+      },
+      "notes": {
+        "fail": {
+          "en": "any boot state fails → failed → retry allocating",
+          "zh": "任一开机态失败 → failed → 重试 allocating"
+        },
+        "stop": {
+          "en": "stop is allowed from any non-sleeping state → VM released",
+          "zh": "任一非睡眠态均可 stop → 释放 VM"
+        },
+        "switch": {
+          "en": "switch, cold change",
+          "zh": "switch 冷切换"
+        },
+        "billing": {
+          "en": "BILLING_STATES · five boot states + ready + switching + failed — a Colab instance exists here and is billed at 1.71 CU/h",
+          "zh": "计费区间 BILLING_STATES · 五个开机态 + ready + switching + failed —— 此区间内 Colab 实例存在，按 1.71 CU/小时 计费"
+        }
+      }
+    },
+    {
+      "id": "gates",
+      "kind": "grid",
+      "columns": 5,
+      "title": {
+        "en": "③ Automatic shutdown",
+        "zh": "③ 自动停机"
+      },
+      "note": {
+        "en": "Five gates · any one of them releases the GPU and its CU",
+        "zh": "五道闸门 · 任意一条命中即释放 GPU 与 CU"
+      },
+      "cells": [
+        {
+          "w": 212,
+          "h": 74,
+          "accent": "amber",
+          "title": {
+            "en": "Idle timeout",
+            "zh": "空闲超时"
+          },
+          "code": "IDLE_TIMEOUT_MIN = 30",
+          "note": {
+            "en": "skipped while the queue is busy",
+            "zh": "队列非空时跳过"
+          }
+        },
+        {
+          "w": 212,
+          "h": 74,
+          "accent": "orange",
+          "title": {
+            "en": "Session limit",
+            "zh": "会话上限"
+          },
+          "code": "MAX_SESSION_HOURS = 6",
+          "note": {
+            "en": "extendable once, +1 h",
+            "zh": "可 extend 一次 +1h"
+          }
+        },
+        {
+          "w": 212,
+          "h": 74,
+          "accent": "violet",
+          "title": {
+            "en": "CU budget",
+            "zh": "CU 预算"
+          },
+          "code": {
+            "en": "12 / 150 CU per day / month",
+            "zh": "日 12 / 月 150 CU"
+          },
+          "note": {
+            "en": "wake refused below 5 CU",
+            "zh": "余额低于 5 CU 拒绝开机"
+          }
+        },
+        {
+          "w": 212,
+          "h": 74,
+          "accent": "sky",
+          "title": {
+            "en": "Watchdog",
+            "zh": "看门狗"
+          },
+          "code": "WATCHDOG_GATE_LOST_MIN = 20",
+          "note": {
+            "en": "VM self-destructs on silence",
+            "zh": "网关失联 VM 自毁"
+          }
+        },
+        {
+          "w": 212,
+          "h": 74,
+          "accent": "mint",
+          "title": {
+            "en": "Explicit stop",
+            "zh": "显式停机"
+          },
+          "code": "POST /_gate/stop",
+          "note": {
+            "en": "agents release it when done",
+            "zh": "Agent 完成即释放"
+          }
+        }
+      ]
+    },
+    {
+      "id": "props",
+      "kind": "grid",
+      "columns": 3,
+      "title": {
+        "en": "Three properties that matter",
+        "zh": "三条关键性质"
+      },
+      "note": null,
+      "cells": [
+        {
+          "w": 340,
+          "h": 88,
+          "accent": "amber",
+          "title": {
+            "en": "Single instance, idempotent",
+            "zh": "单实例幂等"
+          },
+          "body": {
+            "en": "A second wake joins the boot already in flight.",
+            "zh": "并发唤醒只会加入同一个 in-flight 启动。"
+          },
+          "code": "Session.lock"
+        },
+        {
+          "w": 340,
+          "h": 88,
+          "accent": "orange",
+          "title": {
+            "en": "State is persisted",
+            "zh": "状态持久化"
+          },
+          "body": {
+            "en": "A restart re-attaches and replays progress.",
+            "zh": "网关重启后接管会话并回放进度。"
+          },
+          "code": "STATE_DIR/session.json"
+        },
+        {
+          "w": 340,
+          "h": 88,
+          "accent": "mint",
+          "title": {
+            "en": "Secrets never leave the gate",
+            "zh": "密钥不出网关"
+          },
+          "body": {
+            "en": "The Colab token stays here and travels over stdin.",
+            "zh": "Colab token 仅存网关，经 stdin 传给内核。"
+          },
+          "code": {
+            "en": "secrets/ · *_FILE pointers",
+            "zh": "secrets/ · *_FILE 指针"
+          }
+        }
+      ]
+    }
+  ],
+  "legend": {
+    "en": [
+      "running",
+      "booting",
+      "failed",
+      "stopping",
+      "switching"
+    ],
+    "zh": [
+      "运行中",
+      "开机中",
+      "异常",
+      "停机中",
+      "切换中"
+    ]
+  },
+  "title_attr": {
+    "en": "Comfy Colab Kit: request path, 10-state lifecycle, and auto-stop gates",
+    "zh": "Comfy Colab Kit 请求链路、10 态生命周期与自动停机闸门"
+  }
+}
