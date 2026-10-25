@@ -40,7 +40,7 @@ The gateway fronts a cloud GPU instance that incurs Compute Unit costs and execu
 | **Malicious or Unauthorized Wake Spamming** | High | In-flight wake operations are strictly serialized under `Session.lock`. Concurrent wake calls safely join the existing session without spinning up additional VMs. Non-owners cannot trigger cold profile switches. |
 | **Web Crawlers / Search Engines Scraping Gateway** | Medium | `apps/gate/app.py` blocks known web crawlers with 403 Forbidden, serves `Disallow: /` on `/robots.txt`, and attaches `X-Robots-Tag: noindex, nofollow, noarchive, nosnippet` to every response. |
 | **Exfiltration of Tokens via Colab VM Disk or Logs** | High | Bootstrap secrets (`CF_TUNNEL_TOKEN`, `HF_TOKEN`) are passed into `colab exec` via **stdin as JSON**. They are never written to disk, never placed in command-line arguments (`argv`), and never printed in logs. |
-| **Runaway GPU Spend from VPS Host Crash** | High | The in-kernel watchdog (`packages/colab/setup.py`) monitors heartbeat pings. If the gate becomes unreachable for `WATCHDOG_GATE_LOST_MIN`, the VM triggers `runtime.unassign()` autonomously. |
+| **Runaway GPU Spend from VPS Host Crash** | High | The watchdog process (`packages/colab/setup.py` started with `KIT_WATCHDOG_ONLY=1`) monitors heartbeat pings. If the gate becomes unreachable for `WATCHDOG_GATE_LOST_MIN`, the VM triggers `runtime.unassign()` autonomously. |
 | **Accidental Credential Commit to Git** | Critical | `.env`, `secrets/*`, and `data/*` are ignored in `.gitignore`. Secrets must use `*_FILE` pointers. Pre-commit hooks execute `scripts/check-secrets.sh` and CI runs Gitleaks on every commit. |
 
 ---

@@ -80,8 +80,13 @@ The gate evaluates inactivity using two complementary rules:
 
 What happens if the VPS crashes, Docker daemon halts, or network connectivity between the VPS and Colab drops? Without a mechanism running directly on the VM, the remote Colab instance would continue running and draining Compute Units until your Google quota hit zero.
 
-Comfy Colab Kit solves this with an in-kernel Colab watchdog (`packages/colab/setup.py`):
-1. The gate probes the Colab VM's `/kit/heartbeat` endpoint every 30 seconds.
+Comfy Colab Kit solves this with a Colab-side watchdog that runs as its **own process** on the VM
+(`packages/colab/setup.py`, started with `KIT_WATCHDOG_ONLY=1`). It is deliberately *not* a thread
+inside the setup cell: setup.py returns once ComfyUI is ready so the Jupyter kernel stays free for
+later `colab exec` calls (the gate heartbeat and the on-demand model fetch both need the kernel),
+and a separate process keeps the cost guard alive after that.
+1. The gate touches the Colab kernel every ~90 seconds (the same exec that refreshes
+   `/content/kit_heartbeat`), which is also what keeps an idle runtime from being reclaimed.
 2. If the Colab kernel does not receive a heartbeat probe from the gate within **`WATCHDOG_GATE_LOST_MIN`** (default: 20 minutes), the watchdog concludes that the managing gateway is unreachable.
 3. The watchdog executes Google Colab's native kernel self-termination command:
    ```python

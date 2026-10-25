@@ -12,7 +12,7 @@ description: ComfyUI on Colab L4 GPU gate operator. Wake, manage shared session,
 ## 1. 核心凭据与端点解析
 
 Agent 操作网关时，网关地址与凭据按以下优先级解析：
-1. **环境变量**: `CKIT_URL` (如 `https://comfy.firetable.tech`), `CKIT_TOKEN`
+1. **环境变量**: `CKIT_URL` (如 `https://comfy.example.com`), `CKIT_TOKEN`
 2. **通用 Agent 配置**: `~/.agents/.env` 中的 `CKIT_URL` 与 `CKIT_TOKEN`
 3. **全局 CLI 配置**: `~/.config/ckit/config.json`
 
@@ -282,7 +282,7 @@ def upload_reference_image(gateway_url: str, token: str, file_path: str) -> str:
 2. **唤醒 (如需)**：
    - 若 `state === "sleeping"`：
      - 调用 `gate_wake(profile="moss-image")`（或 `POST /_gate/wake`）。
-     - 等待状态轮询变为 `"ready"`（通常需要 80~100 秒分配显卡并加载模型）。
+     - 等待状态轮询变为 `"ready"`（当前实测：分配算力 ~10 秒 + 装依赖 ~22 秒 + 下载 24.9 GB 权重 ~30 秒，与 ComfyUI 启动并行；整体约 60~95 秒，取决于 Colab 分配 VM 的快慢）。
    - 若处于 `allocating` / `downloading` / `booting`：等待就绪即可。
 3. **执行生成**：
    - 文生图：首选 MCP `gate_txt2img`，生成完成后直接返回结果图片 URL。

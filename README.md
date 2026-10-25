@@ -125,7 +125,7 @@ Traditional Colab forces you to sit in front of a computer, manually run noteboo
 - **Dual-Mode Access Control (Mode B Default)** — `OWNER_ONLY_CONTROL=true` restricts wake, stop, profile switch, and extension to administrators (`OWNER_EMAILS`), safeguarding Colab compute units while allowing all authenticated team members to share ComfyUI once ready. Switchable to Mode A collaborative control ("who wakes can stop").
 - **Multi-IdP & Access-verified identity** — Supports Google & GitHub OAuth alongside Email OTP. Every request verifies `Cf-Access-Jwt-Assertion` (RS256, AUD, issuer).
 - **Backend locked to a service token** — the Colab tunnel hostname only admits the gate's Access service token.
-- **Fast cold start** — parallel `hf-transfer` Rust chunked downloads, `uv` installs, 30s stall watchdog, tunnel started first, ComfyUI booted as soon as core weights land (`FAST_START`).
+- **Fast cold start & L4 hardware acceleration** — a parallel HTTP Range downloader streams the 24.9 GB MOSS-Image profile at T0 straight into a RAM tmpfs at up to 1,096 MB/s (8.77 Gbps), overlapping tool installs and ComfyUI boot. `--highvram` keeps the entire 18 GB model suite resident in L4's 24 GB VRAM with 100% cache retention (zero PCIe swapping), yielding ~60 s cold starts and 26.8 s warm 1024×1024 generations.
 - **App mode first** — workflows get ComfyUI App-mode metadata; the injected overlay toggles App ⇄ Graph.
 - **Full ComfyUI API passthrough** — transparently proxies `/upload/image` for Img2Img reference images, `/prompt`, `/history`, `/view`, `/object_info`, `/system_stats`, `/queue`, and WebSocket `/ws`.
 - **Autonomous Agent friendly** — RFC 8628 device flow (`ckit auth`), 1-click prompt copy in Web UI, `docs/AGENT_SKILL.md`, `docs/MCP.md`, `skills/comfy-colab-kit/SKILL.md`, and `llms.txt`.
@@ -171,6 +171,8 @@ Autonomous coding agents (Claude Code, Cursor, OpenClaw, Codex, LangGraph) can w
 📖 **Agent References & Protocols**:
 - [docs/MCP.md](docs/MCP.md) — Comprehensive Model Context Protocol guide (stdio `ckit mcp`, remote HTTP `/mcp`, Cursor & Claude setup).
 - [skills/comfy-colab-kit/SKILL.md](skills/comfy-colab-kit/SKILL.md) — Universal Agent Skill specification (`/comfy-colab-kit`) with Txt2Img vs Img2Img decision tree.
+- [skills/comfy-workflow-ui/SKILL.md](skills/comfy-workflow-ui/SKILL.md) — ComfyUI App Mode and workflow UI inspection & audit runbook.
+- [docs/APP_MODE.md](docs/APP_MODE.md) — ComfyUI App Mode (Linear Mode) architecture, schemas, and node serialization rules.
 - [docs/AGENT_SKILL.md](docs/AGENT_SKILL.md) — Detailed Agent Skill specification, credential handling, and tool patterns.
 - [docs/AGENT.md](docs/AGENT.md) — Autonomous VPS deployment guide, credential procurement, and Cloudflare Access setup.
 - [apps/gate/openapi.yaml](apps/gate/openapi.yaml) — OpenAPI 3.1 specification for all `/_gate/*` and passthrough routes.
@@ -235,7 +237,11 @@ comfy-colab-kit/
 ├── docs/                     # Comprehensive product & engineering documentation
 │   ├── AGENT.md              # VPS deployment & credential acquisition runbook
 │   ├── AGENT_SKILL.md        # AI agent usage guide (wake, generate, stop)
+│   ├── APP_MODE.md           # ComfyUI App Mode form architecture & UI specifications
 │   └── ...
+├── skills/                   # Self-contained agent runbooks
+│   ├── comfy-colab-kit/      # Gateway operator skill (wake, prompt, generate, stop)
+│   └── comfy-workflow-ui/    # Workflow UI & App Mode inspector and audit skill
 ├── scripts/                  # CI, validation and secret check utilities
 └── tests/                    # Pytest test suite (145 tests)
 ```

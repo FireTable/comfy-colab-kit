@@ -1,7 +1,8 @@
 # AGENTS.md — Comfy Colab Kit
 
-Guide for AI coding agents working **on** this repository. To **use** a deployed gate (wake, generate, stop),
-read [docs/AGENT_SKILL.md](docs/AGENT_SKILL.md) instead.
+Guide for AI coding agents working **on** this repository.
+- To **use** a deployed gate (wake, generate, stop), read [docs/AGENT_SKILL.md](docs/AGENT_SKILL.md) or use [skills/comfy-colab-kit/](skills/comfy-colab-kit/).
+- To **maintain** workflow UI & App Mode forms, read [docs/APP_MODE.md](docs/APP_MODE.md) or use [skills/comfy-workflow-ui/](skills/comfy-workflow-ui/).
 
 ---
 
@@ -20,7 +21,8 @@ The repository is structured as a clean engineering monorepo:
 | `profiles/examples/` | Community Profiles | `moss-image` (primary), `sd-latest`, `qwen-image` | Community workflows only |
 | `profiles/custom/` | User Profiles | User-defined custom model profiles mount | Re-read dynamically on wake |
 | `deploy/` | Deployment | Dockerfile, compose, Caddyfile snippet | Container run as uid 10001 |
-| `docs/` | Documentation | Product & architecture guides, including `docs/AGENT.md` | English only, no secrets |
+| `docs/` | Documentation | Product & architecture guides, including `docs/APP_MODE.md` | English only, no secrets |
+| `skills/` | Agent Skills | Operator skill (`comfy-colab-kit`) & UI skill (`comfy-workflow-ui`) | Self-contained agent runbooks |
 | `scripts/` | Tooling | `check-secrets.sh`, `validate-profile.py`, `cf-setup.sh` | Run before commit |
 | `tests/` | Tests | Pytest test suite | Run with `python3 -m pytest -q` |
 
@@ -78,7 +80,8 @@ Billing states (CU accrues): every boot state, `ready`, `switching`, `failed`.
 - SSE and `/ws` need streaming through Caddy (`flush_interval -1`, no read timeout).
 - `colab exec` output stops when the gate restarts; the session re-attaches by probing the backend.
 - App-mode metadata keys (`extra.linearData`, `extra.linearMode`) come from the ComfyUI frontend ≥ 1.41.13;
-  pin `frontend.package` in profiles.
+  pin `frontend.package` in profiles. Never serialize `widgets` on node JSON dictionaries; widget labels
+  persist through canonical backing slots with `widget: {name: wname}` (see `docs/APP_MODE.md`).
 - macOS ships bash 3.2: shell scripts must avoid `mapfile`, `${var,,}` etc.
 
 ## 🧪 Tests & release
