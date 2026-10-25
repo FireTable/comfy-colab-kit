@@ -364,6 +364,18 @@ def test_layout_checker_catches_real_defects(tmp_path):
         "arrow-way": (dashed, _reverse_last_leg(dashed)),
         # a box that pokes out of the frame around it
         "box-out": (switching, switching.replace('width="120"', 'width="160"')),
+        # a logo painted in the colour of the shape behind it
+        "icon-faint": (grab(r'<symbol id="logo-huggingface-light"[^>]*><path fill="#[0-9a-f]{6}"'),
+                       grab(r'<symbol id="logo-huggingface-light"[^>]*><path fill="#[0-9a-f]{6}"')
+                       .replace('fill="#f5f5f4"', 'fill="#211927"')),
+        # a logo too small to recognise
+        "icon-tiny": (grab(r'<use href="#logo-huggingface-light"[^>]*/>'),
+                      grab(r'<use href="#logo-huggingface-light"[^>]*/>')
+                      .replace('width="16"', 'width="7"').replace('height="18"', 'height="7"')),
+        # two items in a list with no room between them
+        "item-tight": (grab(r'<rect x="0" y="0" width="242" height="26"[^>]*/>'),
+                       grab(r'<rect x="0" y="0" width="242" height="26"[^>]*/>')
+                       .replace('height="26"', 'height="30"')),
     }
     for name, (old, new) in cases.items():
         assert old in src, name

@@ -405,14 +405,19 @@ LOGO_PATHS = {
     ),
 }
 
+# name: (fill, viewBox, size)
+# Logos sit on bright brand bands, so they use the deep plum ink for contrast
+# (same rule as label text on a colour block).
+#
+# The viewBox is the artwork's *tight* bounding box, not the nominal 24x24:
+# a viewBox with empty space around the path makes the logo render smaller
+# than the box you asked for (ComfyUI's mark is half of 48x48, so an 18px
+# box would draw it 8px wide).
 LOGO_STYLE = {
-    # name: (fill, viewBox, size)
-    # Logos sit on bright brand bands, so they use the deep plum ink for contrast
-    # (same rule as label text on a colour block).
-    "cloudflare": ("#211927", "0 0 24 24", 17),
-    "googlecolab": ("#211927", "0 0 24 24", 18),
-    "huggingface": ("#ffd21e", "0 0 24 24", 12),
-    "comfyui": ("#211927", "0 0 48 48", 15),
+    "cloudflare": ("#211927", "0 6.57 24 10.85", 17),
+    "googlecolab": ("#211927", "0 4.98 24 14.05", 18),
+    "huggingface": ("#ffd21e", "0 1.13 24 21.74", 12),
+    "comfyui": ("#211927", "12 11.06 24 25.87", 15),
 }
 
 # the accent a spec cell can ask for, and the colour it turns into
