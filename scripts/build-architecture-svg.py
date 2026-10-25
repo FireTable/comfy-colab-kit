@@ -489,7 +489,9 @@ def hero_panel(add) -> None:
     """
     src = (ROOT / "assets" / "architecture" / "hero.svg").read_text(encoding="utf-8")
     inner = src[src.index(">") + 1:src.rindex("</svg>")]
-    add('  <g transform="translate(700,30)">')
+    # the palette variables live on `.iso`, which the hero's root element
+    # carries; stripping that root would drop every colour back to black
+    add('  <g class="iso" transform="translate(700,30)">')
     add('    <rect x="0" y="0" width="440" height="248" rx="14" fill="#1b1523" />')
     add(inner)
     add('    <rect x="0" y="0" width="440" height="248" rx="14" fill="none" '
