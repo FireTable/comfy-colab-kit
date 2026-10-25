@@ -582,7 +582,7 @@ def draw_colab(add, box: Box, node: dict, lang: str) -> None:
     add('    <use href="#logo-googlecolab" x="11" y="7" width="18" height="18" />')
     add(f'    <text x="35" y="21" font-size="13" font-weight="700" fill="var(--ink-on-tape)">{esc(say(node["label"], lang))}</text>')
     add("""    <g transform="translate(14,40)">
-      <rect x="0" y="0" width="216" height="112" rx="10" fill="var(--bg-raise)" stroke="var(--border-card)" stroke-width="1" />
+      <rect x="0" y="0" width="216" height="88" rx="10" fill="var(--bg-raise)" stroke="var(--border-card)" stroke-width="1" />
       <rect x="0" y="0" width="216" height="22" rx="10" fill="var(--bg-canvas)" opacity="0.6" />""")
     add(f'      <text x="10" y="15" font-size="10.5" class="code-text" fill="var(--ink-secondary)">{esc(node["path"])}</text>')
     # 品牌标记放在标题行右侧，18px 才认得出；原来 12px 只是一团糊
@@ -598,8 +598,8 @@ def draw_colab(add, box: Box, node: dict, lang: str) -> None:
         add(f'      <rect x="{cx}" y="{cy}" width="94" height="20" rx="5" fill="{col}" opacity="0.9" />')
         add(f'      <text x="{cx + 47}" y="{cy + 14}" font-size="9.5" text-anchor="middle" fill="var(--ink-on-tape)">{esc(say(txt, lang))}</text>')
     add("    </g>")
-    add(f'    <text x="14" y="170" font-size="9.5" fill="var(--ink-muted)">{esc(say(node["note"], lang))}</text>')
-    add(f'    <text x="14" y="186" font-size="9.5" class="code-text" fill="var(--ink-muted)">{esc(say(node["cost"], lang))}</text>')
+    add(f'    <text x="14" y="146" font-size="9.5" fill="var(--ink-muted)">{esc(say(node["note"], lang))}</text>')
+    add(f'    <text x="14" y="162" font-size="9.5" class="code-text" fill="var(--ink-muted)">{esc(say(node["cost"], lang))}</text>')
     add("  </g>")
 
 
@@ -695,7 +695,7 @@ def build(spec: dict, lang: str) -> tuple[str, float]:
     trunk_y = states_y + 36 + 20
     ret_y = fails_y + 34 + 18
     bill_y = ret_y + 26
-    rail_h = bill_y + 22 + state_pad - rail_y
+    rail_h = bill_y + 22 + 18 - rail_y
     sec3_y = bill_y + 22 + 18 + 40
     gates_y = sec3_y + 40
     gate_cell_h = grid_layouts["gates"][1][0]["h"]
