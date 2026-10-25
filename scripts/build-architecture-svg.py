@@ -17,7 +17,6 @@ Outputs:
 """
 from __future__ import annotations
 
-import base64
 import json
 import re
 import shutil
@@ -28,7 +27,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "assets" / "architecture"
-HERO = OUT_DIR / "hero.webp"
 DOT_HELPER = ROOT / "scripts" / "dot-layout.mjs"
 
 # ── palette (mirrors assets/logo + apps/site/styles.css) ────────────────────
@@ -565,7 +563,49 @@ def edge_attrs(marker_id: str | None = None, stroke: str = "var(--ink-muted)",
     return " ".join(parts)
 
 
-def build(lang: Lang, hero_b64: str) -> tuple[str, float]:
+def hero_panel(add) -> None:
+    """The illustration in the top right: a phone hands work to a GPU.
+
+    It is drawn, not embedded. GitHub serves raw files with
+    ``content-security-policy: default-src 'none'``, which blocks a ``data:``
+    image inside an SVG that is opened directly — the embedded picture turns
+    into a broken-image icon. Pure vector geometry survives every viewer.
+    """
+    add("""  <g transform="translate(700,30)">
+    <rect x="0" y="0" width="440" height="248" rx="14" fill="url(#g-hero)" />
+    <ellipse cx="230" cy="112" rx="150" ry="86" fill="url(#g-hero-glow)" />""")
+
+    # the phone, seen from the back
+    add("""    <g transform="translate(52,74)">
+      <rect x="0" y="0" width="58" height="104" rx="12" fill="#2c2338" stroke="#6d5a80" stroke-width="1.4" />
+      <rect x="6" y="12" width="46" height="76" rx="5" fill="#191322" />
+      <rect x="21" y="5" width="16" height="3" rx="1.5" fill="#6d5a80" />
+      <circle cx="29" cy="95" r="4" fill="none" stroke="#6d5a80" stroke-width="1.2" />
+      <circle cx="29" cy="95" r="1.2" fill="#6d5a80" />
+    </g>""")
+
+    # the beam: a tapered ribbon in the brand gradient
+    add('    <path d="M110 108 C168 50 250 50 306 100 L306 126 C250 80 168 80 110 124 Z" '
+        'fill="url(#g-beam)" />')
+    add('    <path d="M116 114 C172 64 246 64 300 104" fill="none" stroke="#fff3c4" '
+        'stroke-width="1.5" stroke-linecap="round" opacity="0.5" />')
+
+    # the accelerator card, tilted
+    add("""    <g transform="translate(292,84)">
+      <path d="M14 40 L96 8 L124 24 L42 56 Z" fill="#3b3049" stroke="#f9ab00" stroke-width="1.4" />
+      <path d="M42 56 L124 24 L124 50 L42 82 Z" fill="#241c2f" stroke="#f9ab00" stroke-width="1.4" />
+      <path d="M14 40 L42 56 L42 82 L14 66 Z" fill="#2b2236" stroke="#f9ab00" stroke-width="1.4" />
+      <path d="M58 44 L92 28" fill="none" stroke="#f9ab00" stroke-width="1.1" opacity="0.6" />
+      <path d="M62 56 L96 40" fill="none" stroke="#f9ab00" stroke-width="1.1" opacity="0.6" />
+      <circle cx="34" cy="49" r="3" fill="#3ddc84" />
+    </g>""")
+
+    add('    <rect x="0" y="0" width="440" height="248" rx="14" fill="none" '
+        'stroke="var(--border-card)" stroke-width="1.2" />')
+    add("  </g>")
+
+
+def build(lang: Lang) -> tuple[str, float]:
     """Return the SVG source and the canvas height it needs."""
     o: list[str] = []
     add = o.append
@@ -698,6 +738,17 @@ def build(lang: Lang, hero_b64: str) -> tuple[str, float]:
     add(f"""    <linearGradient id="g-lime" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="{LIME}" /><stop offset="1" stop-color="{AMBER}" />
     </linearGradient>""")
+    add(f"""    <linearGradient id="g-hero" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#251d2f" /><stop offset="1" stop-color="#1b1523" />
+    </linearGradient>""")
+    add(f"""    <linearGradient id="g-beam" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="{AMBER}" /><stop offset="0.55" stop-color="{LIME}" />
+      <stop offset="1" stop-color="{AMBER}" />
+    </linearGradient>""")
+    add("""    <radialGradient id="g-hero-glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#f2ff59" stop-opacity="0.20" />
+      <stop offset="1" stop-color="#f2ff59" stop-opacity="0" />
+    </radialGradient>""")
     for name, path in LOGO_PATHS.items():
         fill, viewbox, _size = LOGO_STYLE[name]
         add(f'    <symbol id="logo-{name}" viewBox="{viewbox}"><path fill="{fill}" d="{path}" /></symbol>')
@@ -735,12 +786,8 @@ def build(lang: Lang, hero_b64: str) -> tuple[str, float]:
     add("  </g>")
     add(f'  <text x="{MARGIN}" y="162" font-size="12.5" fill="var(--ink-muted)">{esc(lang.headline)}</text>')
 
-    # ── hero image ──
-    add(f"""  <g>
-    <image x="700" y="30" width="440" height="{hero_h}" clip-path="url(#clip-hero)"
-           preserveAspectRatio="xMidYMid slice" href="data:image/webp;base64,""" + hero_b64 + """" />""")
-    add(f'    <rect x="700" y="30" width="440" height="{hero_h}" rx="14" fill="none" stroke="var(--border-card)" stroke-width="1.2" />')
-    add("  </g>")
+    # ── hero illustration ──
+    hero_panel(add)
 
     # ── section 1 tape ──
     tape1_w = text_width(lang.sec1, 12.5) + 26
@@ -988,12 +1035,8 @@ def build(lang: Lang, hero_b64: str) -> tuple[str, float]:
 
 
 def main() -> int:
-    if not HERO.is_file():
-        print(f"missing hero asset: {HERO}", file=sys.stderr)
-        return 1
-    hero_b64 = base64.b64encode(HERO.read_bytes()).decode()
     for lang, name in ((EN, "flow.svg"), (ZH, "flow.zh.svg")):
-        svg, height = build(lang, hero_b64)
+        svg, height = build(lang)
         (OUT_DIR / name).write_text(svg, encoding="utf-8")
         print(f"wrote assets/architecture/{name}  ({len(svg) / 1024:.0f} KB, {height:.0f} px tall)")
     return 0
