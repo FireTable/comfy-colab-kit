@@ -15,9 +15,40 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
 <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet">
-<title>Comfy Colab Kit</title>
+<title>Comfy Colab Gate — GPU Session Manager</title>
+<meta name="description" content="Autonomous GPU session manager & ComfyUI gateway. Remote wake-on-demand compute on Google Colab L4 GPUs with real-time CU budget tracking.">
 <link rel="icon" href="/_gate/static/logo.svg">
 <meta name="theme-color" content="#0E0A12">
+
+<!-- Open Graph / Link Previews -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Comfy Colab Gate">
+<meta property="og:title" content="Comfy Colab Gate — GPU Session Manager">
+<meta property="og:description" content="Autonomous GPU session manager & ComfyUI gateway. Remote wake-on-demand compute on Google Colab L4 GPUs with real-time CU budget tracking.">
+<meta property="og:image" content="/_gate/static/og.png">
+<meta property="og:image:secure_url" content="/_gate/static/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Comfy Colab Gate — GPU Session Manager & ComfyUI Gateway">
+<meta property="og:locale" content="en_US">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@FireTable">
+<meta name="twitter:creator" content="@FireTable">
+<meta name="twitter:title" content="Comfy Colab Gate — GPU Session Manager">
+<meta name="twitter:description" content="Autonomous GPU session manager & ComfyUI gateway. Remote wake-on-demand compute on Google Colab L4 GPUs with real-time CU budget tracking.">
+<meta name="twitter:image" content="/_gate/static/og.png">
+<meta name="twitter:image:alt" content="Comfy Colab Gate — GPU Session Manager & ComfyUI Gateway">
+
+<!-- Geographic & Cloud Tags -->
+<meta name="geo.region" content="US-CA">
+<meta name="geo.placename" content="Mountain View, California">
+<meta name="geo.position" content="37.422;-122.084">
+<meta name="ICBM" content="37.422, -122.084">
+<meta name="distribution" content="Global">
+<meta name="rating" content="General">
 <!-- Visual effects adapted from React Bits (https://reactbits.dev, MIT, (c) David Haz):
      Aurora (bg.js), ShinyText, StarBorder, SpotlightCard — ported to vanilla CSS/JS. -->
 <style>
@@ -205,6 +236,7 @@ h1{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:10px 0 6px;backgr
 .stages li.cur{color:var(--fg);font-weight:600}.stages li.cur .k{border-color:var(--y);box-shadow:0 0 12px var(--y)}
 .stages li.cur .k::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--y);animation:pulse 1.6s infinite}
 .stages li .t{font:10.5px var(--mono);color:var(--muted)}
+.stages li .par{font-style:normal;font-size:10px;line-height:1.5;padding:0 5px;border-radius:6px;border:1px solid var(--line2);color:var(--muted);margin-left:6px;vertical-align:1px}
 .prog{margin:10px 0 2px}.prow{display:flex;justify-content:space-between;font:11px var(--mono);color:var(--muted);margin-bottom:4px}
 .bar{height:6px;background:rgba(127,127,127,.18);border-radius:9px;overflow:hidden;position:relative}
 .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--o),var(--y),var(--n));border-radius:9px;transition:width .4s ease;box-shadow:0 0 14px var(--y)}
@@ -602,7 +634,7 @@ const I18N={
   badge_sleeping:"Sleeping",badge_ready:"Ready",badge_failed:"Failed",badge_stopping:"Stopping",badge_switching:"Switching",badge_waking:"Waking",
   online:"{count} online",
   stage_allocating:"Allocate GPU",stage_installing:"Install runtime",stage_downloading:"Download models",stage_booting:"Start ComfyUI",stage_smoke_testing:"Smoke test",
-  overall:"Overall",eta:"ETA ~{time}",paused:"paused (prompt running)",stalled_restarted:"{count} download retry",stalled_restarted_p:"{count} download retries",later:"+{size} later",
+  overall:"Overall",eta:"ETA ~{time}",parallel_hint:"in parallel",paused:"paused (prompt running)",stalled_restarted:"{count} download retry",stalled_restarted_p:"{count} download retries",later:"+{size} later",
   info_allocating:"Allocating Colab GPU instance…",info_installing:"Setting up runtime & Python dependencies…",info_booting:"Starting ComfyUI engine & loading models…",info_smoke:"Running smoke test generation…",
   profile_label:"Profile",
   select_profile:"Select Profile",
@@ -632,7 +664,7 @@ const I18N={
   badge_sleeping:"休眠中",badge_ready:"就绪",badge_failed:"失败",badge_stopping:"正在停机",badge_switching:"正在切换",badge_waking:"唤醒中",
   online:"{count} 人在线",
   stage_allocating:"分配 GPU 算力",stage_installing:"安装运行时与依赖",stage_downloading:"下载核心模型",stage_booting:"启动 ComfyUI",stage_smoke_testing:"冒烟出图验证",
-  overall:"总体进度",eta:"预计剩余 ~{time}",paused:"已暂停 (正在出图)",stalled_restarted:"网络重试中 ({count}次)",stalled_restarted_p:"网络重试中 ({count}次)",later:"另有 +{size} 后续拉取",
+  overall:"总体进度",eta:"预计剩余 ~{time}",parallel_hint:"并行",paused:"已暂停 (正在出图)",stalled_restarted:"网络重试中 ({count}次)",stalled_restarted_p:"网络重试中 ({count}次)",later:"另有 +{size} 后续拉取",
   info_allocating:"正在分配 Colab GPU 算力实例…",info_installing:"正在安装 ComfyUI 运行环境与核心依赖…",info_booting:"正在启动 ComfyUI 引擎与载入模型组件…",info_smoke:"正在执行冒烟出图验证…",
   profile_label:"运行预设 (Profile)",
   select_profile:"选择运行预设",
@@ -1355,14 +1387,20 @@ function render(){
  const bootKeys = stages.map(s => s[0]);
  const ol=$("stages");ol.hidden=!waking;const ci=bootKeys.indexOf(st);const d=dlp(S.progress&&S.progress.download);
  const durs=(S&&S.stage_durations)||{};
+ // steps that run concurrently with the current one (ComfyUI boots while the models download)
+ const par=(S&&S.parallel)||{};
+ const pBoot=par.booting||null;
+ const parRun=!!(pBoot&&pBoot.state==="running");
  // Rebuild the list only when its shape changes; refresh the per-stage timers in place
  // so a 1s tick never blows away text selection or focus.
- const sig=bootKeys.join(",")+"|"+ci+"|"+lang;
+ const sig=bootKeys.join(",")+"|"+ci+"|"+lang+"|"+(parRun?"pb":"");
  if(render.stageSig!==sig){
   ol.innerHTML="";render.stageTimes=[];
   stages.forEach(([k,lKey],i)=>{
-   const li=document.createElement("li");li.className=i<ci?"done":i===ci?"cur":"";
-   li.innerHTML=`<span class="k">${i<ci?"✓":""}</span><span>${t(lKey)}</span><span class="t"></span>`;
+   const li=document.createElement("li");
+   const isPar=parRun&&((k==="booting"&&i>ci)||(k==="downloading"&&i===ci));
+   li.className=i<ci?"done":(i===ci||isPar)?"cur":"";
+   li.innerHTML=`<span class="k">${i<ci?"✓":""}</span><span>${t(lKey)}${isPar?` <em class="par">${t("parallel_hint")}</em>`:""}</span><span class="t"></span>`;
    ol.appendChild(li);render.stageTimes.push(li.querySelector(".t"));
   });
   render.stageSig=sig;
@@ -1370,7 +1408,11 @@ function render(){
  stages.forEach(([k,lKey],i)=>{
   let tStr="";
   const sd=durs[k];
-  if(i<ci){
+  const isPar=parRun&&((k==="booting"&&i>ci)||(k==="downloading"&&i===ci));
+  if(isPar&&k==="booting"){
+   const startT=(pBoot&&pBoot.start)||now;
+   tStr=fmt(Math.max(1, now-startT));
+  }else if(i<ci){
    if(sd&&sd.duration!=null)tStr=`${sd.duration}s`;
    else if(sd&&sd.elapsed!=null)tStr=`${sd.elapsed}s`;
    else if(sd&&sd.start)tStr=fmt(now-sd.start);
@@ -1417,23 +1459,34 @@ function render(){
   $("pbar").style.width=pct.toFixed(1)+"%";
   $("plabel").textContent=`${Math.floor(pct)}%`;
 
-  let eta=null;
-  if(st==="downloading"&&d&&d.eta!=null){
-   let dEta=d.eta;
-   if(d.total>0&&(d.done/d.total)>0.8){
-    dEta=Math.min(dEta,90);
+  // ETA from measured numbers (Colab L4, MOSS-Image profile: total cold start ~90s / 1m 30s)
+  const TOTAL_COLD_START_S = 90;
+  const elapsedTotal = Math.max(0, now - started);
+  const baseEta = Math.max(3, TOTAL_COLD_START_S - Math.round(elapsedTotal));
+  let eta = null;
+  if (st === "allocating") {
+   eta = Math.max(70, TOTAL_COLD_START_S - Math.round(elapsedTotal));
+  } else if (st === "installing") {
+   eta = Math.max(45, TOTAL_COLD_START_S - Math.round(elapsedTotal));
+  } else if (st === "downloading") {
+   if (d && d.eta != null && d.rate > 1e5) {
+    let dEta = d.eta;
+    if (d.total > 0 && (d.done / d.total) > 0.8) {
+     dEta = Math.min(dEta, 45);
+    }
+    const dlEstimated = dEta + (parRun ? 6 : 18);
+    eta = Math.max(12, Math.min(Math.round(dlEstimated), Math.max(25, baseEta + 5)));
+   } else {
+    eta = Math.max(25, baseEta);
    }
-   eta=dEta+25;
-  }else if(st==="allocating"){
-   eta=Math.max(15,360-Math.round(now-started));
-  }else if(st==="installing"){
-   eta=Math.max(10,340-Math.round(now-started));
-  }else if(st==="booting"){
-   eta=Math.max(5,30-Math.round(elapsed));
-  }else{
-   eta=Math.max(5,15);
+  } else if (st === "booting") {
+   eta = Math.max(3, 15 - Math.round(elapsed));
+  } else if (st === "smoke_testing") {
+   eta = Math.max(2, 8 - Math.round(elapsed));
+  } else {
+   eta = Math.max(3, baseEta);
   }
-  $("eta").textContent=t("eta",{time:fmt(eta)});
+  $("eta").textContent = t("eta", { time: fmt(eta) });
 
   if(st==="downloading"&&d&&d.total){
    const parts=[`${formatBytes(d.done)} / ${formatBytes(d.total)}`];

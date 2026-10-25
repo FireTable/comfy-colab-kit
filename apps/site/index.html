@@ -20,24 +20,34 @@
 <meta property="og:url" content="https://comfy-colab-kit.firetable.tech/">
 <meta property="og:site_name" content="Comfy Colab Kit">
 <meta property="og:title" content="Comfy Colab Kit — Remote, Wake-on-Demand ComfyUI on Google Colab">
-<meta property="og:description" content="ComfyUI on Colab GPUs, awake only when you need it. One URL, one shared session, auto-shutdown when idle.">
-<meta property="og:image" content="https://comfy-colab-kit.firetable.tech/assets/logo-e-fusion-dark-512.png">
-<meta property="og:image:width" content="512">
-<meta property="og:image:height" content="512">
+<meta property="og:description" content="ComfyUI on Colab L4 GPUs, awake only when you need it. One URL, one shared session, auto-shutdown when idle. Native AI Agent & MCP dispatch.">
+<meta property="og:image" content="https://comfy-colab-kit.firetable.tech/assets/og.png">
+<meta property="og:image:secure_url" content="https://comfy-colab-kit.firetable.tech/assets/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Comfy Colab Kit — Remote, Wake-on-Demand ComfyUI on Google Colab L4 GPUs">
 <meta property="og:locale" content="en_US">
 <meta property="og:locale:alternate" content="zh_CN">
 
 <!-- Twitter Card -->
-<meta name="twitter:card" content="summary">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@FireTable">
+<meta name="twitter:creator" content="@FireTable">
 <meta name="twitter:title" content="Comfy Colab Kit — Remote, Wake-on-Demand ComfyUI on Google Colab">
-<meta name="twitter:description" content="ComfyUI on Colab GPUs, awake only when you need it. One URL, one shared session, auto-shutdown when idle.">
-<meta name="twitter:image" content="https://comfy-colab-kit.firetable.tech/assets/logo-e-fusion-dark-512.png">
+<meta name="twitter:description" content="ComfyUI on Colab L4 GPUs, awake only when you need it. One URL, one shared session, auto-shutdown when idle. Native AI Agent & MCP dispatch.">
+<meta name="twitter:image" content="https://comfy-colab-kit.firetable.tech/assets/og.png">
+<meta name="twitter:image:alt" content="Comfy Colab Kit — Remote, Wake-on-Demand ComfyUI on Google Colab L4 GPUs">
 
-<!-- Geographic & Global Target Tags -->
-<meta name="geo.region" content="GLOBAL">
-<meta name="geo.placename" content="Global Cloud Network">
+<!-- Geographic & SEO Meta Tags -->
+<meta name="geo.region" content="US-CA">
+<meta name="geo.placename" content="Mountain View, California">
+<meta name="geo.position" content="37.422;-122.084">
+<meta name="ICBM" content="37.422, -122.084">
 <meta name="distribution" content="Global">
 <meta name="rating" content="General">
+<meta name="coverage" content="Worldwide">
+<meta name="target" content="all">
 
 <!-- Structured Data (JSON-LD) -->
 <script type="application/ld+json">
@@ -50,6 +60,7 @@
       "url": "https://comfy-colab-kit.firetable.tech/",
       "name": "Comfy Colab Kit",
       "description": "Wake-on-demand ComfyUI on Google Colab GPU instances with zero-trust protection and automated idle shutdown.",
+      "image": "https://comfy-colab-kit.firetable.tech/assets/og.png",
       "inLanguage": ["en", "zh-CN"]
     },
     {
@@ -58,6 +69,8 @@
       "name": "Comfy Colab Kit",
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "Linux, Cloud, Google Colab",
+      "image": "https://comfy-colab-kit.firetable.tech/assets/og.png",
+      "screenshot": "https://comfy-colab-kit.firetable.tech/assets/og.png",
       "offers": {
         "@type": "Offer",
         "price": "0",
@@ -564,7 +577,7 @@ docker compose -f deploy/docker-compose.yml up -d --build
       </article>
       <article class="card stat">
         <div class="stat-value">
-          <span class="stat-num">185–380</span>
+          <span class="stat-num">60–95</span>
           <span class="stat-unit">s</span>
         </div>
         <span class="stat-label" data-i18n="numbers.s3Label">Cold start from sleep to ready</span>
@@ -572,7 +585,7 @@ docker compose -f deploy/docker-compose.yml up -d --build
     </div>
     <p class="footnote" data-i18n="numbers.footnote">
       <svg class="info-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-      <span>Measured on Colab L4 with the MOSS-Image profile (25 GB weights streamed at up to 330 MB/s). Actual figures will vary depending on network and GPU quota.</span>
+      <span>Measured on Colab L4 with the MOSS-Image profile: 24.9 GB of weights streamed at up to 850 MB/s into a RAM-backed tmpfs, while ComfyUI boots in parallel. Cold start is dominated by Colab's own VM allocation, so actual figures vary with network and GPU quota.</span>
     </p>
   </div>
 </section>
@@ -672,6 +685,7 @@ docker compose -f deploy/docker-compose.yml up -d --build
           <li><a href="https://github.com/FireTable/comfy-colab-kit/blob/main/docs/DEPLOY_VPS.md" target="_blank" rel="noopener">VPS Deployment Runbook</a></li>
           <li><a href="https://github.com/FireTable/comfy-colab-kit/blob/main/docs/MCP.md" target="_blank" rel="noopener">Model Context Protocol (MCP)</a></li>
           <li><a href="https://github.com/FireTable/comfy-colab-kit/blob/main/docs/AGENT_SKILL.md" target="_blank" rel="noopener">Agent Skill Protocol</a></li>
+          <li><a href="https://github.com/FireTable/comfy-colab-kit/blob/main/docs/APP_MODE.md" target="_blank" rel="noopener">ComfyUI App Mode Guide</a></li>
           <li><a href="https://github.com/FireTable/comfy-colab-kit/blob/main/docs/API.md" target="_blank" rel="noopener">REST &amp; Proxy API</a></li>
         </ul>
       </div>
@@ -699,6 +713,6 @@ docker compose -f deploy/docker-compose.yml up -d --build
 </footer>
 
 <script src="vendor/lenis.min.js" defer></script>
-<script src="main.js?v=bb86578a" defer></script>
+<script src="main.js?v=b2eddb3d" defer></script>
 </body>
 </html>
