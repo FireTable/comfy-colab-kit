@@ -1,24 +1,35 @@
 #!/usr/bin/env python3
-"""Layout check for the generated architecture diagram.
+"""Check a rendered SVG for the defects that are invisible in the source.
 
-Character-count estimates cannot catch text overflow: rendered width depends
-on the font the browser picks, and CJK glyphs are roughly twice as wide as
-Latin ones. This script opens the committed SVG in a real headless Chrome and
-reads back the actual bounding boxes, then reports three classes of defect:
+An SVG can be perfectly well-formed and still be wrong: a label that runs
+past its card, two labels on top of each other, an arrow head pointing away
+from the box it belongs to, a box poking out of the frame around it. None of
+these show up in the markup — they only exist once the browser has laid the
+text out, and the answer differs per platform and per font.
 
-* overflow  — a text element extends past the smallest rectangle that
-              contains its centre, by more than the tolerance.
-* collision — two text elements overlap each other.
-* off-canvas — a text element extends past the SVG viewBox.
+This script opens the SVG in headless Chrome, reads back the real bounding
+boxes, and reports what it finds. It needs nothing but a Chrome install.
 
 Usage:
-    python3 scripts/check-svg-layout.py [svg ...]
+    python3 check-svg-layout.py drawing.svg [more.svg ...]
+    python3 check-svg-layout.py --quiet drawing.svg   # only the verdict
 
-With no arguments it checks both language variants. Exit code is 1 when any
-defect is found, so CI can gate on it.
+With no arguments it checks every SVG in ``<script>/../assets/architecture/``,
+which is where the generated diagram lives.
 
-Requires Google Chrome at the path in scripts/cdp.py; the script skips with
-code 0 when Chrome is absent, so environments without it are not blocked.
+Exit code 1 when a defect is found, 0 otherwise. If no browser can be driven
+the check is skipped with exit code 0 — a machine without Chrome is not a
+broken drawing.
+
+What it reports
+---------------
+overflow    a label sticks out of the box it belongs to
+collision   two labels overlap each other
+off-canvas  a label runs past the viewBox
+box-out     a box pokes out of the frame around it
+arrow-way   an arrow ends on a box but points away from it
+icon-align  an icon sits off the optical line of the label beside it
+mover-void  a moving light is not bound to a drawn path
 """
 from __future__ import annotations
 
@@ -247,7 +258,7 @@ def defects(data: dict) -> list[str]:
 def check(svg: Path, port: int) -> list[str] | None:
     """Measure one SVG. ``None`` means the browser could not be driven."""
     try:
-        cdp = CDP(svg.as_uri(), port=port)
+        cdp = CDP(svg.resolve().as_uri(), port=port)
     except Exception as exc:                     # no browser, or it refused to start
         print(f"  (browser unavailable: {exc})")
         return None
@@ -265,10 +276,14 @@ def main(argv: list[str]) -> int:
     if not Path(CHROME).is_file():
         print(f"layout check skipped: Chrome not found at {CHROME}")
         return 0
-    targets = [Path(a) for a in argv] or [
-        ROOT / "assets" / "architecture" / "flow.svg",
-        ROOT / "assets" / "architecture" / "flow.zh.svg",
-    ]
+    quiet = "--quiet" in argv
+    targets = [Path(a) for a in argv if not a.startswith("--")]
+    if not targets:
+        default_dir = Path(__file__).resolve().parent.parent / "assets" / "architecture"
+        targets = sorted(default_dir.glob("*.svg")) if default_dir.is_dir() else []
+        if not targets:
+            print(__doc__)
+            return 2
     for t in targets:
         if not t.is_file():
             print(f"{t}: no such file")
@@ -285,10 +300,11 @@ def main(argv: list[str]) -> int:
             continue
         if found:
             failed = True
-            print(f"{svg.name}: {len(found)} layout defect(s)")
-            for line in found:
-                print(f"  {line}")
-        else:
+            if not quiet:
+                print(f"{svg.name}: {len(found)} layout defect(s)")
+                for line in found:
+                    print(f"  {line}")
+        elif not quiet:
             print(f"{svg.name}: layout ok")
     if skipped:
         print("layout check skipped: no usable browser on this machine")
