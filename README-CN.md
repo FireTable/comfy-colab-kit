@@ -199,7 +199,7 @@ docker compose -f deploy/docker-compose.yml up -d
 ## 🏗️ Monorepo 工程结构
 
 <p align="center">
-  <img src="assets/architecture/flow.svg" width="100%" alt="Comfy Colab Kit 请求链路、10 态生命周期与自动停机闸门" /><br/>
+  <img src="assets/architecture/flow.zh.svg" width="100%" alt="Comfy Colab Kit 请求链路、10 态生命周期与自动停机闸门" /><br/>
   <i>请求链路、10 态生命周期与五道自动停机闸门 —— 动态 SVG，自动适配明暗模式</i>
 </p>
 
