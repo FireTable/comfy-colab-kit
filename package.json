@@ -1,0 +1,9 @@
+{
+  "name": "comfy-colab-kit-diagram",
+  "private": true,
+  "description": "Layout helper for the architecture diagram: Graphviz computes box positions and edge routes, the generator draws the cards.",
+  "type": "module",
+  "dependencies": {
+    "@hpcc-js/wasm-graphviz": "^1.30.0"
+  }
+}

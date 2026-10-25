@@ -8,7 +8,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
       - run: pip install -e ".[dev]"
+      # the architecture diagram is laid out by Graphviz (WebAssembly build)
+      - run: npm ci
       - run: python -m pytest -q
       - run: python scripts/validate-profile.py
       - run: bash scripts/check-secrets.sh

@@ -237,14 +237,16 @@ comfy-colab-kit/
 │   ├── AGENT_SKILL.md        # AI agent usage guide (wake, generate, stop)
 │   └── ...
 ├── scripts/                  # CI, validation and secret check utilities
-└── tests/                    # Pytest test suite (130 tests)
+└── tests/                    # Pytest test suite (145 tests)
 ```
 
 ## 🛠️ Development
 
 ```bash
 python -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
+npm install                 # Graphviz (WebAssembly) — lays out the architecture diagram
 python -m pytest -q
+python scripts/build-architecture-svg.py   # regenerate assets/architecture/flow*.svg
 AUTH_DISABLED=true STATE_DIR=/tmp/kit COLAB_BIN=/bin/false python -m gate.app   # wake page on :8080
 ```
 

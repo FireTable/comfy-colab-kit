@@ -14,6 +14,9 @@ outputs/
 *.safetensors
 *.ckpt
 *.gguf
+# node
+node_modules/
+
 # python / os
 __pycache__/
 *.pyc
