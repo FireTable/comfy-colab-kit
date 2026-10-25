@@ -228,9 +228,17 @@ def test_service_logos_are_present(svgs):
         assert 'id="kit-mark"' in svgs[key], f"project mark missing in {key}"
 
 
-def test_hero_image_is_inline(svgs):
+def test_diagram_is_pure_vector(svgs):
+    """No raster at all: GitHub's raw-file CSP blocks `data:` images.
+
+    raw.githubusercontent.com serves files with
+    ``content-security-policy: default-src 'none'``. An SVG opened directly
+    from there has its embedded pictures blocked and they degrade into a
+    broken-image icon, so the diagram has to be geometry only.
+    """
     for key in ("en", "zh"):
-        assert "data:image/webp;base64," in svgs[key]
+        assert "<image" not in svgs[key], f"{key} embeds a raster image"
+        assert "data:image" not in svgs[key], f"{key} embeds a data: image"
 
 
 def test_rendered_layout_has_no_overflow():
