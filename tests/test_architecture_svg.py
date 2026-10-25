@@ -311,6 +311,19 @@ def test_layout_checker_fails_on_a_missing_file():
     assert r.returncode == 1, r.stdout + r.stderr
 
 
+def _reverse_last_leg(path: str) -> str:
+    """Make the last leg of a path run upwards, so the head points away.
+
+    The endpoint stays where it was — on the border of the box it enters —
+    but the line now approaches it from below, which is what an arrow that
+    points the wrong way looks like.
+    """
+    m = re.search(r'd="M([\d.]+) ([\d.]+) V([\d.]+) H([\d.]+) V([\d.]+)"', path)
+    assert m, path
+    x1, y1, y2, x3, y4 = m.groups()
+    return path.replace(m.group(0), f'd="M{x1} {y1} V{float(y4) + 30:.1f} H{x3} V{y4}"')
+
+
 def test_layout_checker_catches_real_defects(tmp_path):
     """The checker has to actually fail on a broken diagram.
 
@@ -321,23 +334,36 @@ def test_layout_checker_catches_real_defects(tmp_path):
     src = FLOW.read_text(encoding="utf-8")
     checker = ROOT / "scripts" / "check-svg-layout.py"
 
+    def grab(pattern: str) -> str:
+        """Find an element in the committed file, so the case survives a relayout."""
+        m = re.search(pattern, src)
+        assert m, f"pattern not found: {pattern}"
+        return m.group(0)
+
+    sleeping = grab(r'<text x="[\d.]+" y="[\d.]+" font-weight="650" '
+                    r'fill="var\(--ink-secondary\)">sleeping</text>')
+    colab_icon = grab(r'<use href="#logo-googlecolab" x="[\d.]+" y="[\d.]+" '
+                      r'width="18" height="18" />')
+    dashed = grab(r'<path d="M[\d.]+ [\d.]+ V[\d.]+ H[\d.]+ V[\d.]+"[^>]*'
+                  r'stroke-dasharray="4 4"[^>]*/>')
+    switching = grab(r'<rect x="0" y="0" width="120" height="34" rx="9" '
+                     r'fill="var\(--violet\)" />')
+
     cases = {
         "overflow": ('>Cloudflare Access<',
                      '>Cloudflare Access and a great deal of extra text that will not fit<'),
         # two copies of the same label, four pixels apart
-        "collision": ('<text x="52" y="23" font-weight="650" fill="var(--ink-secondary)">sleeping</text>',
-                      '<text x="52" y="23" font-weight="650" fill="var(--ink-secondary)">sleeping</text>'
-                      '<text x="52" y="27" font-weight="650" fill="var(--ink-secondary)">sleeping</text>'),
-        "icon-align": ('<use href="#logo-googlecolab" x="11" y="7" width="18" height="18" />',
-                       '<use href="#logo-googlecolab" x="11" y="1" width="18" height="18" />'),
+        "collision": (sleeping, sleeping + sleeping.replace(' y="', ' y="', 1)),
+        "icon-align": (colab_icon, re.sub(r'y="([\d.]+)"',
+                                          lambda m: f'y="{float(m.group(1)) - 6:g}"',
+                                          colab_icon, count=1)),
         "mover-void": ('<mpath href="#flow-req-0" xlink:href="#flow-req-0" />',
                        '<mpath href="#flow-nope" xlink:href="#flow-nope" />'),
-        # the head must point at the box it enters, not away from it
-        "arrow-way": ('<path d="M1092.0 704.0 V724.7 H1079.3 V750.0"',
-                      '<path d="M1092.0 704.0 V780.0 H1079.3 V750.0"'),
+        # the head must point at the box it enters, not away from it: the last
+        # leg of the dashed drop has to run upwards into the box
+        "arrow-way": (dashed, _reverse_last_leg(dashed)),
         # a box that pokes out of the frame around it
-        "box-out": ('<rect x="0" y="0" width="120" height="34" rx="9" fill="var(--violet)" />',
-                    '<rect x="0" y="0" width="160" height="34" rx="9" fill="var(--violet)" />'),
+        "box-out": (switching, switching.replace('width="120"', 'width="160"')),
     }
     for name, (old, new) in cases.items():
         assert old in src, name

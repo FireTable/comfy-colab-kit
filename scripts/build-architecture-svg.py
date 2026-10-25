@@ -582,11 +582,12 @@ def draw_colab(add, box: Box, node: dict, lang: str) -> None:
     add('      <rect x="152" y="4" width="17" height="14" rx="3" fill="var(--plum)"/>')
     add('      <use href="#logo-huggingface" x="154" y="5" width="12" height="12" />')
     items = node["items"]
-    chips = [(0, 30, items[0], "var(--rose)"), (102, 30, items[1], "var(--blue)"),
-             (0, 56, items[2], "var(--green)"), (102, 56, items[3], "var(--yellow)")]
+    # 两枚芯片等宽，中间留 8，两侧各留 10
+    chips = [(10, 30, items[0], "var(--rose)"), (112, 30, items[1], "var(--blue)"),
+             (10, 56, items[2], "var(--green)"), (112, 56, items[3], "var(--yellow)")]
     for cx, cy, txt, col in chips:
         add(f'      <rect x="{cx}" y="{cy}" width="94" height="20" rx="5" fill="{col}" opacity="0.9" />')
-        if cx == 0 and cy == 56:
+        if cx == 10 and cy == 56:
             # this chip carries the ComfyUI mark, so the label starts after it
             add('      <use href="#logo-comfyui" x="3" y="57" width="20" height="20" />')
             add(f'      <text x="21" y="{cy + 14}" font-size="9.5" fill="var(--ink-on-tape)">{esc(say(txt, lang))}</text>')
@@ -660,9 +661,12 @@ def build(spec: dict, lang: str) -> tuple[str, float]:
     ))
 
     states = sections["states"]
+    # 内容离外框的留白，由 spec 声明，不在代码里写死
+    state_pad = states.get("padding", 0)
+    props_pad = sections["props"].get("padding", 0)
     boot = states["boot"]
     boot_sizes = {k: tuple(v) for k, v in boot["sizes"].items()}
-    boot_layout = dot(dot_row(boot["row"], boot_sizes, span=content_w,
+    boot_layout = dot(dot_row(boot["row"], boot_sizes, span=content_w - 2 * state_pad,
                               edges=[(a, b) for a, b, _ in boot["edges"]]))
     failure = states["failure"]
     fail_sizes = {k: tuple(v) for k, v in failure["sizes"].items()}
@@ -675,7 +679,7 @@ def build(spec: dict, lang: str) -> tuple[str, float]:
         per_row = s["columns"]
         ids = [f"c{i}" for i in range(len(cells))]
         sizes = {f"c{i}": (c["w"], c["h"]) for i, c in enumerate(cells)}
-        layout = dot(dot_row(ids, sizes, span=content_w, invisible=True))
+        layout = dot(dot_row(ids, sizes, span=content_w - 2 * s.get("padding", 0), invisible=True))
         grid_layouts[s["id"]] = (layout, cells, per_row)
 
     # ── vertical composition ──────────────────────────────────────────────
@@ -687,7 +691,7 @@ def build(spec: dict, lang: str) -> tuple[str, float]:
     trunk_y = states_y + 36 + 20
     ret_y = fails_y + 34 + 18
     bill_y = ret_y + 26
-    rail_h = bill_y + 22 + 18 - rail_y
+    rail_h = bill_y + 22 + state_pad - rail_y
     sec3_y = bill_y + 22 + 18 + 40
     gates_y = sec3_y + 40
     gate_cell_h = grid_layouts["gates"][1][0]["h"]
@@ -840,12 +844,12 @@ def build(spec: dict, lang: str) -> tuple[str, float]:
     add(f"""  <g>
     <rect x="{margin}" y="{rail_y}" width="{content_w}" height="{rail_h:.0f}" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.3" />""")
 
-    boot_layout = boot_layout.shift_to(margin).offset(0, states_y)
-    # the failure row starts under `booting` and has to end at the right
-    # margin, so its width follows from where `booting` ended up
+    boot_layout = boot_layout.shift_to(margin + state_pad).offset(0, states_y)
+    # the failure row starts under `booting` and has to end at the inner edge
+    # of the frame, so its width follows from where `booting` ended up
     fail_layout = dot(dot_row(
         failure["row"], fail_sizes,
-        span=content_w - (boot_layout.box("booting").x - margin),
+        span=content_w - 2 * state_pad - (boot_layout.box("booting").x - (margin + state_pad)),
         edges=[(a, b) for a, b, _ in failure["edges"]],
     ))
     fail_layout = fail_layout.shift_to(boot_layout.box("booting").x).offset(0, fails_y)
@@ -911,9 +915,9 @@ def build(spec: dict, lang: str) -> tuple[str, float]:
     add(f'    <text x="{margin + content_w - 8}" y="{switching.bottom + 15:.1f}" font-size="9.5" '
         f'class="code-text" fill="var(--ink-muted)" text-anchor="end">{esc(say(states["notes"]["switch"], lang))}</text>')
 
-    add(f"""    <g transform="translate({margin + 24},{bill_y})">
-      <rect x="0" y="0" width="{content_w - 48}" height="22" rx="6" fill="var(--rose)" opacity="0.2" />
-      <text x="{(content_w - 48) / 2:.0f}" y="15" font-size="10.5" text-anchor="middle" fill="var(--ink-secondary)">{esc(say(states["notes"]["billing"], lang))}</text>
+    add(f"""    <g transform="translate({margin + state_pad},{bill_y})">
+      <rect x="0" y="0" width="{content_w - 2 * state_pad}" height="22" rx="6" fill="var(--rose)" opacity="0.2" />
+      <text x="{(content_w - 2 * state_pad) / 2:.0f}" y="15" font-size="10.5" text-anchor="middle" fill="var(--ink-secondary)">{esc(say(states["notes"]["billing"], lang))}</text>
     </g>""")
     add("  </g>")
 
@@ -921,6 +925,7 @@ def build(spec: dict, lang: str) -> tuple[str, float]:
     for sid, colour in (("gates", "var(--rose)"), ("props", "var(--green)")):
         section = sections[sid]
         layout, cells, _cols = grid_layouts[sid]
+        pad = section.get("padding", 0)
         if sid == "gates":
             draw_section_tape(add, margin, sec3_y, say(section["title"], lang),
                               say(section["note"], lang), colour)
@@ -929,9 +934,9 @@ def build(spec: dict, lang: str) -> tuple[str, float]:
             # the properties live in a frame, so the heading goes inside it
             y = props_y
             add(f"""  <g transform="translate({margin},{props_frame_y})">
-    <rect x="0" y="0" width="{content_w}" height="{prop_cell_h + 60}" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.3" />
-    <text x="18" y="26" font-size="13" font-weight="700" fill="var(--ink-primary)">{esc(say(section["title"], lang))}</text>""")
-        layout = layout.shift_to(margin).offset(0, y)
+    <rect x="0" y="0" width="{content_w}" height="{44 + prop_cell_h + props_pad}" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.3" />
+    <text x="{pad}" y="26" font-size="13" font-weight="700" fill="var(--ink-primary)">{esc(say(section["title"], lang))}</text>""")
+        layout = layout.shift_to(margin + pad).offset(0, y)
         style = "prop" if sid == "props" else "gate"
         for i, cell in enumerate(cells):
             box = layout.box(f"c{i}")

@@ -202,15 +202,15 @@
       <text x="10" y="15" font-size="10.5" class="code-text" fill="var(--ink-secondary)">/content · 易失</text>
       <rect x="152" y="4" width="17" height="14" rx="3" fill="var(--plum)"/>
       <use href="#logo-huggingface" x="154" y="5" width="12" height="12" />
-      <rect x="0" y="30" width="94" height="20" rx="5" fill="var(--rose)" opacity="0.9" />
-      <text x="47" y="44" font-size="9.5" text-anchor="middle" fill="var(--ink-on-tape)">Models 24.9 GB</text>
-      <rect x="102" y="30" width="94" height="20" rx="5" fill="var(--blue)" opacity="0.9" />
-      <text x="149" y="44" font-size="9.5" text-anchor="middle" fill="var(--ink-on-tape)">Workflows · nodes</text>
-      <rect x="0" y="56" width="94" height="20" rx="5" fill="var(--green)" opacity="0.9" />
+      <rect x="10" y="30" width="94" height="20" rx="5" fill="var(--rose)" opacity="0.9" />
+      <text x="57" y="44" font-size="9.5" text-anchor="middle" fill="var(--ink-on-tape)">Models 24.9 GB</text>
+      <rect x="112" y="30" width="94" height="20" rx="5" fill="var(--blue)" opacity="0.9" />
+      <text x="159" y="44" font-size="9.5" text-anchor="middle" fill="var(--ink-on-tape)">Workflows · nodes</text>
+      <rect x="10" y="56" width="94" height="20" rx="5" fill="var(--green)" opacity="0.9" />
       <use href="#logo-comfyui" x="3" y="57" width="20" height="20" />
       <text x="21" y="70" font-size="9.5" fill="var(--ink-on-tape)">ComfyUI :8188</text>
-      <rect x="102" y="56" width="94" height="20" rx="5" fill="var(--yellow)" opacity="0.9" />
-      <text x="149" y="70" font-size="9.5" text-anchor="middle" fill="var(--ink-on-tape)">Outputs output/</text>
+      <rect x="112" y="56" width="94" height="20" rx="5" fill="var(--yellow)" opacity="0.9" />
+      <text x="159" y="70" font-size="9.5" text-anchor="middle" fill="var(--ink-on-tape)">Outputs output/</text>
     </g>
     <text x="14" y="170" font-size="9.5" fill="var(--ink-muted)">watchdog · 20 min without heartbeat</text>
     <text x="14" y="186" font-size="9.5" class="code-text" fill="var(--ink-muted)">Billing 1.71 CU/h</text>
@@ -228,17 +228,17 @@
     <text x="180" y="17" font-size="12.5" fill="var(--ink-muted)">10-state lifecycle · dashed lines are failure fallbacks</text>
   </g>
   <g>
-    <rect x="40" y="632.6666666666666" width="1100" height="230" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.3" />
+    <rect x="40" y="632.6666666666666" width="1100" height="232" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.3" />
     <g font-size="11.5" text-anchor="middle">
-      <g transform="translate(40.0,668.0)">
+      <g transform="translate(60.0,668.0)">
         <rect x="0" y="0" width="104" height="36" rx="9" fill="var(--bg-raise)" stroke="var(--ink-muted)" stroke-width="1.5" />
         <text x="52" y="23" font-weight="650" fill="var(--ink-secondary)">sleeping</text>
       </g>
-      <g transform="translate(205.3,668.0)">
+      <g transform="translate(218.7,668.0)">
         <rect x="0" y="0" width="104" height="36" rx="9" fill="var(--yellow)" />
         <text x="52" y="23" font-weight="650" fill="var(--ink-on-tape)">allocating</text>
       </g>
-      <g transform="translate(370.7,668.0)">
+      <g transform="translate(377.3,668.0)">
         <rect x="0" y="0" width="104" height="36" rx="9" fill="var(--yellow)" />
         <text x="52" y="23" font-weight="650" fill="var(--ink-on-tape)">installing</text>
       </g>
@@ -246,60 +246,60 @@
         <rect x="0" y="0" width="110" height="36" rx="9" fill="var(--yellow)" />
         <text x="55" y="23" font-weight="650" fill="var(--ink-on-tape)">downloading</text>
       </g>
-      <g transform="translate(707.3,668.0)">
+      <g transform="translate(700.7,668.0)">
         <rect x="0" y="0" width="96" height="36" rx="9" fill="var(--yellow)" />
         <text x="48" y="23" font-weight="650" fill="var(--ink-on-tape)">booting</text>
       </g>
-      <g transform="translate(864.7,668.0)">
+      <g transform="translate(851.3,668.0)">
         <rect x="0" y="0" width="118" height="36" rx="9" fill="var(--yellow)" />
         <text x="59" y="23" font-weight="650" fill="var(--ink-on-tape)">smoke_testing</text>
       </g>
-      <g transform="translate(1044.0,668.0)" class="breathe">
+      <g transform="translate(1024.0,668.0)" class="breathe">
         <rect x="0" y="0" width="96" height="36" rx="9" fill="var(--green)" />
         <text x="48" y="23" font-weight="650" fill="var(--ink-on-tape)">ready</text>
       </g>
-      <g transform="translate(707.3,750.0)">
+      <g transform="translate(700.7,750.0)">
         <rect x="0" y="0" width="96" height="34" rx="9" fill="var(--rose)" />
         <text x="48" y="22" font-weight="650" fill="var(--ink-on-tape)">failed</text>
       </g>
-      <g transform="translate(859.3,750.0)">
+      <g transform="translate(846.0,750.0)">
         <rect x="0" y="0" width="104" height="34" rx="9" fill="var(--blue)" />
         <text x="52" y="22" font-weight="650" fill="var(--ink-on-tape)">stopping</text>
       </g>
-      <g transform="translate(1019.3,750.0)">
+      <g transform="translate(999.3,750.0)">
         <rect x="0" y="0" width="120" height="34" rx="9" fill="var(--violet)" />
         <text x="60" y="22" font-weight="650" fill="var(--ink-on-tape)">switching</text>
       </g>
     </g>
     <!-- boot chain edges -->
-    <path id="flow-boot-0" d="M144.31,686.00C144.31,686.00 189.44,686.00 189.44,686.00 L205.33 686.00" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
-    <text x="166.9" y="653.7" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="middle">wake</text>
-    <path id="flow-boot-1" d="M309.64,686.00C309.64,686.00 354.77,686.00 354.77,686.00 L370.67 686.00" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
-    <text x="332.2" y="653.7" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="middle">setup</text>
-    <path id="flow-boot-2" d="M475.00,686.00C475.00,686.00 520.41,686.00 520.41,686.00 L535.99 686.00" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
-    <text x="497.7" y="653.7" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="middle">24.9GB</text>
-    <path id="flow-boot-3" d="M646.63,686.00C646.63,686.00 691.53,686.00 691.53,686.00 L707.32 686.00" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
-    <text x="669.1" y="653.7" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="middle">tunnel</text>
-    <path id="flow-boot-4" d="M803.56,686.00C803.56,686.00 848.68,686.00 848.68,686.00 L864.65 686.00" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
-    <text x="826.1" y="653.7" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="middle">smoke</text>
-    <path id="flow-boot-5" d="M983.00,686.00C983.00,686.00 1028.36,686.00 1028.36,686.00 L1043.99 686.00" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
-    <text x="1005.7" y="653.7" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="middle">serve</text>
-    <path d="M257.3 704.0 V718.7 H755.3 V750.0" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
-    <path d="M422.7 704.0 V718.7 H755.3 V750.0" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
-    <path d="M591.0 704.0 V718.7 H755.3 V750.0" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
-    <path d="M755.3 704.0 V718.7 H755.3 V750.0" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
-    <path d="M923.7 704.0 V718.7 H755.3 V750.0" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
+    <path id="flow-boot-0" d="M164.39,686.00C164.39,686.00 202.97,686.00 202.97,686.00 L218.67 686.00" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
+    <text x="186.6" y="653.7" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="middle">wake</text>
+    <path id="flow-boot-1" d="M323.05,686.00C323.05,686.00 361.64,686.00 361.64,686.00 L377.33 686.00" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
+    <text x="345.2" y="653.7" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="middle">setup</text>
+    <path id="flow-boot-2" d="M481.81,686.00C481.81,686.00 520.08,686.00 520.08,686.00 L535.99 686.00" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
+    <text x="500.9" y="653.7" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="middle">24.9GB</text>
+    <path id="flow-boot-3" d="M646.57,686.00C646.57,686.00 685.03,686.00 685.03,686.00 L700.65 686.00" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
+    <text x="665.8" y="653.7" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="middle">tunnel</text>
+    <path id="flow-boot-4" d="M797.16,686.00C797.16,686.00 835.64,686.00 835.64,686.00 L851.32 686.00" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
+    <text x="816.4" y="653.7" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="middle">smoke</text>
+    <path id="flow-boot-5" d="M969.60,686.00C969.60,686.00 1008.48,686.00 1008.48,686.00 L1023.99 686.00" stroke="var(--amber)" stroke-width="2.2" fill="none" marker-end="url(#arrow-amber)" />
+    <text x="991.9" y="653.7" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="middle">serve</text>
+    <path d="M270.7 704.0 V718.7 H748.7 V750.0" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
+    <path d="M429.3 704.0 V718.7 H748.7 V750.0" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
+    <path d="M591.0 704.0 V718.7 H748.7 V750.0" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
+    <path d="M748.7 704.0 V718.7 H748.7 V750.0" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
+    <path d="M910.3 704.0 V718.7 H748.7 V750.0" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
     <text x="102" y="734.7" font-size="9.5" class="code-text" fill="var(--ink-muted)">any boot state fails → failed → retry allocating</text>
-    <path d="M803.83,767.00C803.83,767.00 843.71,767.00 843.71,767.00 L859.32 767.00" stroke="var(--ink-muted)" stroke-width="1.6" fill="none" marker-end="url(#arrow-plum)" />
-    <path d="M963.55,767.00C963.55,767.00 1003.53,767.00 1003.53,767.00 L1019.32 767.00" stroke="var(--ink-muted)" stroke-width="1.6" fill="none" marker-end="url(#arrow-plum)" />
-    <text x="831.3" y="736.7" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="middle">stop</text>
-    <path d="M911.3 784.0 V796.7 H92.0 V704.0" stroke="var(--ink-muted)" stroke-width="1.6" fill="none" marker-end="url(#arrow-plum)" />
+    <path d="M797.13,767.00C797.13,767.00 830.27,767.00 830.27,767.00 L845.99 767.00" stroke="var(--ink-muted)" stroke-width="1.6" fill="none" marker-end="url(#arrow-plum)" />
+    <path d="M950.36,767.00C950.36,767.00 983.44,767.00 983.44,767.00 L999.32 767.00" stroke="var(--ink-muted)" stroke-width="1.6" fill="none" marker-end="url(#arrow-plum)" />
+    <text x="821.3" y="736.7" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="middle">stop</text>
+    <path d="M898.0 784.0 V796.7 H112.0 V704.0" stroke="var(--ink-muted)" stroke-width="1.6" fill="none" marker-end="url(#arrow-plum)" />
     <text x="240" y="789.7" font-size="9.5" class="code-text" fill="var(--ink-muted)">stop is allowed from any non-sleeping state → VM released</text>
-    <path d="M1092.0 704.0 V724.7 H1079.3 V750.0" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
+    <path d="M1072.0 704.0 V724.7 H1059.3 V750.0" stroke="var(--ink-muted)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrow-plum)" />
     <text x="1132" y="799.0" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="end">switch, cold change</text>
-    <g transform="translate(64,822.6666666666666)">
-      <rect x="0" y="0" width="1052" height="22" rx="6" fill="var(--rose)" opacity="0.2" />
-      <text x="526" y="15" font-size="10.5" text-anchor="middle" fill="var(--ink-secondary)">BILLING_STATES · five boot states + ready + switching + failed — a Colab instance exists here and is billed at 1.71 CU/h</text>
+    <g transform="translate(60,822.6666666666666)">
+      <rect x="0" y="0" width="1060" height="22" rx="6" fill="var(--rose)" opacity="0.2" />
+      <text x="530" y="15" font-size="10.5" text-anchor="middle" fill="var(--ink-secondary)">BILLING_STATES · five boot states + ready + switching + failed — a Colab instance exists here and is billed at 1.71 CU/h</text>
     </g>
   </g>
   <g transform="translate(40,903)">
@@ -343,9 +343,9 @@
     <text x="14" y="62" font-size="10.5" fill="var(--ink-muted)">agents release it when done</text>
   </g>
   <g transform="translate(40,1040.6666666666665)">
-    <rect x="0" y="0" width="1100" height="148" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.3" />
-    <text x="18" y="26" font-size="13" font-weight="700" fill="var(--ink-primary)">Three properties that matter</text>
-    <g transform="translate(0.0,49.3)">
+    <rect x="0" y="0" width="1100" height="152" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.3" />
+    <text x="20" y="26" font-size="13" font-weight="700" fill="var(--ink-primary)">Three properties that matter</text>
+    <g transform="translate(20.0,49.3)">
       <rect x="0" y="0" width="340" height="88" rx="10" fill="var(--bg-raise)" />
       <rect x="12" y="14" width="6" height="6" rx="3" fill="var(--amber)" />
       <text x="28" y="20" font-size="12.5" font-weight="650" fill="var(--ink-primary)">Single instance, idempotent</text>
@@ -359,7 +359,7 @@
       <text x="12" y="42" font-size="11" fill="var(--ink-secondary)">A restart re-attaches and replays progress.</text>
       <text x="12" y="74" font-size="10.5" class="code-text" fill="var(--ink-muted)">STATE_DIR/session.json</text>
     </g>
-    <g transform="translate(760.0,49.3)">
+    <g transform="translate(740.0,49.3)">
       <rect x="0" y="0" width="340" height="88" rx="10" fill="var(--bg-raise)" />
       <rect x="12" y="14" width="6" height="6" rx="3" fill="var(--mint)" />
       <text x="28" y="20" font-size="12.5" font-weight="650" fill="var(--ink-primary)">Secrets never leave the gate</text>

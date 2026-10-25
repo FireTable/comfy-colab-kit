@@ -49,6 +49,11 @@ TOLERANCE = 1.5
 # invisible; more than that reads as "the icon is not centred".
 ICON_TOLERANCE = 2.0
 
+# The least breathing room a box may leave inside the frame around it. Zero
+# means the box is flush against the border, which reads as a mistake even
+# when it was meant.
+MIN_PADDING = 6.0
+
 MEASURE_JS = r"""
 (() => {
   const svg = document.querySelector('svg');
@@ -221,6 +226,26 @@ def defects(data: dict) -> list[str]:
         if not inside:
             out.append("box-out      a box pokes out of the frame around it")
 
+    # a box that leaves no breathing room inside the frame around it
+    for r in frames:
+        cx, cy = r["x"] + r["w"] / 2, r["y"] + r["h"] / 2
+        parents = [c for c in frames
+                   if c is not r
+                   and c["w"] >= r["w"] - 1 and c["h"] >= r["h"] - 1
+                   and c["x"] <= cx <= c["x"] + c["w"] and c["y"] <= cy <= c["y"] + c["h"]]
+        if not parents:
+            continue
+        frame = min(parents, key=lambda c: c["w"] * c["h"])
+        # a band that spans the full width of its frame is a header, and a
+        # header is meant to sit flush against the edge
+        if abs(r["w"] - frame["w"]) < 1:
+            continue
+        pads = (r["x"] - frame["x"], (frame["x"] + frame["w"]) - (r["x"] + r["w"]),
+                r["y"] - frame["y"], (frame["y"] + frame["h"]) - (r["y"] + r["h"]))
+        if min(pads) < MIN_PADDING:
+            out.append(f"tight-box    a box leaves only {min(pads):.0f}px of space "
+                       f"inside the frame around it")
+
     # an arrow must point at the box it enters, not away from it
     for arrow in data.get("arrows", []):
         if abs(arrow["dx"]) < 0.01 and abs(arrow["dy"]) < 0.01:
@@ -255,8 +280,17 @@ def defects(data: dict) -> list[str]:
     return out
 
 
+class MeasurementError(RuntimeError):
+    """The browser ran but the measurement itself failed."""
+
+
 def check(svg: Path, port: int) -> list[str] | None:
-    """Measure one SVG. ``None`` means the browser could not be driven."""
+    """Measure one SVG. ``None`` means the browser could not be driven.
+
+    A browser that will not start is an environment problem and must not
+    turn the build red. A browser that runs but whose measurement fails is a
+    bug in this script, and that has to be reported rather than skipped.
+    """
     try:
         cdp = CDP(svg.resolve().as_uri(), port=port)
     except Exception as exc:                     # no browser, or it refused to start
@@ -266,8 +300,7 @@ def check(svg: Path, port: int) -> list[str] | None:
         cdp.call("Runtime.enable")
         return defects(cdp.evaluate(MEASURE_JS))
     except Exception as exc:
-        print(f"  (browser unavailable: {exc})")
-        return None
+        raise MeasurementError(f"{svg.name}: measurement failed: {exc}") from exc
     finally:
         cdp.close()
 
@@ -291,7 +324,12 @@ def main(argv: list[str]) -> int:
     failed = False
     skipped = False
     for n, svg in enumerate(targets):
-        found = check(svg, port=9510 + n)
+        try:
+            found = check(svg, port=9510 + n)
+        except MeasurementError as exc:
+            print(f"  {exc}")
+            failed = True
+            continue
         if found is None:
             # A machine without a usable browser cannot be measured. That is an
             # environment problem, not a defect in the drawing, so it must not
