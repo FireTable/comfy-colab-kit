@@ -340,128 +340,25 @@ def dot_row(node_ids: list[str], sizes: dict[str, tuple[float, float]],
     return "\n".join(lines)
 
 
-# ── content ─────────────────────────────────────────────────────────────────
+# ── content: the declarative spec ──────────────────────────────────────────
+#
+# `assets/architecture/flow.spec.json` describes the diagram: which boxes
+# exist, how big they are, how they are wired and what they say. This file
+# only knows how to *draw* a box. Editing the picture means editing the spec.
+
+SPEC_PATH = OUT_DIR / "flow.spec.json"
 
 
-@dataclass
-class Lang:
-    subtitle: str
-    badge: str
-    headline: str
-    sec1: str
-    sec1_note: str
-    client_agent: str
-    client_agent_sub: str
-    client_browser: str
-    client_browser_sub: str
-    colab_note: str
-    colab_cost: str
-    sec2: str
-    sec2_note: str
-    fail_note: str
-    stop_note: str
-    switch_note: str
-    billing_note: str
-    sec3: str
-    sec3_note: str
-    props_title: str
-    title_attr: str
-    cf_items: list = field(default_factory=list)
-    gate_items: list = field(default_factory=list)
-    colab_items: list = field(default_factory=list)
-    gates: list = field(default_factory=list)
-    props: list = field(default_factory=list)
-    legend: list = field(default_factory=list)
-    state_edges: list = field(default_factory=list)
+def load_spec() -> dict:
+    return json.loads(SPEC_PATH.read_text(encoding="utf-8"))
 
 
-EN = Lang(
-    subtitle="An always-available, wake-on-demand ComfyUI on Google Colab",
-    badge="Zero-GPU idle · single shared instance · automatic shutdown",
-    headline="From “press Wake” to “GPU released”: request path, 10-state lifecycle, five shutdown gates",
-    sec1="① Request path",
-    sec1_note="Agents and browsers travel the very same gateway path",
-    client_agent="AI Agent",
-    client_agent_sub="MCP / REST",
-    client_browser="Browser",
-    client_browser_sub="SSE / WS",
-    colab_note="watchdog · 20 min without heartbeat",
-    colab_cost="Billing 1.71 CU/h",
-    sec2="② State machine",
-    sec2_note="10-state lifecycle · dashed lines are failure fallbacks",
-    fail_note="any boot state fails → failed → retry allocating",
-    stop_note="stop is allowed from any non-sleeping state → VM released",
-    switch_note="switch, cold change",
-    billing_note="BILLING_STATES · five boot states + ready + switching + failed — a Colab instance exists here and is billed at 1.71 CU/h",
-    sec3="③ Automatic shutdown",
-    sec3_note="Five gates · any one of them releases the GPU and its CU",
-    gates=[
-        ("Idle timeout", "IDLE_TIMEOUT_MIN = 30", "skipped while the queue is busy", AMBER),
-        ("Session limit", "MAX_SESSION_HOURS = 6", "extendable once, +1 h", ORANGE),
-        ("CU budget", "12 / 150 CU per day / month", "wake refused below 5 CU", "#7b4ba8"),
-        ("Watchdog", "WATCHDOG_GATE_LOST_MIN = 20", "VM self-destructs on silence", "#0ea5e9"),
-        ("Explicit stop", "POST /_gate/stop", "agents release it when done", "#3ddc84"),
-    ],
-    props_title="Three properties that matter",
-    props=[
-        ("Single instance, idempotent", "A second wake joins the boot already in flight.", "Session.lock"),
-        ("State is persisted", "A restart re-attaches and replays progress.", "STATE_DIR/session.json"),
-        ("Secrets never leave the gate", "The Colab token stays here and travels over stdin.", "secrets/ · *_FILE pointers"),
-    ],
-    legend=["running", "booting", "failed", "stopping", "switching"],
-    title_attr="Comfy Colab Kit: request path, 10-state lifecycle, and auto-stop gates",
-    cf_items=["Zero Trust · RS256 JWT", "Email OTP · OAuth · token", "Cf-Access-Jwt-Assertion"],
-    gate_items=["Auth · owner decision", "10-state machine", "SSE progress broadcast",
-                "CU ledger · budget gate", "Reverse proxy /prompt · /history · /view · /ws"],
-    colab_items=["Models 24.9 GB", "Workflows · nodes", "ComfyUI :8188", "Outputs output/"],
-    state_edges=[("wake", "sleeping", "allocating"), ("setup", "allocating", "installing"),
-                 ("24.9GB", "installing", "downloading"), ("tunnel", "downloading", "booting"),
-                 ("smoke", "booting", "smoke_testing"), ("serve", "smoke_testing", "ready")],
-)
+def say(value, lang: str) -> str:
+    """A label from the spec: either a plain string or one per language."""
+    if isinstance(value, dict):
+        return value.get(lang, value.get("en", ""))
+    return value
 
-ZH = Lang(
-    subtitle="按需唤醒的 ComfyUI 网关 · 从请求到算力回收的完整链路",
-    badge="Zero-GPU idle · 单实例幂等 · 自动停机",
-    headline="从「按下唤醒」到「GPU 释放」：请求链路、10 态生命周期与五道停机闸门",
-    sec1="① 请求链路",
-    sec1_note="Agent 与浏览器走同一条网关路径",
-    client_agent="AI Agent",
-    client_agent_sub="MCP / REST",
-    client_browser="浏览器",
-    client_browser_sub="SSE / WS",
-    colab_note="watchdog · 心跳 20 min 自毁",
-    colab_cost="计费中 1.71 CU/h",
-    sec2="② 状态机",
-    sec2_note="10 态生命周期 · 虚线为异常回退路径",
-    fail_note="任一开机态失败 → failed → 重试 allocating",
-    stop_note="任一非睡眠态均可 stop → 释放 VM",
-    switch_note="switch 冷切换",
-    billing_note="计费区间 BILLING_STATES · 五个开机态 + ready + switching + failed —— 此区间内 Colab 实例存在，按 1.71 CU/小时 计费",
-    sec3="③ 自动停机",
-    sec3_note="五道闸门 · 任意一条命中即释放 GPU 与 CU",
-    gates=[
-        ("空闲超时", "IDLE_TIMEOUT_MIN = 30", "队列非空时跳过", AMBER),
-        ("会话上限", "MAX_SESSION_HOURS = 6", "可 extend 一次 +1h", ORANGE),
-        ("CU 预算", "日 12 / 月 150 CU", "余额低于 5 CU 拒绝开机", "#7b4ba8"),
-        ("看门狗", "WATCHDOG_GATE_LOST_MIN = 20", "网关失联 VM 自毁", "#0ea5e9"),
-        ("显式停机", "POST /_gate/stop", "Agent 完成即释放", "#3ddc84"),
-    ],
-    props_title="三条关键性质",
-    props=[
-        ("单实例幂等", "并发唤醒只会加入同一个 in-flight 启动。", "Session.lock"),
-        ("状态持久化", "网关重启后接管会话并回放进度。", "STATE_DIR/session.json"),
-        ("密钥不出网关", "Colab token 仅存网关，经 stdin 传给内核。", "secrets/ · *_FILE 指针"),
-    ],
-    legend=["运行中", "开机中", "异常", "停机中", "切换中"],
-    title_attr="Comfy Colab Kit 请求链路、10 态生命周期与自动停机闸门",
-    cf_items=["Zero Trust · RS256 JWT", "邮箱 OTP · OAuth · 令牌", "Cf-Access-Jwt-Assertion"],
-    gate_items=["鉴权 · owner 判定", "10 态状态机", "SSE 进度广播",
-                "CU 账本 · 预算闸", "反向代理 /prompt · /history · /view · /ws"],
-    colab_items=["模型 24.9 GB", "工作流 · 节点", "ComfyUI :8188", "出图 output/"],
-    state_edges=[("wake", "sleeping", "allocating"), ("setup", "allocating", "installing"),
-                 ("24.9GB", "installing", "downloading"), ("tunnel", "downloading", "booting"),
-                 ("smoke", "booting", "smoke_testing"), ("serve", "smoke_testing", "ready")],
-)
 
 # ── service logos (official vector paths, inlined so the SVG stays self-contained) ──
 # cloudflare / googlecolab / huggingface: Simple Icons (CC0-1.0)
@@ -491,24 +388,12 @@ LOGO_STYLE = {
     "comfyui": ("#211927", "0 0 48 48", 15),
 }
 
-# ── card sizes (the only numbers the layout depends on) ────────────────────
-CHIP_W, CHIP_H = 150, 52
-CF_W, CF_H = 182, 112
-GATE_W, GATE_H = 266, 208
-COLAB_W, COLAB_H = 244, 208
-
-STATE_SIZES = {
-    "sleeping": (104, 36), "allocating": (104, 36), "installing": (104, 36),
-    "downloading": (110, 36), "booting": (96, 36), "smoke_testing": (118, 36),
-    "ready": (96, 36), "failed": (96, 34), "stopping": (104, 34),
-    "switching": (120, 34),
+# the accent a spec cell can ask for, and the colour it turns into
+ACCENTS = {
+    "amber": "var(--amber)", "orange": "var(--orange)", "violet": "var(--violet)",
+    "sky": "var(--sky)", "mint": "var(--mint)", "blue": "var(--blue)",
+    "green": "var(--green)", "rose": "var(--rose)", "yellow": "var(--yellow)",
 }
-BOOT_ORDER = ["sleeping", "allocating", "installing", "downloading", "booting",
-              "smoke_testing", "ready"]
-FAIL_ORDER = ["failed", "stopping", "switching"]
-
-GATE_CARD_W, GATE_CARD_H = 212, 74
-PROP_CARD_W, PROP_CARD_H = 340, 88
 
 STATE_COLORS = {
     "idle": ("var(--bg-raise)", "var(--ink-secondary)", True),
@@ -524,7 +409,6 @@ STATE_KIND = {
     "ready": "ready", "failed": "failed", "stopping": "stopping",
     "switching": "switching",
 }
-
 
 def esc(t: str) -> str:
     return t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
@@ -605,40 +489,167 @@ def hero_panel(add) -> None:
     add("  </g>")
 
 
-def build(lang: Lang) -> tuple[str, float]:
-    """Return the SVG source and the canvas height it needs."""
+# ── drawing the boxes ──────────────────────────────────────────────────────
+
+
+def draw_chip(add, box: Box, node: dict, lang: str) -> None:
+    add(f"""  <g transform="translate({box.x:.1f},{box.y:.1f})">
+    <rect x="0" y="0" width="{box.w:.0f}" height="{box.h:.0f}" rx="10" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />
+    <rect x="0" y="0" width="4" height="{box.h:.0f}" rx="2" fill="{ACCENTS[node["accent"]]}" />""")
+    add(f'    <text x="16" y="22" font-size="13.5" font-weight="650" fill="var(--ink-primary)">{esc(say(node["label"], lang))}</text>')
+    add(f'    <text x="16" y="40" font-size="11" class="code-text" fill="var(--ink-secondary)">{esc(say(node["sub"], lang))}</text>')
+    add("  </g>")
+
+
+def draw_cloudflare(add, box: Box, node: dict, lang: str) -> None:
+    add(f"""  <g transform="translate({box.x:.1f},{box.y:.1f})">
+    <rect x="0" y="6" width="{box.w:.0f}" height="{box.h:.0f}" rx="12" fill="#000000" opacity="0.07" />
+    <rect x="0" y="0" width="{box.w:.0f}" height="{box.h:.0f}" rx="12" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />
+    <rect x="0" y="0" width="{box.w:.0f}" height="26" rx="12" fill="url(#g-lime)" opacity="0.92" />
+    <rect x="0" y="16" width="{box.w:.0f}" height="10" fill="url(#g-lime)" opacity="0.92" />""")
+    add('    <use href="#logo-cloudflare" x="10" y="5" width="17" height="17" />')
+    add(f'    <text x="32" y="18" font-size="12.5" font-weight="700" fill="var(--ink-on-tape)">{esc(say(node["label"], lang))}</text>')
+    for i, line in enumerate(node["items"]):
+        cls = ' class="code-text"' if i == 2 else ""
+        size = 9.5 if i == 2 else 11
+        add(f'    <text x="14" y="{50 + i * 20}" font-size="{size}"{cls} fill="var(--ink-secondary)">{esc(say(line, lang))}</text>')
+    add("  </g>")
+
+
+def draw_gateway(add, box: Box, node: dict, lang: str) -> None:
+    add(f"""  <g transform="translate({box.x:.1f},{box.y:.1f})">
+    <rect x="0" y="10" width="{box.w:.0f}" height="{box.h:.0f}" rx="14" fill="#000000" opacity="0.08" />
+    <rect x="0" y="0" width="{box.w:.0f}" height="{box.h:.0f}" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.6" />
+    <rect x="0" y="0" width="{box.w:.0f}" height="30" rx="14" fill="var(--plum)" />
+    <rect x="0" y="18" width="{box.w:.0f}" height="12" fill="var(--plum)" />""")
+    add('    <use href="#kit-glyph" x="10" y="4" width="24" height="24" />')
+    add(f'    <text x="42" y="21" font-size="13" font-weight="700" fill="{AMBER}">{esc(say(node["label"], lang))}</text>')
+    add(f'    <text x="128" y="21" font-size="10.5" class="code-text" fill="#a8a29e">{esc(node["sub"])}</text>')
+    add("""    <g transform="translate(12,40)">""")
+    for i, txt in enumerate(node["items"]):
+        add(f'      <rect x="0" y="{i * 28}" width="242" height="25" rx="6" fill="var(--bg-raise)" stroke="var(--border-card)" stroke-width="1" />')
+        add(f'      <text x="121" y="{i * 28 + 17}" font-size="11" text-anchor="middle" fill="var(--ink-primary)">{esc(say(txt, lang))}</text>')
+    add("    </g>")
+    add("  </g>")
+
+
+def draw_colab(add, box: Box, node: dict, lang: str) -> None:
+    add(f"""  <g transform="translate({box.x:.1f},{box.y:.1f})">
+    <rect x="0" y="10" width="{box.w:.0f}" height="{box.h:.0f}" rx="14" fill="#000000" opacity="0.08" />
+    <rect x="0" y="0" width="{box.w:.0f}" height="{box.h:.0f}" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.6" />
+    <rect x="0" y="0" width="{box.w:.0f}" height="30" rx="14" fill="url(#g-amber)" />
+    <rect x="0" y="18" width="{box.w:.0f}" height="12" fill="url(#g-amber)" />""")
+    add('    <use href="#logo-googlecolab" x="11" y="7" width="18" height="18" />')
+    add(f'    <text x="35" y="21" font-size="13" font-weight="700" fill="var(--ink-on-tape)">{esc(say(node["label"], lang))}</text>')
+    add("""    <g transform="translate(14,40)">
+      <rect x="0" y="0" width="216" height="112" rx="10" fill="var(--bg-raise)" stroke="var(--border-card)" stroke-width="1" />
+      <rect x="0" y="0" width="216" height="22" rx="10" fill="var(--bg-canvas)" opacity="0.6" />""")
+    add(f'      <text x="10" y="15" font-size="10.5" class="code-text" fill="var(--ink-secondary)">{esc(node["path"])}</text>')
+    add('      <rect x="152" y="4" width="17" height="14" rx="3" fill="var(--plum)"/>')
+    add('      <use href="#logo-huggingface" x="154" y="5" width="12" height="12" />')
+    items = node["items"]
+    chips = [(0, 30, items[0], "var(--rose)"), (102, 30, items[1], "var(--blue)"),
+             (0, 56, items[2], "var(--green)"), (102, 56, items[3], "var(--yellow)")]
+    for cx, cy, txt, col in chips:
+        add(f'      <rect x="{cx}" y="{cy}" width="94" height="20" rx="5" fill="{col}" opacity="0.9" />')
+        if cx == 0 and cy == 56:
+            # this chip carries the ComfyUI mark, so the label starts after it
+            add('      <use href="#logo-comfyui" x="3" y="57" width="20" height="20" />')
+            add(f'      <text x="21" y="{cy + 14}" font-size="9.5" fill="var(--ink-on-tape)">{esc(say(txt, lang))}</text>')
+        else:
+            add(f'      <text x="{cx + 47}" y="{cy + 14}" font-size="9.5" text-anchor="middle" fill="var(--ink-on-tape)">{esc(say(txt, lang))}</text>')
+    add("    </g>")
+    add(f'    <text x="14" y="170" font-size="9.5" fill="var(--ink-muted)">{esc(say(node["note"], lang))}</text>')
+    add(f'    <text x="14" y="186" font-size="9.5" class="code-text" fill="var(--ink-muted)">{esc(say(node["cost"], lang))}</text>')
+    add("  </g>")
+
+
+CARD_RENDERERS = {
+    "chip": draw_chip,
+    "cloudflare": draw_cloudflare,
+    "gateway": draw_gateway,
+    "colab": draw_colab,
+}
+
+
+def draw_grid_cell(add, box: Box, cell: dict, lang: str, style: str) -> None:
+    """One cell of a grid section: a card with a title, a code line and a note."""
+    if style == "prop":
+        add(f'    <g transform="translate({box.x:.1f},{box.y:.1f})">')
+        add(f'      <rect x="0" y="0" width="{box.w:.0f}" height="{box.h:.0f}" rx="10" fill="var(--bg-raise)" />')
+        add(f'      <rect x="12" y="14" width="6" height="6" rx="3" fill="{ACCENTS[cell["accent"]]}" />')
+        add(f'      <text x="28" y="20" font-size="12.5" font-weight="650" fill="var(--ink-primary)">{esc(say(cell["title"], lang))}</text>')
+        for k, line in enumerate(wrap(say(cell["body"], lang), box.w - 24, 11)):
+            add(f'      <text x="12" y="{42 + k * 16}" font-size="11" fill="var(--ink-secondary)">{esc(line)}</text>')
+        add(f'      <text x="12" y="{box.h - 14}" font-size="10.5" class="code-text" fill="var(--ink-muted)">{esc(say(cell["code"], lang))}</text>')
+        add("    </g>")
+    else:
+        add(f'  <g transform="translate({box.x:.1f},{box.y:.1f})">')
+        add(f'    <rect x="0" y="0" width="{box.w:.0f}" height="{box.h:.0f}" rx="11" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />')
+        add(f'    <rect x="0" y="0" width="{box.w:.0f}" height="4" rx="2" fill="{ACCENTS[cell["accent"]]}" />')
+        add(f'    <text x="14" y="26" font-size="13" font-weight="650" fill="var(--ink-primary)">{esc(say(cell["title"], lang))}</text>')
+        add(f'    <text x="14" y="45" font-size="11.5" class="code-text" fill="var(--ink-secondary)">{esc(say(cell["code"], lang))}</text>')
+        add(f'    <text x="14" y="62" font-size="10.5" fill="var(--ink-muted)">{esc(say(cell["note"], lang))}</text>')
+        add("  </g>")
+
+
+def draw_section_tape(add, x: float, y: float, title: str, note: str | None,
+                      colour: str) -> float:
+    """A section heading: a coloured tape with the title, plus a note beside it."""
+    w = text_width(title, 12.5) + 26
+    add(f"""  <g transform="translate({x:.0f},{y:.0f})">
+    <rect x="0" y="0" width="{w:.0f}" height="24" rx="4" fill="{colour}" opacity="0.9" />""")
+    add(f'    <text x="13" y="17" font-size="12.5" font-weight="700" fill="var(--ink-on-tape)">{esc(title)}</text>')
+    if note:
+        add(f'    <text x="180" y="17" font-size="12.5" fill="var(--ink-muted)">{esc(note)}</text>')
+    add("  </g>")
+    return w
+
+
+def build(spec: dict, lang: str) -> tuple[str, float]:
+    """Render the diagram described by the spec."""
     o: list[str] = []
     add = o.append
     flows: list[tuple[str, str]] = []   # (path id, animation class)
 
-    # ── 1. request path ───────────────────────────────────────────────────
+    canvas = spec["canvas"]
+    margin = canvas["margin"]
+    content_w = canvas["width"] - 2 * margin
+    sections = {s["id"]: s for s in spec["sections"]}
+
+    # ── layout: one Graphviz run per section ──────────────────────────────
+    request = sections["request"]
+    node_sizes = {n["id"]: (n["w"], n["h"]) for n in request["nodes"]}
     req = dot(dot_row(
-        ["agent", "browser", "cf", "gate", "colab"],
-        {"agent": (CHIP_W, CHIP_H), "browser": (CHIP_W, CHIP_H),
-         "cf": (CF_W, CF_H), "gate": (GATE_W, GATE_H), "colab": (COLAB_W, COLAB_H)},
-        span=CONTENT_W,
-        edges=[("agent", "cf"), ("browser", "cf"), ("cf", "gate"), ("gate", "colab")],
-    )).offset(MARGIN, 0)
+        [n["id"] for n in request["nodes"]], node_sizes, span=content_w,
+        edges=[(e["from"], e["to"]) for e in request["edges"]],
+    ))
 
-    # ── 2. state machine: the boot row, then the failure row ──────────────
-    states = dot(dot_row(BOOT_ORDER, STATE_SIZES, span=CONTENT_W,
-                         edges=[(a, b) for _, a, b in lang.state_edges]))
-    fails = dot(dot_row(FAIL_ORDER, STATE_SIZES,
-                        span=CONTENT_W - (states.box("booting").x - MARGIN),
-                        edges=[("failed", "stopping"), ("stopping", "switching")]))
+    states = sections["states"]
+    boot = states["boot"]
+    boot_sizes = {k: tuple(v) for k, v in boot["sizes"].items()}
+    boot_layout = dot(dot_row(boot["row"], boot_sizes, span=content_w,
+                              edges=[(a, b) for a, b, _ in boot["edges"]]))
+    failure = states["failure"]
+    fail_sizes = {k: tuple(v) for k, v in failure["sizes"].items()}
+    fail_layout = dot(dot_row(
+        failure["row"], fail_sizes,
+        span=content_w - (boot_layout.box("booting").x - margin),
+        edges=[(a, b) for a, b, _ in failure["edges"]],
+    ))
 
-    # ── 3. five shutdown gates ────────────────────────────────────────────
-    gates = dot(dot_row([f"g{i}" for i in range(5)],
-                        {f"g{i}": (GATE_CARD_W, GATE_CARD_H) for i in range(5)},
-                        span=CONTENT_W, invisible=True))
-
-    # ── 4. three properties ───────────────────────────────────────────────
-    props = dot(dot_row([f"p{i}" for i in range(3)],
-                        {f"p{i}": (PROP_CARD_W, PROP_CARD_H) for i in range(3)},
-                        span=CONTENT_W, invisible=True))
+    grid_layouts = {}
+    for s in spec["sections"]:
+        if s["kind"] != "grid":
+            continue
+        cells = s["cells"]
+        per_row = s["columns"]
+        ids = [f"c{i}" for i in range(len(cells))]
+        sizes = {f"c{i}": (c["w"], c["h"]) for i, c in enumerate(cells)}
+        layout = dot(dot_row(ids, sizes, span=content_w, invisible=True))
+        grid_layouts[s["id"]] = (layout, cells, per_row)
 
     # ── vertical composition ──────────────────────────────────────────────
-    hero_h = 248
     req_y = 310
     sec2_y = req_y + req.height + 62
     rail_y = sec2_y + 42
@@ -650,29 +661,18 @@ def build(lang: Lang) -> tuple[str, float]:
     rail_h = bill_y + 22 + 18 - rail_y
     sec3_y = bill_y + 22 + 18 + 40
     gates_y = sec3_y + 40
-    props_frame_y = gates_y + GATE_CARD_H + 24
+    gate_cell_h = grid_layouts["gates"][1][0]["h"]
+    prop_cell_h = grid_layouts["props"][1][0]["h"]
+    props_frame_y = gates_y + gate_cell_h + 24
     props_y = props_frame_y + 44
-    legend_y = props_y + PROP_CARD_H + 42
+    legend_y = props_y + prop_cell_h + 42
     canvas_h = legend_y + 24
 
-    def at(box: Box, x: float, y: float) -> Box:
-        """Move a computed box to a place in the composition."""
-        return Box(x + box.x, y + box.y, box.w, box.h)
-
-    # the failure row hangs under the boot row, starting at `booting`
-
-    # now that the composition is known, move every layout into place — the
-    # boxes and their lines have to move together or the arrows lose their edge
-    req = req.shift_to(MARGIN).offset(0, req_y)
-    states = states.shift_to(MARGIN).offset(0, states_y)
-    fails = fails.shift_to(states.box("booting").x).offset(0, fails_y)
-    gates = gates.shift_to(MARGIN).offset(0, gates_y)
-    props = props.shift_to(MARGIN).offset(0, props_y)
-
+    # ── canvas ────────────────────────────────────────────────────────────
     add(f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
-        f'viewBox="0 0 {CANVAS_W} {canvas_h:.0f}" width="{CANVAS_W}" height="{canvas_h:.0f}" '
-        f'preserveAspectRatio="xMidYMid meet" role="img" aria-label="{esc(lang.title_attr)}">')
-    add("  <title>" + esc(lang.title_attr) + "</title>")
+        f'viewBox="0 0 {canvas["width"]} {canvas_h:.0f}" width="{canvas["width"]}" height="{canvas_h:.0f}" '
+        f'preserveAspectRatio="xMidYMid meet" role="img" aria-label="{esc(say(spec["title_attr"], lang))}">')
+    add("  <title>" + esc(say(spec["title_attr"], lang)) + "</title>")
     add("  <defs>")
     add("""    <style>
       :root {
@@ -752,7 +752,6 @@ def build(lang: Lang) -> tuple[str, float]:
     for name, path in LOGO_PATHS.items():
         fill, viewbox, _size = LOGO_STYLE[name]
         add(f'    <symbol id="logo-{name}" viewBox="{viewbox}"><path fill="{fill}" d="{path}" /></symbol>')
-    add(f'    <clipPath id="clip-hero"><rect x="700" y="30" width="440" height="{hero_h}" rx="14" /></clipPath>')
     # the project's own mark, inlined so the SVG stays self-contained. Its ids are
     # renamed on the way in: the source reuses short ids that would collide here.
     mark = (ROOT / "assets" / "logo" / "logo-e-fusion-dark.svg").read_text(encoding="utf-8")
@@ -767,138 +766,58 @@ def build(lang: Lang) -> tuple[str, float]:
     add(f'    <symbol id="kit-glyph" viewBox="58 41 166 174">{glyph.strip()}</symbol>')
     add("  </defs>")
 
-    # ── canvas ──
-    add(f'  <rect width="{CANVAS_W}" height="{canvas_h:.0f}" fill="var(--bg-canvas)" />')
-    add(f'  <rect width="{CANVAS_W}" height="{canvas_h:.0f}" fill="url(#dot-grid)" />')
+    add(f'  <rect width="{canvas["width"]}" height="{canvas_h:.0f}" fill="var(--bg-canvas)" />')
+    add(f'  <rect width="{canvas["width"]}" height="{canvas_h:.0f}" fill="url(#dot-grid)" />')
 
     # ── header ──
-    add(f"""  <g transform="translate({MARGIN},34)">
+    add(f"""  <g transform="translate({margin},34)">
     <rect x="0" y="0" width="6" height="46" rx="3" fill="url(#g-amber)" />""")
     add('    <use href="#kit-mark" x="20" y="-1" width="28" height="28" />')
     add('    <text x="58" y="22" font-size="23" font-weight="700" fill="var(--ink-primary)">Comfy Colab Kit</text>')
-    add(f'    <text x="58" y="44" font-size="14" fill="var(--ink-secondary)">{esc(lang.subtitle)}</text>')
+    add(f'    <text x="58" y="44" font-size="14" fill="var(--ink-secondary)">{esc(say(spec["header"]["subtitle"], lang))}</text>')
     add("  </g>")
-    badge_w = text_width(lang.badge, 12.5) + 34
-    add(f"""  <g transform="translate({MARGIN},100)">
+    badge = say(spec["header"]["badge"], lang)
+    badge_w = text_width(badge, 12.5) + 34
+    add(f"""  <g transform="translate({margin},100)">
     <rect x="0" y="0" width="{badge_w:.0f}" height="30" rx="15" fill="var(--bg-raise)" stroke="var(--border-card)" stroke-width="1.2" />
     <circle cx="17" cy="15" r="5" fill="var(--mint)" class="pulse" />""")
-    add(f'    <text x="30" y="20" font-size="12.5" fill="var(--ink-secondary)">{esc(lang.badge)}</text>')
+    add(f'    <text x="30" y="20" font-size="12.5" fill="var(--ink-secondary)">{esc(badge)}</text>')
     add("  </g>")
-    add(f'  <text x="{MARGIN}" y="162" font-size="12.5" fill="var(--ink-muted)">{esc(lang.headline)}</text>')
+    add(f'  <text x="{margin}" y="162" font-size="12.5" fill="var(--ink-muted)">{esc(say(spec["header"]["headline"], lang))}</text>')
 
-    # ── hero illustration ──
     hero_panel(add)
 
-    # ── section 1 tape ──
-    tape1_w = text_width(lang.sec1, 12.5) + 26
-    add(f"""  <g transform="translate({MARGIN},{req_y - 40})">
-    <rect x="0" y="0" width="{tape1_w:.0f}" height="24" rx="4" fill="var(--yellow)" opacity="0.9" />""")
-    add(f'    <text x="13" y="17" font-size="12.5" font-weight="700" fill="var(--ink-on-tape)">{esc(lang.sec1)}</text>')
-    add(f'    <text x="180" y="17" font-size="12.5" fill="var(--ink-muted)">{esc(lang.sec1_note)}</text>')
-    add("  </g>")
+    # ── ① request path ──
+    draw_section_tape(add, margin, req_y - 40, say(request["title"], lang),
+                      say(request["note"], lang), "var(--yellow)")
+    req = req.shift_to(margin).offset(0, req_y)
+    for node in request["nodes"]:
+        CARD_RENDERERS[node["card"]](add, req.box(node["id"]), node, lang)
 
-    # ── request path cards ──
-    agent = req.box("agent")
-    browser = req.box("browser")
-    cf = req.box("cf")
-    gate = req.box("gate")
-    colab = req.box("colab")
-
-    for box, title, sub, accent in ((agent, lang.client_agent, lang.client_agent_sub, "var(--blue)"),
-                                    (browser, lang.client_browser, lang.client_browser_sub, "var(--green)")):
-        add(f"""  <g transform="translate({box.x:.1f},{box.y:.1f})">
-    <rect x="0" y="0" width="{box.w:.0f}" height="{box.h:.0f}" rx="10" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />
-    <rect x="0" y="0" width="4" height="{box.h:.0f}" rx="2" fill="{accent}" />""")
-        add(f'    <text x="16" y="22" font-size="13.5" font-weight="650" fill="var(--ink-primary)">{esc(title)}</text>')
-        add(f'    <text x="16" y="40" font-size="11" class="code-text" fill="var(--ink-secondary)">{esc(sub)}</text>')
-        add("  </g>")
-
-    # Cloudflare Access card
-    add(f"""  <g transform="translate({cf.x:.1f},{cf.y:.1f})">
-    <rect x="0" y="6" width="{cf.w:.0f}" height="{cf.h:.0f}" rx="12" fill="#000000" opacity="0.07" />
-    <rect x="0" y="0" width="{cf.w:.0f}" height="{cf.h:.0f}" rx="12" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />
-    <rect x="0" y="0" width="{cf.w:.0f}" height="26" rx="12" fill="url(#g-lime)" opacity="0.92" />
-    <rect x="0" y="16" width="{cf.w:.0f}" height="10" fill="url(#g-lime)" opacity="0.92" />""")
-    add('    <use href="#logo-cloudflare" x="10" y="5" width="17" height="17" />')
-    add('    <text x="32" y="18" font-size="12.5" font-weight="700" fill="var(--ink-on-tape)">Cloudflare Access</text>')
-    for i, line in enumerate(lang.cf_items):
-        cls = ' class="code-text"' if i == 2 else ""
-        size = 9.5 if i == 2 else 11
-        add(f'    <text x="14" y="{50 + i * 20}" font-size="{size}"{cls} fill="var(--ink-secondary)">{esc(line)}</text>')
-    add("  </g>")
-
-    # comfy-gate card
-    add(f"""  <g transform="translate({gate.x:.1f},{gate.y:.1f})">
-    <rect x="0" y="10" width="{gate.w:.0f}" height="{gate.h:.0f}" rx="14" fill="#000000" opacity="0.08" />
-    <rect x="0" y="0" width="{gate.w:.0f}" height="{gate.h:.0f}" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.6" />
-    <rect x="0" y="0" width="{gate.w:.0f}" height="30" rx="14" fill="var(--plum)" />
-    <rect x="0" y="18" width="{gate.w:.0f}" height="12" fill="var(--plum)" />""")
-    add('    <use href="#kit-glyph" x="10" y="4" width="24" height="24" />')
-    add(f'    <text x="42" y="21" font-size="13" font-weight="700" fill="{AMBER}">comfy-gate</text>')
-    add('    <text x="128" y="21" font-size="10.5" class="code-text" fill="#a8a29e">aiohttp · :8080</text>')
-    add("""    <g transform="translate(12,40)">""")
-    for i, txt in enumerate(lang.gate_items):
-        add(f'      <rect x="0" y="{i * 28}" width="242" height="25" rx="6" fill="var(--bg-raise)" stroke="var(--border-card)" stroke-width="1" />')
-        add(f'      <text x="121" y="{i * 28 + 17}" font-size="11" text-anchor="middle" fill="var(--ink-primary)">{esc(txt)}</text>')
-    add("    </g>")
-    add("  </g>")
-
-    # Colab card
-    add(f"""  <g transform="translate({colab.x:.1f},{colab.y:.1f})">
-    <rect x="0" y="10" width="{colab.w:.0f}" height="{colab.h:.0f}" rx="14" fill="#000000" opacity="0.08" />
-    <rect x="0" y="0" width="{colab.w:.0f}" height="{colab.h:.0f}" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.6" />
-    <rect x="0" y="0" width="{colab.w:.0f}" height="30" rx="14" fill="url(#g-amber)" />
-    <rect x="0" y="18" width="{colab.w:.0f}" height="12" fill="url(#g-amber)" />""")
-    add('    <use href="#logo-googlecolab" x="11" y="7" width="18" height="18" />')
-    add('    <text x="35" y="21" font-size="13" font-weight="700" fill="var(--ink-on-tape)">Colab L4 Runtime</text>')
-    inner = lang.colab_items
-    add("""    <g transform="translate(14,40)">
-      <rect x="0" y="0" width="216" height="112" rx="10" fill="var(--bg-raise)" stroke="var(--border-card)" stroke-width="1" />
-      <rect x="0" y="0" width="216" height="22" rx="10" fill="var(--bg-canvas)" opacity="0.6" />""")
-    add('      <text x="10" y="15" font-size="10.5" class="code-text" fill="var(--ink-secondary)">/content · 易失</text>')
-    add('      <rect x="152" y="4" width="17" height="14" rx="3" fill="var(--plum)"/>')
-    add('      <use href="#logo-huggingface" x="154" y="5" width="12" height="12" />')
-    chips = [(0, 30, inner[0], "var(--rose)"), (102, 30, inner[1], "var(--blue)"),
-             (0, 56, inner[2], "var(--green)"), (102, 56, inner[3], "var(--yellow)")]
-    for cx, cy, txt, col in chips:
-        add(f'      <rect x="{cx}" y="{cy}" width="94" height="20" rx="5" fill="{col}" opacity="0.9" />')
-        if cx == 0 and cy == 56:
-            # this chip carries the ComfyUI mark, so the label starts after it
-            add('      <use href="#logo-comfyui" x="3" y="57" width="20" height="20" />')
-            add(f'      <text x="21" y="{cy + 14}" font-size="9.5" fill="var(--ink-on-tape)">{esc(txt)}</text>')
-        else:
-            add(f'      <text x="{cx + 47}" y="{cy + 14}" font-size="9.5" text-anchor="middle" fill="var(--ink-on-tape)">{esc(txt)}</text>')
-    add("    </g>")
-    add(f'    <text x="14" y="170" font-size="9.5" fill="var(--ink-muted)">{esc(lang.colab_note)}</text>')
-    add(f'    <text x="14" y="186" font-size="9.5" class="code-text" fill="var(--ink-muted)">{esc(lang.colab_cost)}</text>')
-    add("  </g>")
-
-    # ── request path edges (routed by Graphviz) ──
     add("  <!-- request path edges -->")
-    for n, (a, b) in enumerate((("agent", "cf"), ("browser", "cf"), ("cf", "gate"), ("gate", "colab"))):
+    for n, edge in enumerate(request["edges"]):
         pid = f"flow-req-{n}"
-        d = extend_to_border(req.edge(a, b), req.box(b))
+        d = extend_to_border(req.edge(edge["from"], edge["to"]), req.box(edge["to"]))
         add(f'  <path id="{pid}" d="{d}" {edge_attrs("arrow-amber", stroke="var(--amber)", width=2.2)} />')
-        flows.append((pid, ("mover", "mover-b", "mover-c", "mover-d")[n]))
-    for a, b, label in (("agent", "cf", "Bearer"), ("gate", "colab", "exec")):
-        mx, my = req.edge_midpoint(a, b)
-        add(f'  <text x="{mx:.1f}" y="{my - 8:.1f}" font-size="10" class="code-text" '
-            f'fill="var(--ink-muted)" text-anchor="middle">{esc(label)}</text>')
+        flows.append((pid, ("mover", "mover-b", "mover-c", "mover-d")[n % 4]))
+        if edge.get("label"):
+            mx, my = req.edge_midpoint(edge["from"], edge["to"])
+            add(f'  <text x="{mx:.1f}" y="{my - 8:.1f}" font-size="10" class="code-text" '
+                f'fill="var(--ink-muted)" text-anchor="middle">{esc(say(edge["label"], lang))}</text>')
 
-    # ── section 2: state machine ──
-    tape2_w = text_width(lang.sec2, 12.5) + 26
-    add(f"""  <g transform="translate({MARGIN},{sec2_y})">
-    <rect x="0" y="0" width="{tape2_w:.0f}" height="24" rx="4" fill="var(--green)" opacity="0.9" />""")
-    add(f'    <text x="13" y="17" font-size="12.5" font-weight="700" fill="var(--ink-on-tape)">{esc(lang.sec2)}</text>')
-    add(f'    <text x="180" y="17" font-size="12.5" fill="var(--ink-muted)">{esc(lang.sec2_note)}</text>')
-    add("  </g>")
+    # ── ② state machine ──
+    draw_section_tape(add, margin, sec2_y, say(states["title"], lang),
+                      say(states["note"], lang), "var(--green)")
     add(f"""  <g>
-    <rect x="{MARGIN}" y="{rail_y}" width="{CONTENT_W}" height="{rail_h:.0f}" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.3" />""")
+    <rect x="{margin}" y="{rail_y}" width="{content_w}" height="{rail_h:.0f}" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.3" />""")
 
-    # states
+    fail_dx = boot_layout.box("booting").x - fail_layout.box("failed").x
+    boot_layout = boot_layout.shift_to(margin).offset(0, states_y)
+    fail_layout = fail_layout.shift_to(boot_layout.box("booting").x).offset(0, fails_y)
+
     add('    <g font-size="11.5" text-anchor="middle">')
-    for name in BOOT_ORDER:
-        box = states.box(name)
+    for name in boot["row"]:
+        box = boot_layout.box(name)
         fill, ink, outlined = STATE_COLORS[STATE_KIND[name]]
         extra = f' stroke="var(--ink-muted)" stroke-width="1.5"' if outlined else ""
         cls = ' class="breathe"' if name == "ready" else ""
@@ -906,8 +825,8 @@ def build(lang: Lang) -> tuple[str, float]:
         add(f'        <rect x="0" y="0" width="{box.w:.0f}" height="{box.h:.0f}" rx="9" fill="{fill}"{extra} />')
         add(f'        <text x="{box.w / 2:.0f}" y="{box.h / 2 + 5:.0f}" font-weight="650" fill="{ink}">{esc(name)}</text>')
         add("      </g>")
-    for name in FAIL_ORDER:
-        box = fails.box(name)
+    for name in failure["row"]:
+        box = fail_layout.box(name)
         fill, ink, _ = STATE_COLORS[STATE_KIND[name]]
         add(f'      <g transform="translate({box.x:.1f},{box.y:.1f})">')
         add(f'        <rect x="0" y="0" width="{box.w:.0f}" height="{box.h:.0f}" rx="9" fill="{fill}" />')
@@ -915,94 +834,83 @@ def build(lang: Lang) -> tuple[str, float]:
         add("      </g>")
     add("    </g>")
 
-    # boot chain edges
     add("    <!-- boot chain edges -->")
-    for n, (cap, a, b) in enumerate(lang.state_edges):
+    for n, (a, b, cap) in enumerate(boot["edges"]):
         pid = f"flow-boot-{n}"
-        d = extend_to_border(states.edge(a, b), states.box(b))
+        d = extend_to_border(boot_layout.edge(a, b), boot_layout.box(b))
         add(f'    <path id="{pid}" d="{d}" {edge_attrs("arrow-amber", stroke="var(--amber)", width=2.2)} />')
         flows.append((pid, "mover" if n % 2 == 0 else "mover-d"))
-        mx, my = states.edge_midpoint(a, b)
-        add(f'    <text x="{mx:.1f}" y="{states_y - 9:.1f}" font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="middle">{esc(cap)}</text>')
+        mx, my = boot_layout.edge_midpoint(a, b)
+        add(f'    <text x="{mx:.1f}" y="{states_y - 9:.1f}" font-size="9.5" class="code-text" '
+            f'fill="var(--ink-muted)" text-anchor="middle">{esc(say(cap, lang))}</text>')
 
     # failure bus: every boot state drops onto one trunk, one arrow into `failed`
-    failed_box = fails.box("failed")
-    for name in BOOT_ORDER[1:]:
-        b = states.box(name)
+    failed_box = fail_layout.box("failed")
+    for name in failure["bus_from"]:
+        b = boot_layout.box(name)
         x = b.x + b.w / 2
         add(f'    <path d="M{x:.1f} {b.bottom:.1f} V{trunk_y:.1f} H{failed_box.x + failed_box.w / 2:.1f} '
             f'V{failed_box.y:.1f}" {edge_attrs("arrow-plum", width=1.5, dash="4 4")} />')
-    add(f'    <text x="{MARGIN + 62}" y="{trunk_y + 16:.1f}" font-size="9.5" class="code-text" fill="var(--ink-muted)">{esc(lang.fail_note)}</text>')
+    add(f'    <text x="{margin + 62}" y="{trunk_y + 16:.1f}" font-size="9.5" class="code-text" '
+        f'fill="var(--ink-muted)">{esc(say(states["notes"]["fail"], lang))}</text>')
 
-    # failed → stopping → switching
-    for a, b in (("failed", "stopping"), ("stopping", "switching")):
-        d = extend_to_border(fails.edge(a, b), fails.box(b))
+    for a, b, cap in failure["edges"]:
+        d = extend_to_border(fail_layout.edge(a, b), fail_layout.box(b))
         add(f'    <path d="{d}" {edge_attrs("arrow-plum", width=1.6)} />')
-    stopping = fails.box("stopping")
-    ready = states.box("ready")
+    stopping = fail_layout.box("stopping")
     add(f'    <text x="{(failed_box.right + stopping.x) / 2:.1f}" y="{fails_y - 8:.1f}" '
         f'font-size="9.5" class="code-text" fill="var(--ink-muted)" text-anchor="middle">stop</text>')
 
-    # the return line: stop is allowed from any non-sleeping state, so the
-    # line runs under the failure row and comes back up into sleeping
-    sleeping = states.box("sleeping")
+    # the return line: stop is allowed from any non-sleeping state
+    sleeping = boot_layout.box("sleeping")
+    ready = boot_layout.box("ready")
+    switching = fail_layout.box("switching")
     add(f'    <path d="M{stopping.cx:.1f} {stopping.bottom:.1f} V{ret_y:.1f} '
         f'H{sleeping.cx:.1f} V{sleeping.bottom:.1f}" {edge_attrs("arrow-plum", width=1.6)} />')
-    add(f'    <text x="{MARGIN + 200}" y="{ret_y - 7:.1f}" font-size="9.5" class="code-text" fill="var(--ink-muted)">{esc(lang.stop_note)}</text>')
-
-    # ready → switching: a cold change, drawn as a dashed drop
-    switching = fails.box("switching")
+    add(f'    <text x="{margin + 200}" y="{ret_y - 7:.1f}" font-size="9.5" class="code-text" '
+        f'fill="var(--ink-muted)">{esc(say(states["notes"]["stop"], lang))}</text>')
     add(f'    <path d="M{ready.cx:.1f} {ready.bottom:.1f} V{ret_y - 26:.1f} '
         f'H{switching.cx:.1f} V{switching.top:.1f}" {edge_attrs("arrow-plum", width=1.5, dash="4 4")} />')
-    add(f'    <text x="{MARGIN + CONTENT_W - 8}" y="{switching.bottom + 15:.1f}" font-size="9.5" class="code-text" '
-        f'fill="var(--ink-muted)" text-anchor="end">{esc(lang.switch_note)}</text>')
+    add(f'    <text x="{margin + content_w - 8}" y="{switching.bottom + 15:.1f}" font-size="9.5" '
+        f'class="code-text" fill="var(--ink-muted)" text-anchor="end">{esc(say(states["notes"]["switch"], lang))}</text>')
 
-    # billing band
-    add(f"""    <g transform="translate({MARGIN + 24},{bill_y})">
-      <rect x="0" y="0" width="{CONTENT_W - 48}" height="22" rx="6" fill="var(--rose)" opacity="0.2" />
-      <text x="{(CONTENT_W - 48) / 2:.0f}" y="15" font-size="10.5" text-anchor="middle" fill="var(--ink-secondary)">{esc(lang.billing_note)}</text>
+    add(f"""    <g transform="translate({margin + 24},{bill_y})">
+      <rect x="0" y="0" width="{content_w - 48}" height="22" rx="6" fill="var(--rose)" opacity="0.2" />
+      <text x="{(content_w - 48) / 2:.0f}" y="15" font-size="10.5" text-anchor="middle" fill="var(--ink-secondary)">{esc(say(states["notes"]["billing"], lang))}</text>
     </g>""")
     add("  </g>")
 
-    # ── section 3: shutdown gates ──
-    tape3_w = text_width(lang.sec3, 12.5) + 26
-    add(f"""  <g transform="translate({MARGIN},{sec3_y})">
-    <rect x="0" y="0" width="{tape3_w:.0f}" height="24" rx="4" fill="var(--rose)" opacity="0.9" />""")
-    add(f'    <text x="13" y="17" font-size="12.5" font-weight="700" fill="var(--ink-on-tape)">{esc(lang.sec3)}</text>')
-    add(f'    <text x="180" y="17" font-size="12.5" fill="var(--ink-muted)">{esc(lang.sec3_note)}</text>')
-    add("  </g>")
-    for i, (title, code, note, accent) in enumerate(lang.gates):
-        box = gates.box(f"g{i}")
-        add(f'  <g transform="translate({box.x:.1f},{box.y:.1f})">')
-        add(f'    <rect x="0" y="0" width="{box.w:.0f}" height="{box.h:.0f}" rx="11" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.4" />')
-        add(f'    <rect x="0" y="0" width="{box.w:.0f}" height="4" rx="2" fill="{accent}" />')
-        add(f'    <text x="14" y="26" font-size="13" font-weight="650" fill="var(--ink-primary)">{esc(title)}</text>')
-        add(f'    <text x="14" y="45" font-size="11.5" class="code-text" fill="var(--ink-secondary)">{esc(code)}</text>')
-        add(f'    <text x="14" y="62" font-size="10.5" fill="var(--ink-muted)">{esc(note)}</text>')
-        add("  </g>")
-
-    # ── properties ──
-    add(f"""  <g transform="translate({MARGIN},{props_frame_y})">
-    <rect x="0" y="0" width="{CONTENT_W}" height="{PROP_CARD_H + 60}" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.3" />
-    <text x="18" y="26" font-size="13" font-weight="700" fill="var(--ink-primary)">{esc(lang.props_title)}</text>""")
-    for i, (title, body, code) in enumerate(lang.props):
-        box = props.box(f"p{i}")
-        add(f'    <g transform="translate({box.x - MARGIN:.1f},{box.y - props_frame_y:.1f})">')
-        add(f'      <rect x="0" y="0" width="{box.w:.0f}" height="{box.h:.0f}" rx="10" fill="var(--bg-raise)" />')
-        dot_col = ("var(--amber)", "var(--orange)", "var(--mint)")[i]
-        add(f'      <rect x="12" y="14" width="6" height="6" rx="3" fill="{dot_col}" />')
-        add(f'      <text x="28" y="20" font-size="12.5" font-weight="650" fill="var(--ink-primary)">{esc(title)}</text>')
-        for k, line in enumerate(wrap(body, box.w - 24, 11)):
-            add(f'      <text x="12" y="{42 + k * 16}" font-size="11" fill="var(--ink-secondary)">{esc(line)}</text>')
-        add(f'      <text x="12" y="{box.h - 14}" font-size="10.5" class="code-text" fill="var(--ink-muted)">{esc(code)}</text>')
-        add("    </g>")
-    add("  </g>")
+    # ── ③ the grid sections ──
+    for sid, colour in (("gates", "var(--rose)"), ("props", "var(--green)")):
+        section = sections[sid]
+        layout, cells, _cols = grid_layouts[sid]
+        if sid == "gates":
+            draw_section_tape(add, margin, sec3_y, say(section["title"], lang),
+                              say(section["note"], lang), colour)
+            y = gates_y
+        else:
+            # the properties live in a frame, so the heading goes inside it
+            y = props_y
+            add(f"""  <g transform="translate({margin},{props_frame_y})">
+    <rect x="0" y="0" width="{content_w}" height="{prop_cell_h + 60}" rx="14" fill="var(--bg-card)" stroke="var(--border-card)" stroke-width="1.3" />
+    <text x="18" y="26" font-size="13" font-weight="700" fill="var(--ink-primary)">{esc(say(section["title"], lang))}</text>""")
+        layout = layout.shift_to(margin).offset(0, y)
+        style = "prop" if sid == "props" else "gate"
+        for i, cell in enumerate(cells):
+            box = layout.box(f"c{i}")
+            if style == "prop":
+                # the property cards sit inside the frame, so they are drawn
+                # relative to the frame's own origin
+                box = Box(box.x - margin, box.y - props_frame_y, box.w, box.h)
+            draw_grid_cell(add, box, cell, lang, style)
+        if sid == "props":
+            add("  </g>")
 
     # ── legend ──
-    add(f'  <g transform="translate({MARGIN},{legend_y})" font-size="10.5">')
-    dots = [("var(--mint)", lang.legend[0]), ("var(--yellow)", lang.legend[1]),
-            ("var(--rose)", lang.legend[2]), ("var(--blue)", lang.legend[3]),
-            ("var(--violet)", lang.legend[4])]
+    add(f'  <g transform="translate({margin},{legend_y})" font-size="10.5">')
+    names = spec["legend"][lang]
+    dots = [("var(--mint)", names[0]), ("var(--yellow)", names[1]), ("var(--rose)", names[2]),
+            ("var(--blue)", names[3]), ("var(--violet)", names[4])]
     x = 0.0
     for col, name in dots:
         add(f'    <circle cx="{x + 5:.1f}" cy="-4" r="4" fill="{col}" />')
@@ -1011,7 +919,7 @@ def build(lang: Lang) -> tuple[str, float]:
     lx = x + 20
     add(f'    <path d="M{lx:.1f} -8 H{lx + 28:.1f}" stroke="var(--ink-muted)" stroke-width="1.5" stroke-dasharray="4 4" fill="none" />')
     add(f'    <text x="{lx + 36:.1f}" y="0" fill="var(--ink-muted)">failure path</text>')
-    add(f'    <text x="{CONTENT_W}" y="0" class="code-text" fill="var(--ink-muted)" text-anchor="end">comfy-colab-kit</text>')
+    add(f'    <text x="{content_w}" y="0" class="code-text" fill="var(--ink-muted)" text-anchor="end">comfy-colab-kit</text>')
     add("  </g>")
 
     # ── movers: each light is bound to the path it travels along ──
@@ -1035,8 +943,9 @@ def build(lang: Lang) -> tuple[str, float]:
 
 
 def main() -> int:
-    for lang, name in ((EN, "flow.svg"), (ZH, "flow.zh.svg")):
-        svg, height = build(lang)
+    spec = load_spec()
+    for lang, name in (("en", "flow.svg"), ("zh", "flow.zh.svg")):
+        svg, height = build(spec, lang)
         (OUT_DIR / name).write_text(svg, encoding="utf-8")
         print(f"wrote assets/architecture/{name}  ({len(svg) / 1024:.0f} KB, {height:.0f} px tall)")
     return 0
