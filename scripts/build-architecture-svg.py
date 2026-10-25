@@ -313,6 +313,27 @@ def dot(dot_src: str) -> Layout:
     return Layout(data["width"], data["height"], data["nodes"], data["edges"])
 
 
+def _layers(node_ids: list[str], edges: list[tuple[str, str]] | None) -> dict[str, int]:
+    """Which column each node lands in.
+
+    Two nodes that feed the same target share a column, so the count of
+    columns is not the count of nodes. It is the number of layers in the
+    graph, which is what decides how many gaps the row has.
+    """
+    if not edges:
+        return {n: i for i, n in enumerate(node_ids)}
+    layer = {n: 0 for n in node_ids}
+    for _ in range(len(node_ids)):
+        changed = False
+        for a, b in edges:
+            if layer[b] < layer[a] + 1:
+                layer[b] = layer[a] + 1
+                changed = True
+        if not changed:
+            break
+    return layer
+
+
 def dot_row(node_ids: list[str], sizes: dict[str, tuple[float, float]],
             span: float, edges: list[tuple[str, str]] | None = None,
             invisible: bool = False) -> str:
@@ -321,8 +342,14 @@ def dot_row(node_ids: list[str], sizes: dict[str, tuple[float, float]],
     ``edges`` are real connectors. The invisible chain trick forces a row of
     independent cards into one line without drawing anything between them.
     """
-    total = sum(sizes[n][0] for n in node_ids)
-    gap = max(0.05, (span - total) / max(1, len(node_ids) - 1))
+    # a column is as wide as its widest node, and the row is as wide as the
+    # sum of its columns — not the sum of every node in it
+    layers = _layers(node_ids, edges)
+    columns: dict[int, float] = {}
+    for node, layer in layers.items():
+        columns[layer] = max(columns.get(layer, 0.0), sizes[node][0])
+    total = sum(columns.values())
+    gap = max(0.05, (span - total) / max(1, len(columns) - 1))
     lines = [
         "digraph G {",
         f'  graph [rankdir=LR, splines=ortho, nodesep=0.22, ranksep={gap / 96:.4f}, margin=0, bgcolor="transparent"];',
@@ -923,9 +950,10 @@ def build(spec: dict, lang: str) -> tuple[str, float]:
         add(f'    <circle cx="{x + 5:.1f}" cy="-4" r="4" fill="{col}" />')
         add(f'    <text x="{x + 16:.1f}" y="0" fill="var(--ink-muted)">{esc(name)}</text>')
         x += 16 + text_width(name, 10.5) + 18
+    # a sample of the dashed line, on the same optical line as the labels
     lx = x + 20
-    add(f'    <path d="M{lx:.1f} -8 H{lx + 28:.1f}" stroke="var(--ink-muted)" stroke-width="1.5" stroke-dasharray="4 4" fill="none" />')
-    add(f'    <text x="{lx + 36:.1f}" y="0" fill="var(--ink-muted)">failure path</text>')
+    add(f'    <path d="M{lx:.1f} -4 H{lx + 28:.1f}" stroke="var(--ink-muted)" stroke-width="1.5" stroke-dasharray="4 4" fill="none" />')
+    add(f'    <text x="{lx + 36:.1f}" y="0" fill="var(--ink-muted)">dashed = failure path</text>')
     add(f'    <text x="{content_w}" y="0" class="code-text" fill="var(--ink-muted)" text-anchor="end">comfy-colab-kit</text>')
     add("  </g>")
 
