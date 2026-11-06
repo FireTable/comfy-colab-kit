@@ -492,6 +492,9 @@ def run_stdio_server():
         method = req.get("method")
         params = req.get("params", {})
 
+        if req_id is None or str(method).startswith("notifications/"):
+            continue
+
         if method == "initialize":
             res = {
                 "jsonrpc": "2.0",
@@ -499,7 +502,9 @@ def run_stdio_server():
                 "result": {
                     "protocolVersion": PROTOCOL_VERSION,
                     "capabilities": {
-                        "tools": {}
+                        "tools": {},
+                        "prompts": {},
+                        "resources": {}
                     },
                     "serverInfo": {
                         "name": "comfy-colab-kit",
@@ -518,6 +523,15 @@ def run_stdio_server():
                 }
             }
             sys.stdout.write(json.dumps(res) + "\n")
+            sys.stdout.flush()
+        elif method == "prompts/list":
+            sys.stdout.write(json.dumps({"jsonrpc": "2.0", "id": req_id, "result": {"prompts": []}}) + "\n")
+            sys.stdout.flush()
+        elif method == "resources/list":
+            sys.stdout.write(json.dumps({"jsonrpc": "2.0", "id": req_id, "result": {"resources": []}}) + "\n")
+            sys.stdout.flush()
+        elif method == "resources/templates/list":
+            sys.stdout.write(json.dumps({"jsonrpc": "2.0", "id": req_id, "result": {"resourceTemplates": []}}) + "\n")
             sys.stdout.flush()
         elif method == "tools/call":
             tool_name = params.get("name")
