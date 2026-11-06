@@ -43,13 +43,14 @@ flowchart LR
 
 ## 🛠️ Available MCP Tools
 
-The MCP server exposes 5 specialized, high-leverage tools:
+The MCP server exposes 6 specialized, high-leverage tools:
 
 | Tool Name | Purpose | Key Arguments | Return Value |
 |---|---|---|---|
 | `gate_status` | Inspect session state, active profile, queue busy flag, and real-time CU balance. | *None* | JSON object with `state`, `profile`, `cu` metrics, and user permissions. |
 | `gate_wake` | Wake or join the shared Colab L4 GPU instance with a model profile. Idempotent. | `profile`: e.g. `"moss-image"` (optional) | Confirmation message with current state (`ready`, `allocating`, etc.). |
-| `gate_txt2img` | **High-level text-to-image generator**! Executes the MOSS-Image DeBand pipeline with anti-banding LoRAs and fast sampling. | `prompt`: positive text (required)<br/>`negative_prompt`: negative text<br/>`preset`: `"Fast alt"` (default, 10 steps), `"Fast"`, `"Balanced"`, `"Quality"`<br/>`seed`: integer<br/>`width` / `height`: dimensions (default 1024) | Structured JSON with `prompt_id` and markdown-embedded image URLs (`/view?filename=...`). |
+| `gate_txt2img` | **High-level text-to-image generator**! Automatically adapts to the active profile (MOSS-Image DeBand pipeline or SD 3.5 Large fp8). | `prompt`: positive text (required)<br/>`negative_prompt`: negative text<br/>`preset`: `"Fast alt"` (default, 10 steps), `"Fast"`, `"Balanced"`, `"Quality"`<br/>`seed`: integer<br/>`width` / `height`: dimensions (default 1024) | Structured JSON with `prompt_id` and markdown-embedded image URLs (`/view?filename=...`). |
+| `gate_img2img` | **High-level image-to-image generator**! Automatically uploads a local reference image or HTTP/HTTPS URL via `/upload/image` and runs Img2Img. | `image`: local file path, HTTP/HTTPS URL, or `input/` filename (required)<br/>`prompt`: positive text (required)<br/>`denoise`: float `0.05`–`1.0` (default `0.75`)<br/>`preset`: `"Fast alt"`, `"Quality"`, etc.<br/>`seed`: integer | Structured JSON with `prompt_id` and markdown-embedded image URLs (`/view?filename=...`). |
 | `gate_generate` | Submit a raw ComfyUI prompt graph dictionary and wait for image completion. | `prompt`: ComfyUI node graph JSON (required)<br/>`timeout_seconds`: int (default 180) | Output image metadata, filename, and direct URLs. |
 | `gate_stop` | Terminate the Colab VM immediately to stop Compute Unit consumption. | *None* | Final state confirmation (`"stopping"`). |
 

@@ -296,9 +296,9 @@ async def mcp_endpoint(request: web.Request) -> web.Response:
     if request.method == "GET":
         return web.json_response({
             "name": "comfy-colab-kit",
-            "version": "0.1.0",
+            "version": __version__,
             "protocol": "2024-11-05",
-            "tools": ["gate_status", "gate_wake", "gate_txt2img", "gate_generate", "gate_stop"]
+            "tools": ["gate_status", "gate_wake", "gate_txt2img", "gate_img2img", "gate_generate", "gate_stop"]
         })
     body = await _body(request)
     req_id = body.get("id")
@@ -313,7 +313,7 @@ async def mcp_endpoint(request: web.Request) -> web.Response:
             "result": {
                 "protocolVersion": "2024-11-05",
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": "comfy-colab-kit", "version": "0.1.0"}
+                "serverInfo": {"name": "comfy-colab-kit", "version": __version__}
             }
         })
     elif method == "tools/list":
@@ -339,7 +339,7 @@ async def mcp_endpoint(request: web.Request) -> web.Response:
                     },
                     {
                         "name": "gate_txt2img",
-                        "description": "Generate an image using the pre-configured MOSS-Image DeBand pipeline with anti-banding LoRAs and fast sampling.",
+                        "description": "Generate an image from a text prompt using the active profile's pipeline (MOSS-Image DeBand or SD 3.5 Large fp8).",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -351,6 +351,22 @@ async def mcp_endpoint(request: web.Request) -> web.Response:
                                 "height": {"type": "integer", "description": "Image height (default 1024)."}
                             },
                             "required": ["prompt"]
+                        }
+                    },
+                    {
+                        "name": "gate_img2img",
+                        "description": "Generate an image variation from a reference image (filename in ComfyUI input/ or HTTP/HTTPS image URL) and a text prompt.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "image": {"type": "string", "description": "Reference image filename in ComfyUI input/ or an HTTP/HTTPS URL."},
+                                "prompt": {"type": "string", "description": "Text prompt guiding the image transformation."},
+                                "denoise": {"type": "number", "description": "Denoising strength (0.05 to 1.0, default 0.75)."},
+                                "negative_prompt": {"type": "string", "description": "Negative elements to avoid."},
+                                "preset": {"type": "string", "description": "Preset: 'Fast alt' (default), 'Fast', 'Balanced', 'Quality'."},
+                                "seed": {"type": "integer", "description": "Random seed (optional)."}
+                            },
+                            "required": ["image", "prompt"]
                         }
                     },
                     {
@@ -396,7 +412,7 @@ async def mcp_endpoint(request: web.Request) -> web.Response:
                 "id": req_id,
                 "result": {"content": [{"type": "text", "text": f"Wake initiated for profile '{prof}'. State: {res.state}"}]}
             })
-        elif tool_name == "gate_txt2img" or tool_name == "gate_generate":
+        elif tool_name in ("gate_txt2img", "gate_img2img", "gate_generate"):
             if s.state.value != "ready":
                 return web.json_response({
                     "jsonrpc": "2.0",
@@ -404,6 +420,10 @@ async def mcp_endpoint(request: web.Request) -> web.Response:
                     "result": {"isError": True, "content": [{"type": "text", "text": f"Cannot generate: GPU is not ready (state: '{s.state.value}'). Call gate_wake first."}]}
                 })
             args = params.get("arguments", {})
+            proxy = request.app[PROXY]
+            client = await proxy.client()
+            headers = proxy.service_headers(proxy.token_file)
+
             if tool_name == "gate_txt2img":
                 prompt_text = (args.get("prompt") or "").strip()
                 if not prompt_text:
@@ -412,14 +432,65 @@ async def mcp_endpoint(request: web.Request) -> web.Response:
                         "id": req_id,
                         "result": {"isError": True, "content": [{"type": "text", "text": "Missing required argument 'prompt'"}]}
                     })
-                from ckit.moss_template import make_moss_txt2img_graph
-                prompt_graph = make_moss_txt2img_graph(
+                from ckit.moss_template import make_txt2img_graph
+                prompt_graph = make_txt2img_graph(
+                    profile=s.profile,
                     prompt=prompt_text,
                     negative_prompt=args.get("negative_prompt", "worst quality, bad anatomy, watermark, jpeg artifact"),
                     preset=args.get("preset", "Fast alt · fix + darask0 0.35 · 10 steps"),
                     seed=args.get("seed", -1),
                     width=args.get("width", 1024),
                     height=args.get("height", 1024),
+                )
+            elif tool_name == "gate_img2img":
+                prompt_text = (args.get("prompt") or "").strip()
+                image_ref = (args.get("image") or "").strip()
+                if not prompt_text or not image_ref:
+                    return web.json_response({
+                        "jsonrpc": "2.0",
+                        "id": req_id,
+                        "result": {"isError": True, "content": [{"type": "text", "text": "Missing required arguments 'image' and 'prompt'"}]}
+                    })
+                if image_ref.startswith("http://") or image_ref.startswith("https://"):
+                    try:
+                        import aiohttp as _aiohttp
+                        async with client.get(image_ref, timeout=_aiohttp.ClientTimeout(total=30)) as ir:
+                            if ir.status >= 400:
+                                return web.json_response({
+                                    "jsonrpc": "2.0",
+                                    "id": req_id,
+                                    "result": {"isError": True, "content": [{"type": "text", "text": f"Failed to download image URL ({ir.status})"}]}
+                                })
+                            img_bytes = await ir.read()
+                        form = _aiohttp.FormData()
+                        fn = image_ref.rsplit("/", 1)[-1].split("?")[0] or "reference.png"
+                        form.add_field("image", img_bytes, filename=fn, content_type="image/png")
+                        form.add_field("overwrite", "true")
+                        async with client.post(f"{proxy.backend}/upload/image", data=form, headers=dict(headers), timeout=_aiohttp.ClientTimeout(total=30)) as ur:
+                            if ur.status >= 400:
+                                err_t = await ur.text()
+                                return web.json_response({
+                                    "jsonrpc": "2.0",
+                                    "id": req_id,
+                                    "result": {"isError": True, "content": [{"type": "text", "text": f"Backend image upload failed ({ur.status}): {err_t}"}]}
+                                })
+                            u_out = await ur.json()
+                            image_ref = u_out.get("name") or fn
+                    except Exception as e:
+                        return web.json_response({
+                            "jsonrpc": "2.0",
+                            "id": req_id,
+                            "result": {"isError": True, "content": [{"type": "text", "text": f"Error uploading reference image: {e}"}]}
+                        })
+                from ckit.moss_template import make_img2img_graph
+                prompt_graph = make_img2img_graph(
+                    profile=s.profile,
+                    prompt=prompt_text,
+                    image=image_ref,
+                    negative_prompt=args.get("negative_prompt", "worst quality, bad anatomy, watermark, jpeg artifact"),
+                    preset=args.get("preset", "Fast alt · fix + darask0 0.35 · 10 steps"),
+                    denoise=args.get("denoise", 0.75),
+                    seed=args.get("seed", -1),
                 )
             else:
                 prompt_graph = args.get("prompt")
@@ -430,10 +501,7 @@ async def mcp_endpoint(request: web.Request) -> web.Response:
                         "result": {"isError": True, "content": [{"type": "text", "text": "Argument 'prompt' must be a ComfyUI graph dictionary"}]}
                     })
 
-            proxy = request.app[PROXY]
             timeout_s = int(args.get("timeout_seconds") or 180)
-            client = await proxy.client()
-            headers = proxy.service_headers(proxy.token_file)
             headers["Content-Type"] = "application/json"
 
             try:

@@ -2,7 +2,16 @@ import json
 from pathlib import Path
 import pytest
 from aiohttp.test_utils import TestClient, TestServer
-from ckit.moss_template import make_moss_txt2img_graph, resolve_preset, PRESETS
+from ckit.moss_template import (
+    PRESETS,
+    make_img2img_graph,
+    make_moss_img2img_graph,
+    make_moss_txt2img_graph,
+    make_sd35_img2img_graph,
+    make_sd35_txt2img_graph,
+    make_txt2img_graph,
+    resolve_preset,
+)
 from ckit.mcp_server import TOOLS
 from gate.app import build_app
 from gate.profiles import load_profile
@@ -43,11 +52,37 @@ def test_make_moss_txt2img_graph():
     assert g["26"]["class_type"] == "SaveImage"
 
 
+def test_make_moss_img2img_graph_and_multi_profile():
+    g = make_moss_img2img_graph(
+        prompt="a beach variation",
+        image="ref_upload.png",
+        preset="Quality",
+        denoise=0.65,
+        seed=42,
+    )
+    assert g["23_load"]["class_type"] == "LoadImage"
+    assert g["23_load"]["inputs"]["image"] == "ref_upload.png"
+    assert g["23"]["class_type"] == "VAEEncode"
+    assert g["20"]["inputs"]["denoise"] == 0.65
+    assert g["22"]["inputs"]["value"] == 42
+
+    sd_t2i = make_txt2img_graph(profile="sd-latest", prompt="a mountain lake", seed=99, width=1024, height=1024)
+    assert sd_t2i["4"]["class_type"] == "CheckpointLoaderSimple"
+    assert sd_t2i["16"]["inputs"]["text"] == "a mountain lake"
+    assert sd_t2i["3"]["inputs"]["seed"] == 99
+
+    sd_i2i = make_img2img_graph(profile="sd-latest", prompt="oil painting style", image="input.png", denoise=0.5, seed=77)
+    assert sd_i2i["53_load"]["inputs"]["image"] == "input.png"
+    assert sd_i2i["53"]["class_type"] == "VAEEncode"
+    assert sd_i2i["3"]["inputs"]["denoise"] == 0.5
+
+
 def test_mcp_server_tools_list():
     tool_names = [t["name"] for t in TOOLS]
     assert "gate_status" in tool_names
     assert "gate_wake" in tool_names
     assert "gate_txt2img" in tool_names
+    assert "gate_img2img" in tool_names
     assert "gate_generate" in tool_names
     assert "gate_stop" in tool_names
 
@@ -55,6 +90,10 @@ def test_mcp_server_tools_list():
     assert "prompt" in txt2img["inputSchema"]["required"]
     assert "preset" in txt2img["inputSchema"]["properties"]
     assert "seed" in txt2img["inputSchema"]["properties"]
+
+    img2img = next(t for t in TOOLS if t["name"] == "gate_img2img")
+    assert set(img2img["inputSchema"]["required"]) == {"image", "prompt"}
+    assert "denoise" in img2img["inputSchema"]["properties"]
 
 
 @pytest.mark.asyncio
@@ -71,6 +110,7 @@ async def test_gate_mcp_endpoint_tools_list(tmp_path):
         assert r.status == 200
         data = await r.json()
         assert "gate_txt2img" in data["tools"]
+        assert "gate_img2img" in data["tools"]
 
         # 2. POST /mcp tools/list
         r2 = await c.post("/mcp", json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
@@ -78,6 +118,7 @@ async def test_gate_mcp_endpoint_tools_list(tmp_path):
         data_list = await r2.json()
         tools = [t["name"] for t in data_list["result"]["tools"]]
         assert "gate_txt2img" in tools
+        assert "gate_img2img" in tools
         assert "gate_generate" in tools
         assert "gate_status" in tools
         assert "gate_wake" in tools

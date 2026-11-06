@@ -10,7 +10,15 @@ comfyui:
   args:
   - --preview-method
   - auto
+  - --highvram
+  - --reserve-vram
+  - '0.2'
   settings: {}
+  env:
+    PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
+    CUDA_MODULE_LOADING: LAZY
+    TORCH_CUDNN_V8_API: '1'
+    TORCH_ALLOW_TF32_CUBLAS_OVERRIDE: '1'
 frontend:
   package: comfyui-frontend-package==1.57.1
 models:

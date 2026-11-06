@@ -509,7 +509,7 @@ docker compose -f deploy/docker-compose.yml up -d --build
     </div>
     <article class="card roadmap">
       <span class="card-tag"><span>⚡</span> <span data-i18n="features.roadmapTag">Live Feature</span></span>
-      <p data-i18n="features.roadmapDesc">Full Model Context Protocol (MCP) support live: local stdio (ckit mcp) and remote HTTP (/mcp), RFC 8628 device flow, and 5 native tools (gate_status, gate_wake, gate_txt2img, gate_generate, gate_stop).</p>
+      <p data-i18n="features.roadmapDesc">Full Model Context Protocol (MCP) support live: local stdio (ckit mcp) and remote HTTP (/mcp), RFC 8628 device flow, and 6 native tools (gate_status, gate_wake, gate_txt2img, gate_img2img, gate_generate, gate_stop).</p>
     </article>
   </div>
 </section>
@@ -548,6 +548,10 @@ docker compose -f deploy/docker-compose.yml up -d --build
         <div class="profile-path">profiles/examples/qwen-image</div>
       </article>
     </div>
+    <article class="card roadmap" style="margin-top: 20px;">
+      <span class="card-tag"><span>🤖</span> <span data-i18n="profiles.scaffoldTag">AI Agent Scaffolding</span></span>
+      <p data-i18n="profiles.scaffoldDesc">Need another model (Flux.1, Wan 2.1, SDXL) or want to fork this gateway to run any Google Colab GPU service (vLLM, Ollama, Forge, Gradio)? Hand docs/AGENT_SCAFFOLDING.md to your AI coding agent to scaffold it automatically.</p>
+    </article>
   </div>
 </section>
 
@@ -577,7 +581,8 @@ docker compose -f deploy/docker-compose.yml up -d --build
       </article>
       <article class="card stat">
         <div class="stat-value">
-          <span class="stat-num">60–95</span>
+          <span class="stat-prefix">~</span>
+          <span class="stat-num">90</span>
           <span class="stat-unit">s</span>
         </div>
         <span class="stat-label" data-i18n="numbers.s3Label">Cold start from sleep to ready</span>
@@ -713,6 +718,6 @@ docker compose -f deploy/docker-compose.yml up -d --build
 </footer>
 
 <script src="vendor/lenis.min.js" defer></script>
-<script src="main.js?v=b2eddb3d" defer></script>
+<script src="main.js?v=42ceb32f" defer></script>
 </body>
 </html>

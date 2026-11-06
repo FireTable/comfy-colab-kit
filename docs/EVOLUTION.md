@@ -233,7 +233,7 @@ Four major optimizations followed:
    the kernel while keeping the idle reaper at bay via 90 s gate touches.
 
 Live measured results on production L4 Colab:
-- Cold start: **60.8 s** (allocating 8.8 s, installing 19.3 s, downloading 22.7 s, booting 10.0 s).
+- Cold start: **~90 s (~1.5 min)** typical end-to-end (with fastest measured run at **60.8 s**: allocating 8.8 s, installing 19.3 s, downloading 22.7 s, booting 10.0 s; variance is primarily driven by Colab VM allocation and custom node setup).
 - Warm 1024×1024 generation: **26.8 s** (21 nodes 100% VRAM cached).
 
 ---

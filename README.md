@@ -19,6 +19,7 @@
 
 <p align="center">
   <a href="https://comfy-colab-kit.firetable.tech"><img src="https://img.shields.io/badge/Showcase-comfy--colab--kit.firetable.tech-10b981?logo=cloudflare&logoColor=white" alt="Live Showcase" /></a>
+  <a href="https://github.com/FireTable/comfy-colab-kit/releases"><img src="https://img.shields.io/github/v/release/FireTable/comfy-colab-kit?color=8b5cf6&label=Release" alt="Release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-amber.svg" alt="License" /></a>
   <img src="https://img.shields.io/badge/Python-3.11%2B-3b82f6?logo=python&logoColor=white" alt="Python" />
   <img src="https://img.shields.io/badge/Colab-L4-F9AB00?logo=googlecolab&logoColor=white" alt="Colab L4" />
@@ -120,12 +121,12 @@ Traditional Colab forces you to sit in front of a computer, manually run noteboo
 - **Remote & Mobile Wake** — Wake ComfyUI on Colab L4 from your smartphone, tablet, or terminal. No desktop browser or manual cell execution required.
 - **One shared session** — wake is idempotent; a second visitor (or agent) joins the in-flight boot instead of
   starting another VM. State survives gate restarts (`STATE_DIR/session.json`).
-- **Model Context Protocol (MCP) Native** — Full MCP JSON-RPC 2.0 support via local stdio (`ckit mcp`) and remote HTTP (`/mcp`), exposing `gate_status`, `gate_wake`, `gate_txt2img`, `gate_generate`, and `gate_stop`.
+- **Model Context Protocol (MCP) Native** — Full MCP JSON-RPC 2.0 support via local stdio (`ckit mcp`) and remote HTTP (`/mcp`), exposing `gate_status`, `gate_wake`, `gate_txt2img`, `gate_img2img`, `gate_generate`, and `gate_stop`.
 - **Live progress for everyone** — Server-Sent Events broadcast state, download GB / speed and setup logs.
 - **Dual-Mode Access Control (Mode B Default)** — `OWNER_ONLY_CONTROL=true` restricts wake, stop, profile switch, and extension to administrators (`OWNER_EMAILS`), safeguarding Colab compute units while allowing all authenticated team members to share ComfyUI once ready. Switchable to Mode A collaborative control ("who wakes can stop").
 - **Multi-IdP & Access-verified identity** — Supports Google & GitHub OAuth alongside Email OTP. Every request verifies `Cf-Access-Jwt-Assertion` (RS256, AUD, issuer).
 - **Backend locked to a service token** — the Colab tunnel hostname only admits the gate's Access service token.
-- **Fast cold start & L4 hardware acceleration** — a parallel HTTP Range downloader streams the 24.9 GB MOSS-Image profile at T0 straight into a RAM tmpfs at up to 1,096 MB/s (8.77 Gbps), overlapping tool installs and ComfyUI boot. `--highvram` keeps the entire 18 GB model suite resident in L4's 24 GB VRAM with 100% cache retention (zero PCIe swapping), yielding ~60 s cold starts and 26.8 s warm 1024×1024 generations.
+- **Fast cold start & L4 hardware acceleration** — a parallel HTTP Range downloader streams the 24.9 GB MOSS-Image profile at T0 straight into a RAM tmpfs at up to 1,096 MB/s (8.77 Gbps), overlapping tool installs and ComfyUI boot. `--highvram` keeps the entire 18 GB model suite resident in L4's 24 GB VRAM with 100% cache retention (zero PCIe swapping), yielding ~90 s (~1.5 min) cold starts and 26.8 s warm 1024×1024 generations.
 - **App mode first** — workflows get ComfyUI App-mode metadata; the injected overlay toggles App ⇄ Graph.
 - **Full ComfyUI API passthrough** — transparently proxies `/upload/image` for Img2Img reference images, `/prompt`, `/history`, `/view`, `/object_info`, `/system_stats`, `/queue`, and WebSocket `/ws`.
 - **Autonomous Agent friendly** — RFC 8628 device flow (`ckit auth`), 1-click prompt copy in Web UI, `docs/AGENT_SKILL.md`, `docs/MCP.md`, `skills/comfy-colab-kit/SKILL.md`, and `llms.txt`.
@@ -164,11 +165,12 @@ Autonomous coding agents (Claude Code, Cursor, OpenClaw, Codex, LangGraph) can w
 1. **Authentication & Pairing**: Provide `Authorization: Bearer <agent_token>` or Cloudflare Access Service Token headers. Alternatively, use RFC 8628 device flow via `ckit auth https://<host>` or click **🤖 Copy Prompt for AI Agent** in the Web UI.
 2. **Status Check & Discovery**: Call `GET /_gate/status` (or `ckit status --json`). Discover supported workflows via `ckit profiles --json` or `GET /_gate/profiles`.
 3. **Idempotent Wake**: Call `POST /_gate/wake` (or `ckit wake --profile <name> --wait`). Multiple concurrent wakes safely join the in-flight boot.
-4. **Model Context Protocol (MCP)**: Run `ckit mcp` locally for Cursor/Claude Desktop, or point streamable MCP clients to `https://<host>/mcp` to use `gate_status`, `gate_wake`, `gate_txt2img`, `gate_generate`, and `gate_stop`.
+4. **Model Context Protocol (MCP)**: Run `ckit mcp` locally for Cursor/Claude Desktop, or point streamable MCP clients to `https://<host>/mcp` to use `gate_status`, `gate_wake`, `gate_txt2img`, `gate_img2img`, `gate_generate`, and `gate_stop`.
 5. **ComfyUI API Passthrough**: Once `ready`, call standard ComfyUI endpoints directly through the gate (`POST /upload/image` for Img2Img reference uploads, `POST /prompt`, `GET /history/{prompt_id}`, `GET /view?filename=...`, and WebSocket `/ws`).
 6. **Clean Shutdown**: When execution completes and no humans are active (`clients == 0`), call `POST /_gate/stop` (or MCP `gate_stop`) to immediately release compute, or allow the idle auto-stop rule to reclaim the VM.
 
 📖 **Agent References & Protocols**:
+- [docs/AGENT_SCAFFOLDING.md](docs/AGENT_SCAFFOLDING.md) — **Let AI Build Your Profile or Adapt a Fork**: Agent runbook & copy-paste prompts for generating custom ComfyUI profiles or adapting a fork of this gateway to run *any* Google Colab GPU workload (vLLM, Ollama, Forge, Gradio, etc.).
 - [docs/MCP.md](docs/MCP.md) — Comprehensive Model Context Protocol guide (stdio `ckit mcp`, remote HTTP `/mcp`, Cursor & Claude setup).
 - [skills/comfy-colab-kit/SKILL.md](skills/comfy-colab-kit/SKILL.md) — Universal Agent Skill specification (`/comfy-colab-kit`) with Txt2Img vs Img2Img decision tree.
 - [skills/comfy-workflow-ui/SKILL.md](skills/comfy-workflow-ui/SKILL.md) — ComfyUI App Mode and workflow UI inspection & audit runbook.
@@ -188,6 +190,10 @@ Autonomous coding agents (Claude Code, Cursor, OpenClaw, Codex, LangGraph) can w
 
 Workflows are **only** community-published ones, fetched from the author with source and license recorded.
 Format and passthrough options: [docs/PROFILES.md](docs/PROFILES.md).
+
+> [!TIP]
+> **Need a different model or a non-ComfyUI Colab service?**
+> If the built-in profiles don't include the model you want — or if you want to fork this repository and reuse its wake-on-demand gateway, Zero-Trust auth, RAM `tmpfs` Range downloader, and auto-stop rules for **any Google Colab GPU workload** (vLLM, Ollama, SD-WebUI Forge, Gradio, etc.) — point your AI coding agent at [**`docs/AGENT_SCAFFOLDING.md`**](docs/AGENT_SCAFFOLDING.md) to scaffold it automatically.
 
 ## ⏱️ Auto-stop
 
@@ -237,13 +243,14 @@ comfy-colab-kit/
 ├── docs/                     # Comprehensive product & engineering documentation
 │   ├── AGENT.md              # VPS deployment & credential acquisition runbook
 │   ├── AGENT_SKILL.md        # AI agent usage guide (wake, generate, stop)
+│   ├── AGENT_SCAFFOLDING.md  # AI agent guide to author profiles or adapt forks for any Colab workload
 │   ├── APP_MODE.md           # ComfyUI App Mode form architecture & UI specifications
 │   └── ...
 ├── skills/                   # Self-contained agent runbooks
 │   ├── comfy-colab-kit/      # Gateway operator skill (wake, prompt, generate, stop)
 │   └── comfy-workflow-ui/    # Workflow UI & App Mode inspector and audit skill
 ├── scripts/                  # CI, validation and secret check utilities
-└── tests/                    # Pytest test suite (145 tests)
+└── tests/                    # Pytest test suite (157 tests)
 ```
 
 ## 🛠️ Development

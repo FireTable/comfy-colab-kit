@@ -54,6 +54,10 @@ Community Workflow JSON ──► setup.py parses all loader nodes ──► Mat
 
 ## 4. Step-by-Step: Authoring a Custom Profile
 
+> [!TIP]
+> **Let an AI Agent Scaffold Your Profile (or Adapt a Fork for Other Colab Workloads)**:
+> Instead of writing `profile.yaml` by hand, you can give your AI coding agent (Claude Code, Cursor, Codex, OpenClaw) a Hugging Face model/workflow URL and point it at [**`docs/AGENT_SCAFFOLDING.md`**](AGENT_SCAFFOLDING.md). That guide also explains how to fork this repository and let an AI agent reuse the gateway architecture for *any* Google Colab GPU service (vLLM, Ollama, Forge, Gradio, etc.).
+
 To create your own model profile (e.g. for a custom Flux or SDXL setup):
 
 1. **Create the profile directory**:
