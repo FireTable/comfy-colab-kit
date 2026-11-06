@@ -1,11 +1,11 @@
-# 💻 Local Standalone Deployment (Zero VPS & No Cloudflare Required)
+# 💻 Local Standalone Deployment (Zero VPS & Local Direct Access)
 
 Run the **comfy-gate** gateway directly on your local computer (**macOS**, **Linux**, or **Windows via WSL2/Docker**).
 
 > [!TIP]
 > **Why run locally?**
 > - **Zero VPS costs ($0/mo)**: No need to rent, patch, or maintain a cloud Linux server.
-> - **Zero Cloudflare setup**: No custom domain, DNS records, Cloudflare Tunnel, or Zero Trust Access required.
+> - **Zero Gateway Auth & Zero Trust setup**: Your local gateway UI and MCP tools listen on `http://localhost:8080` with zero cookies, zero service tokens, and zero login barriers (`AUTH_DISABLED=true`).
 > - **Zero expensive local hardware**: Your laptop doesn't need an NVIDIA GPU. The local gateway commands an on-demand Google Colab L4 GPU (24GB VRAM) in the cloud, streams ComfyUI directly to `http://localhost:8080`, and shuts it down when you're done.
 
 ---
@@ -15,11 +15,12 @@ Run the **comfy-gate** gateway directly on your local computer (**macOS**, **Lin
 | Feature | 💻 Local Mode (`localhost:8080`) | ☁️ VPS Mode (`comfy.yourdomain.com`) |
 |---|---|---|
 | **Best for** | Solo creators, local AI agents, Mac/laptop users, fast prototyping | Teams, shared access, public webhooks, 24/7 background automations |
-| **Server needed?** | **None** (runs on your Mac / PC) | Linux VPS (Debian / Ubuntu) |
-| **Domain needed?** | **None** (`http://localhost:8080`) | Custom domain with Cloudflare DNS |
-| **Authentication** | `AUTH_DISABLED=true` (Zero-auth for local dev) | Cloudflare Zero Trust (Google OAuth / SSO) + Service Tokens |
+| **Gateway Server** | **None** (runs locally on your Mac / PC) | Linux VPS (Debian / Ubuntu) |
+| **Gateway Domain** | **None** (`http://localhost:8080`) | Custom domain with Cloudflare DNS |
+| **Authentication** | `AUTH_DISABLED=true` (Zero-auth for local dev/agent) | Cloudflare Zero Trust (Google OAuth / SSO) + Service Tokens |
 | **AI Agent integration** | Direct stdio MCP (`ckit mcp --gate-url http://localhost:8080`) | Remote HTTP MCP with CF Service Token headers |
-| **Compute Engine** | Google Colab L4 GPU (ephemeral on-demand) | Google Colab L4 GPU (ephemeral on-demand) |
+| **Colab GPU Backend** | Ephemeral Google Colab L4 GPU (24GB VRAM) | Ephemeral Google Colab L4 GPU (24GB VRAM) |
+| **Colab Ingress** | Free Cloudflare Tunnel (or SSH port-forward) | Cloudflare Named Tunnel |
 | **Idle Cost** | **$0.00** | VPS monthly fee |
 
 ---
@@ -30,6 +31,7 @@ Run the **comfy-gate** gateway directly on your local computer (**macOS**, **Lin
 - **Computer**: macOS (Apple Silicon / Intel), Linux, or Windows (WSL2 / Docker Desktop).
 - **Runtime**: Docker installed OR Python 3.11+.
 - **Google Account**: Active Google account with Colab access (free tier or Compute Units).
+- **Colab Tunnel**: A free Cloudflare Tunnel token so the cloud Colab VM can route ComfyUI back to your local gateway.
 
 ### 2. Configure Local Environment
 ```bash
@@ -37,20 +39,24 @@ Run the **comfy-gate** gateway directly on your local computer (**macOS**, **Lin
 git clone https://github.com/FireTable/comfy-colab-kit.git
 cd comfy-colab-kit
 
-# Create your local .env configuration
+# Create your local .env configuration & secrets directory
 cp .env.example .env
+mkdir -p data secrets && chmod 777 data
 
 # Set auth bypass and localhost port in .env
-# (macOS sed syntax; or edit .env directly with VS Code / cursor)
+# (macOS: sed -i '' ...; Linux: sed -i ...)
 sed -i '' 's/AUTH_DISABLED=false/AUTH_DISABLED=true/' .env
 sed -i '' 's/PUBLIC_HOST=comfy.example.com/PUBLIC_HOST=localhost:8080/' .env
+
+# Set your Colab tunnel hostname and token:
+# (COLAB_TUNNEL_HOST=comfy-colab.yourdomain.com in .env)
+echo "YOUR_CLOUDFLARE_TUNNEL_TOKEN" > secrets/colab_tunnel_token
 ```
 
 ### 3. One-Time Google Colab Authentication
 The gateway needs permission to call the `colab` CLI. Authenticate once to save credentials into `./data`:
 ```bash
 # Option A: Via Docker (no local Python setup required)
-mkdir -p data && chmod 700 data
 docker run --rm -it -v $(pwd)/data:/data -e HOME=/data/home ghcr.io/firetable/comfy-colab-kit:latest colab sessions
 
 # Option B: Via local Python / pip

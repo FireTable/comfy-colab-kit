@@ -473,6 +473,7 @@ def main():
         choices=["auth", "doctor", "validate", "status", "profiles", "wake", "switch", "stop", "extend", "generate", "mcp"],
     )
     ap.add_argument("extra_arg", nargs="?", default=None, help="URL for auth/doctor, path for validate, profile ID for switch, prompt for generate")
+    ap.add_argument("--gate-url", "--url", dest="gate_url", help="gate endpoint URL (default: CKIT_URL or http://127.0.0.1:8080)")
     ap.add_argument("--profile")
     ap.add_argument("--workflow", action="append", help="enable an optional workflow (repeatable)")
     ap.add_argument("--wait", action="store_true", help="block until ready/failed (wake)")
@@ -487,6 +488,8 @@ def main():
     ap.add_argument("--timeout", type=int, default=180, help="generation timeout seconds (default 180)")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args()
+    if a.gate_url:
+        os.environ["CKIT_URL"] = a.gate_url
 
     if a.cmd == "auth":
         do_auth(a.extra_arg)

@@ -149,11 +149,12 @@ Choose the deployment path that fits your needs:
 ```bash
 git clone https://github.com/FireTable/comfy-colab-kit.git && cd comfy-colab-kit
 cp .env.example .env
+# Enable local zero-auth & localhost port (macOS: sed -i ''; Linux: sed -i)
 sed -i '' 's/AUTH_DISABLED=false/AUTH_DISABLED=true/' .env
 sed -i '' 's/PUBLIC_HOST=comfy.example.com/PUBLIC_HOST=localhost:8080/' .env
 
-# 1. One-time Google Colab login
-mkdir -p data && chmod 700 data
+# 1. One-time Google Colab login & directories setup
+mkdir -p data secrets && chmod 777 data
 docker run --rm -it -v $(pwd)/data:/data -e HOME=/data/home ghcr.io/firetable/comfy-colab-kit:latest colab sessions
 
 # 2. Start the gateway locally

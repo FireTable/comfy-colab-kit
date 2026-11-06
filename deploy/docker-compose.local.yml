@@ -23,6 +23,7 @@ services:
       PUBLIC_HOST: "localhost:${PORT:-8080}"
     volumes:
       - ../data:/data
+      - ../secrets:/run/secrets:ro
       - ../apps/gate:/app/apps/gate:ro
       - ../profiles:/app/profiles:ro
       - ../packages/colab:/app/packages/colab:ro
