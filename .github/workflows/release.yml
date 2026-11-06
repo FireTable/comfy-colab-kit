@@ -1,0 +1,44 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  github-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tool
+        run: pip install --upgrade build
+
+      - name: Build distribution packages (wheel & sdist)
+        run: python -m build
+
+      - name: Publish GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
+            echo "Release already exists, updating distribution assets..."
+            gh release upload "${{ github.ref_name }}" dist/* --clobber
+          else
+            echo "Creating new GitHub Release for ${{ github.ref_name }}..."
+            gh release create "${{ github.ref_name }}" dist/* \
+              --title "${{ github.ref_name }}" \
+              --generate-notes
+          fi
