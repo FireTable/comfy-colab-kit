@@ -4,7 +4,7 @@ name: comfy-colab-kit
 services:
   comfy-gate:
     build: {context: .., dockerfile: deploy/Dockerfile}
-    image: comfy-colab-kit/gate:local
+    image: ${GATE_IMAGE:-comfy-colab-kit/gate:local}   # or pre-built: ghcr.io/firetable/comfy-colab-kit:latest
     container_name: comfy-gate       # Caddy upstream = container_name (stable DNS, see vps-maintain §2.3)
     restart: unless-stopped
     env_file: ../.env

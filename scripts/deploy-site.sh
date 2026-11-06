@@ -22,9 +22,10 @@ if ! command -v wrangler >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "Stamping content hashes for cache-busting..."
+echo "Stamping content hashes for cache-busting and syncing llms.txt..."
+cp llms.txt apps/site/llms.txt
 python3 -c "
-import hashlib, re
+import datetime, hashlib, re
 
 def hash_file(path):
     with open(path, 'rb') as f:
@@ -42,7 +43,14 @@ content = re.sub(r'src=\"main\.js(\?v=[^\"]*)?\"', f'src=\"main.js?v={h_js}\"', 
 with open('apps/site/index.html', 'w', encoding='utf-8') as f:
     f.write(content)
 
-print(f'Asset hashes stamped: styles.css?v={h_css}, main.js?v={h_js}')
+today = datetime.date.today().isoformat()
+with open('apps/site/sitemap.xml', 'r', encoding='utf-8') as f:
+    sm = f.read()
+sm = re.sub(r'<lastmod>[^<]+</lastmod>', f'<lastmod>{today}</lastmod>', sm)
+with open('apps/site/sitemap.xml', 'w', encoding='utf-8') as f:
+    f.write(sm)
+
+print(f'Asset hashes stamped: styles.css?v={h_css}, main.js?v={h_js}, sitemap lastmod={today}')
 "
 
 echo "Deploying apps/site to Cloudflare Pages (project: $PROJECT_NAME)..."
