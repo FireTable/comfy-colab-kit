@@ -19,6 +19,7 @@
 
 <p align="center">
   <a href="https://comfy-colab-kit.firetable.tech"><img src="https://img.shields.io/badge/官网展示站-comfy--colab--kit.firetable.tech-10b981?logo=cloudflare&logoColor=white" alt="官网展示站" /></a>
+  <a href="https://github.com/FireTable/comfy-colab-kit/releases"><img src="https://img.shields.io/github/v/release/FireTable/comfy-colab-kit?color=8b5cf6&label=Release" alt="Release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-amber.svg" alt="License" /></a>
   <img src="https://img.shields.io/badge/Python-3.11%2B-3b82f6?logo=python&logoColor=white" alt="Python" />
   <img src="https://img.shields.io/badge/Colab-L4-F9AB00?logo=googlecolab&logoColor=white" alt="Colab L4" />
@@ -119,12 +120,12 @@ VPS 上运行一个轻量网关 **comfy-gate**（Python / aiohttp），前端受
 - **随时随地跨端远程唤醒**：在手机、平板或命令行终端一键唤醒 Colab L4 GPU，无需打开 Colab 网页，后台自动就绪。
 - **全局唯一共享会话**：唤醒是幂等的，第二个访客（或 Agent）会加入正在进行的启动，不会再开一台 VM；状态写入
   `STATE_DIR/session.json`，网关重启后自动接管。
-- **Model Context Protocol (MCP) 原生支持**：提供本地 stdio（`ckit mcp`）与远端 HTTP 流式（`/mcp`）两种协议模式，内置 `gate_status`、`gate_wake`、`gate_txt2img`、`gate_generate`、`gate_stop` 五大核心工具。
+- **Model Context Protocol (MCP) 原生支持**：提供本地 stdio（`ckit mcp`）与远端 HTTP 流式（`/mcp`）两种协议模式，内置 `gate_status`、`gate_wake`、`gate_txt2img`、`gate_img2img`、`gate_generate`、`gate_stop` 六大核心工具。
 - **所有人看到同一份实时进度**：SSE 广播状态、下载 GB / 速度、初始化日志。
 - **权限双模式控制（默认 Mode B 管理员独占）**：默认 `OWNER_ONLY_CONTROL=true`，仅 `OWNER_EMAILS` 可唤醒与停机 GPU，避免点数被误开或误关；就绪后全员无感并发使用 ComfyUI 生图。亦可切为 Mode A 团队协同模式（支持谁开谁关）。
 - **校验 Access 身份与多 IdP 支持**：支持 Google、GitHub 一键登录与邮箱验证码（OTP），严格验证 `Cf-Access-Jwt-Assertion`（RS256、AUD、issuer）。
 - **后端只认服务令牌**：Colab 隧道主机名只放行网关的 Access 服务令牌。
-- **极速冷启动与 L4 硬件性能榨干**：自研并行 HTTP Range 下载器在 T0 第一毫秒将 24.9 GB 模型直灌内存盘 tmpfs（峰值超 1,000 MB/s / 8.77 Gbps），完全重叠依赖安装与 ComfyUI 启动；`--highvram` 启动参数将 18GB 模型全套常驻 L4 的 24GB 显存，100% 缓存保留零 PCIe 颠簸。整机冷启动仅需 ~60 秒，热态 1024×1024 出图仅需 26.8 秒。
+- **极速冷启动与 L4 硬件性能榨干**：自研并行 HTTP Range 下载器在 T0 第一毫秒将 24.9 GB 模型直灌内存盘 tmpfs（峰值超 1,000 MB/s / 8.77 Gbps），完全重叠依赖安装与 ComfyUI 启动；`--highvram` 启动参数将 18GB 模型全套常驻 L4 的 24GB 显存，100% 缓存保留零 PCIe 颠簸。整机冷启动仅需约 90 秒（一分半左右），热态 1024×1024 出图仅需 26.8 秒。
 - **App 模式优先**：工作流写入 ComfyUI App 模式元数据；注入的浮层可在 App ⇄ 节点图之间切换。
 - **ComfyUI 完整透传**：透传图生图参考图上传 `/upload/image`、工作流排队 `/prompt`、历史记录 `/history`、图片查看 `/view`、节点 Schema `/object_info`、硬件负载 `/system_stats` 及 WebSocket `/ws`。
 - **对 Agent 极度友好**：RFC 8628 设备码一键配对（`ckit auth`）、网页端一键复制 AI 接入指令（智能复用未激活令牌）、`docs/MCP.md`、`skills/comfy-colab-kit/SKILL.md`、`docs/AGENT_SKILL.md`、`llms.txt`。
@@ -163,11 +164,12 @@ docker compose -f deploy/docker-compose.yml up -d
 1. **凭证认证与快速配对**：请求头附带 `Authorization: Bearer <agent_token>`；或直接使用 RFC 8628 设备码流配对（终端运行 `ckit auth https://<host>`），或在网页端右上角点击 **🤖 复制 AI Agent 接入指令**。
 2. **状态探测与工作流查询**：请求 `GET /_gate/status`（或运行 `ckit status --json`）。调用 `GET /_gate/profiles` 或 `ckit profiles --json` 动态查询所有可用的 Profile 与工作流清单。
 3. **幂等唤醒**：请求 `POST /_gate/wake`（或运行 `ckit wake --profile <name> --wait`）。并发唤醒是幂等的，会自动加入已有的启动任务，无需重复扣减点数。
-4. **模型上下文协议 (MCP)**：本地运行 `ckit mcp` 直连 Cursor / Claude Desktop，或使用远端 HTTP `/mcp` 接口，支持 `gate_status`、`gate_wake`、`gate_txt2img`、`gate_generate`、`gate_stop` 五大工具。
+4. **模型上下文协议 (MCP)**：本地运行 `ckit mcp` 直连 Cursor / Claude Desktop，或使用远端 HTTP `/mcp` 接口，支持 `gate_status`、`gate_wake`、`gate_txt2img`、`gate_img2img`、`gate_generate`、`gate_stop` 六大工具。
 5. **ComfyUI 原生 API 透传**：一旦就绪，即可直接调用图生图底图上传 `POST /upload/image`、工作流提交 `POST /prompt`、结果轮询 `GET /history/{id}`、图片读取 `GET /view` 及 WebSocket `/ws`。
 6. **主动释放与成本控制**：生图结束后，调用 `POST /_gate/stop`（或 MCP `gate_stop`）立即释放 GPU 算力；亦可直接退出，由网关闲置超时自动关机。
 
 📖 **智能体专用文档与规范**：
+- [docs/AGENT_SCAFFOLDING.md](docs/AGENT_SCAFFOLDING.md) —— **让 AI 自动新建 Profile 或 Fork 改造任意 Colab 服务**：引导 AI 编程助手为你自动编写新模型 Profile，或基于本仓库的按需唤醒网关框架快速改造出适配任意 Colab GPU 应用（vLLM、Ollama、Forge、Gradio 等）的初始化脚手架。
 - [docs/MCP.md](docs/MCP.md) —— Model Context Protocol (MCP) 完整接入指南（stdio `ckit mcp`、远端 HTTP `/mcp` 与 Cursor/Claude 深度集成）。
 - [skills/comfy-colab-kit/SKILL.md](skills/comfy-colab-kit/SKILL.md) —— 通用 Agent Skill 标准规范（`/comfy-colab-kit`），包含文生图/图生图选型决策树与上传代码。
 - [skills/comfy-workflow-ui/SKILL.md](skills/comfy-workflow-ui/SKILL.md) —— ComfyUI App 模式与表单 UI 审查和维护技能手册。
@@ -186,6 +188,11 @@ docker compose -f deploy/docker-compose.yml up -d
 | [`qwen-image`](profiles/examples/qwen-image/) | Qwen-Image 2.1：默认 Turbo 文生图，完整文生图，Turbo / 完整编辑 | 核心约 27 GB / 约 43 GB |
 
 工作流**只用**社区已发布的版本，从作者处下载并记录来源与许可证。格式与透传选项见 [docs/PROFILES.md](docs/PROFILES.md)。
+
+> [!TIP]
+> **没有你想用的模型 Profile？或者想用这套架构跑其他 Colab GPU 服务？**
+> - **让 AI 新建 ComfyUI Profile**：直接把你想要的 Hugging Face 模型与社区工作流链接发给 AI 编程助手（Claude Code、Cursor、Codex、OpenClaw），让它参考 [**`docs/AGENT_SCAFFOLDING.md`**](docs/AGENT_SCAFFOLDING.md) 在 `profiles/custom/` 下自动生成并校验完整配置。
+> - **Fork 仓库复用框架跑任意 Colab 应用**：本项目的零信任鉴权、10 态唤醒状态机、T0 内存盘并行下载器与闲置自动关机网关完全与具体业务解耦。只要是能在 Colab 上跑的服务（如 vLLM、Ollama、SD-WebUI Forge、Gradio、语音合成等），都可以 Fork 本仓库并让 AI 按照 [**`docs/AGENT_SCAFFOLDING.md`**](docs/AGENT_SCAFFOLDING.md) 中的 4 个架构接缝快速改造成你专属的初始化脚手架。
 
 ## ⏱️ 自动停机
 
@@ -234,13 +241,14 @@ comfy-colab-kit/
 ├── docs/                     # 完整工程规范与产品技术文档
 │   ├── AGENT.md              # VPS 完整实操部署与凭证申请指南（英文）
 │   ├── AGENT_SKILL.md        # AI Agent 自动化调度指南（唤醒、出图、关机）
+│   ├── AGENT_SCAFFOLDING.md  # AI 自动新建 Profile 与 Fork 改造任意 Colab 算力服务指南
 │   ├── APP_MODE.md           # ComfyUI App 模式表单架构与 UI 序列化规范
 │   └── ...
 ├── skills/                   # 自包含 Agent Skill 执行清单与运行手册
 │   ├── comfy-colab-kit/      # 网关调度技能（唤醒、生图、关机、查账本）
 │   └── comfy-workflow-ui/    # 工作流 UI 与 App 模式表单巡检与维护技能
 ├── scripts/                  # 验证、校验与敏感信息审计脚本
-└── tests/                    # 完整自动化单元与集成测试套件（145 测试）
+└── tests/                    # 完整自动化单元与集成测试套件（157 测试）
 ```
 
 ## 💖 鸣谢与开源致敬 (Acknowledgments)

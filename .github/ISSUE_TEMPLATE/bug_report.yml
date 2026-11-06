@@ -1,0 +1,34 @@
+name: "🐛 Bug Report"
+description: "Report an issue with comfy-gate, Colab bootstrap, Cloudflare Access, or MCP/CLI"
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > **Security Reminder**: Never paste real tokens, `secrets/*` contents, `.env` files, or private emails/hostnames in an issue.
+  - type: dropdown
+    id: component
+    attributes:
+      label: "Affected Component"
+      options:
+        - "Gateway (apps/gate)"
+        - "Colab Runtime & Downloader (packages/colab/setup.py)"
+        - "CLI & MCP (ckit / mcp_server.py)"
+        - "Profiles & App Mode Workflows (profiles/)"
+        - "Deployment & Cloudflare Access (deploy/)"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: "What happened?"
+      description: "Describe the unexpected behavior and steps to reproduce."
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Relevant Logs or `ckit doctor` Output (Sanitized)"
+      description: "Paste sanitized output from `ckit doctor`, wake console logs, or `docker logs comfy-gate`."
+      render: shell

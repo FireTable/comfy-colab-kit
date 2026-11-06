@@ -3,6 +3,7 @@
 Guide for AI coding agents working **on** this repository.
 - To **use** a deployed gate (wake, generate, stop), read [docs/AGENT_SKILL.md](docs/AGENT_SKILL.md) or use [skills/comfy-colab-kit/](skills/comfy-colab-kit/).
 - To **maintain** workflow UI & App Mode forms, read [docs/APP_MODE.md](docs/APP_MODE.md) or use [skills/comfy-workflow-ui/](skills/comfy-workflow-ui/).
+- To **scaffold a new model profile** or **adapt a fork of this gateway for another Colab GPU workload** (vLLM, Ollama, Forge, Gradio, etc.), read [docs/AGENT_SCAFFOLDING.md](docs/AGENT_SCAFFOLDING.md).
 
 ---
 

@@ -113,19 +113,19 @@ async def test_proxy_decompresses_brotli_stream_asset():
 
 async def test_proxy_strips_cf_authorization_cookie_and_rewrites_location():
     backend = web.Application()
+    port_holder: dict[str, int | None] = {"port": None}
 
     async def handle_redirect(req: web.Request) -> web.Response:
         resp = web.Response(status=302)
-        resp.headers["Location"] = f"http://127.0.0.1:{req.app['port']}/somewhere"
+        resp.headers["Location"] = f"http://127.0.0.1:{port_holder['port']}/somewhere"
         resp.headers.add("Set-Cookie", "CF_Authorization=corrupted_jwt; Path=/; HttpOnly")
         resp.headers.add("Set-Cookie", "valid_cookie=hello; Path=/")
         return resp
 
     backend.router.add_get("/login_test", handle_redirect)
     server = TestServer(backend)
-    backend["port"] = server.port
     await server.start_server()
-    backend["port"] = server.port
+    port_holder["port"] = server.port
 
     try:
         p = Proxy(f"http://127.0.0.1:{server.port}", "/nonexistent", lambda: None, lambda: None, lambda: None)

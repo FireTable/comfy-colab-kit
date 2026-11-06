@@ -1,0 +1,40 @@
+name: "🧩 Request or Share a Model Profile / Colab Workload"
+description: "Suggest a new ComfyUI model profile (e.g. Flux, Wan Video) or share a profile you scaffolded"
+title: "[Profile]: "
+labels: ["profile", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Want to build this profile right now with an AI agent? Check out [**`docs/AGENT_SCAFFOLDING.md`**](https://github.com/FireTable/comfy-colab-kit/blob/main/docs/AGENT_SCAFFOLDING.md)!
+  - type: input
+    id: model_name
+    attributes:
+      label: "Model or Workload Name"
+      description: "What model family or Colab GPU service is this for?"
+      placeholder: "e.g., Flux.1 Dev fp8 / Wan 2.1 T2V 14B / HunyuanVideo"
+    validations:
+      required: true
+  - type: input
+    id: upstream_links
+    attributes:
+      label: "Hugging Face Weights & Community Workflow URLs"
+      description: "Public links to the model weights and the official/community workflow JSON (with license)."
+      placeholder: "https://huggingface.co/..."
+    validations:
+      required: true
+  - type: dropdown
+    id: gpu_target
+    attributes:
+      label: "Target Colab GPU"
+      options:
+        - "L4 (24 GB VRAM — Recommended Default)"
+        - "T4 (15 GB VRAM)"
+        - "A100 (40/80 GB VRAM)"
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: "Additional Context or `profile.yaml` Draft"
+      description: "Share any custom nodes needed, VRAM observations, or paste your validated `profile.yaml`!"

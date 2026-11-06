@@ -145,7 +145,7 @@ A key architectural principle of this project is separation of concerns:
      - `CUDA_MODULE_LOADING=LAZY`: Defers CUDA driver module loading, shaving 2-3 s off initial ComfyUI launch.
      - `TORCH_CUDNN_V8_API=1` & `TORCH_ALLOW_TF32_CUBLAS_OVERRIDE=1`: Engages cuDNN v8 deep execution graphs and Ada 4th Gen Tensor Core TF32 acceleration for GEMM operations.
    - `smoke`: Submits an empty graph or smoke prompt to verify model loading.
-   - Prints `KIT_READY` and transitions to `ready` (~60.8 s total cold start from asleep).
+   - Prints `KIT_READY` and transitions to `ready` (~90 s / 1.5 min typical total cold start from asleep).
    - `setup.py` then **returns** instead of holding the cell forever. A cell that never finishes
      blocks the Jupyter kernel, and every later `colab exec` (gate heartbeat, on-demand model fetch)
      would queue behind it until it timed out. With the kernel free the gate keeps the runtime
