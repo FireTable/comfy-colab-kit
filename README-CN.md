@@ -75,15 +75,17 @@ VPS 上运行一个轻量网关 **comfy-gate**（Python / aiohttp），前端受
 
 <table>
   <tr>
-    <td align="center" width="33%">
+    <td align="center" width="50%">
       <img src="screenshots/agent-txt2img.png" width="100%" alt="AI Agent 文生图会话" /><br/>
       <sub><b>文生图 · <code>/comfy-colab-kit</code></b><br/>从提示词到出图仅 41 秒</sub>
     </td>
-    <td align="center" width="33%">
+    <td align="center" width="50%">
       <img src="screenshots/agent-img2img.png" width="100%" alt="AI Agent 图生图会话" /><br/>
       <sub><b>图生图 · <code>/comfy-colab-kit</code></b><br/>2 分 14 秒，基于同一张参考图出两个变体</sub>
     </td>
-    <td align="center" width="33%">
+  </tr>
+  <tr>
+    <td align="center" colspan="2">
       <img src="screenshots/agent-img2vid.gif" width="100%" alt="AI Agent 视频生成会话" /><br/>
       <sub><b>视频生成 · <code>wan-ltx-video</code></b><br/>65 秒生成 24 fps 电影感晨光竹林小熊猫视频</sub>
     </td>

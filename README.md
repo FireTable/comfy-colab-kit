@@ -76,15 +76,17 @@ Three real sessions where an AI agent called the gateway end-to-end — no brows
 
 <table>
   <tr>
-    <td align="center" width="33%">
+    <td align="center" width="50%">
       <img src="screenshots/agent-txt2img.png" width="100%" alt="AI agent text-to-image session" /><br/>
       <sub><b>Text-to-Image via <code>/comfy-colab-kit</code></b><br/>41 s from prompt to finished PNG</sub>
     </td>
-    <td align="center" width="33%">
+    <td align="center" width="50%">
       <img src="screenshots/agent-img2img.png" width="100%" alt="AI agent image-to-image session" /><br/>
       <sub><b>Image-to-Image via <code>/comfy-colab-kit</code></b><br/>2 m 14 s, two variations from one reference</sub>
     </td>
-    <td align="center" width="33%">
+  </tr>
+  <tr>
+    <td align="center" colspan="2">
       <img src="screenshots/agent-img2vid.gif" width="100%" alt="AI agent video generation session" /><br/>
       <sub><b>Text-to-Video via <code>wan-ltx-video</code></b><br/>65 s from prompt to 24 fps HD MP4</sub>
     </td>
