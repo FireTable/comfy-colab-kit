@@ -14,15 +14,17 @@ Choose the reading path tailored to your specific role and objective:
 └───────┬────────────────────────────────┬───────────────────────────────┘
         │                                │
  👤 End-User / Operator           🛠️ Core Developer             🤖 AI Agent Operator
-  ├─ ARCHITECTURE.md (Concept)     ├─ ARCHITECTURE.md (Deep dive)├─ AGENT_SKILL.md (Skill spec)
-  ├─ ACCESS.md (How to access)     ├─ PROFILES.md (Model schemas) ├─ API.md (REST & SSE endpoints)
-  ├─ DEPLOY_VPS.md (Quick deploy)  ├─ APP_MODE.md (UI & forms)    ├─ ACCESS.md (Agent auth)
-  ├─ AGENT.md (Full credential run)├─ AUTO_STOP.md (Rules engine) ├─ AGENT.md (VPS automation)
-  └─ WAKE_PAGE.md (UI features)    └─ SECURITY.md (Threat model)  └─ llms.txt (Context index)
+  ├─ DEPLOY_LOCAL.md (Run local)   ├─ ARCHITECTURE.md (Deep dive)├─ AGENT_SKILL.md (Skill spec)
+  ├─ ARCHITECTURE.md (Concept)     ├─ PROFILES.md (Model schemas) ├─ API.md (REST & SSE endpoints)
+  ├─ ACCESS.md (How to access)     ├─ APP_MODE.md (UI & forms)    ├─ ACCESS.md (Agent auth)
+  ├─ DEPLOY_VPS.md (VPS deploy)    ├─ AUTO_STOP.md (Rules engine) ├─ DEPLOY_LOCAL.md (Local setup)
+  ├─ AGENT.md (Full credential run)├─ SECURITY.md (Threat model)  └─ llms.txt (Context index)
+  └─ WAKE_PAGE.md (UI features)
 ```
 
+- **If you want to run locally with zero VPS & zero Cloudflare**: Read [`DEPLOY_LOCAL.md`](DEPLOY_LOCAL.md) for 1-minute Mac/PC setup.
 - **If you want to know how users or agents connect**: Read [`ACCESS.md`](ACCESS.md) for web browser, guest token link, LAN, CLI, and AI agent connection paths.
-- **If you are deploying for the first time**: Start with [`DEPLOY_VPS.md`](DEPLOY_VPS.md) for the fast Docker Compose setup, or consult [`AGENT.md`](AGENT.md) for a complete credentials procurement walkthrough.
+- **If you are deploying on a cloud VPS**: Start with [`DEPLOY_VPS.md`](DEPLOY_VPS.md) for Docker Compose setup, or consult [`AGENT.md`](AGENT.md) for a complete credentials procurement walkthrough.
 - **If you are adding or customizing models**: Read [`PROFILES.md`](PROFILES.md) to understand YAML schemas, model aliasing, and workflow policies, or hand [`AGENT_SCAFFOLDING.md`](AGENT_SCAFFOLDING.md) to your AI coding agent to scaffold a new profile or adapt a fork for any Colab GPU service.
 - **If you are maintaining workflow UI or App Mode forms**: Read [`APP_MODE.md`](APP_MODE.md) and inspect [`skills/comfy-workflow-ui/`](../skills/comfy-workflow-ui/) for UI validation invariants.
 - **If you are building an AI agent**: Read [`AGENT_SKILL.md`](AGENT_SKILL.md) and [`API.md`](API.md) to integrate automated wake, prompt queuing, and shutdown routines.
@@ -36,6 +38,7 @@ Choose the reading path tailored to your specific role and objective:
 | :--- | :--- | :--- |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Dual-phase gateway vs proxy, 10-state machine, Colab bootstrap, shared global session | Developers & Architects |
 | [`EVOLUTION.md`](EVOLUTION.md) | Project evolution chronicle: 11 milestones reconstructed from the commit history | Contributors & Maintainers |
+| [`DEPLOY_LOCAL.md`](DEPLOY_LOCAL.md) | Run gateway 100% locally on Mac/PC (zero VPS, no Cloudflare, zero auth) | Local Creators & Coding Agents |
 | [`DEPLOY_VPS.md`](DEPLOY_VPS.md) | Docker Compose + Caddy production deployment, secrets layout, and upgrades | System Operators |
 | [`ACCESS.md`](ACCESS.md) | Browser login, shareable guest links, LAN/Tailscale mode, agent auth, and in-app navigation | All Users & Agents |
 | [`AGENT.md`](AGENT.md) | End-to-end VPS deployment runbook and complete credential procurement guide | Operators & Coding Agents |

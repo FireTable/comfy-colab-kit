@@ -16,13 +16,15 @@ description: ComfyUI on Colab L4 GPU gate operator. Wake, switch profiles (moss-
 
 Agent 操作网关时，网关地址与凭据按以下优先级解析：
 
-1. **环境变量**：`CKIT_URL`（如 `https://comfy.example.com`）、`CKIT_TOKEN`
+1. **环境变量**：`CKIT_URL`（如 `https://comfy.example.com` 或本地单机 `http://localhost:8080`）、`CKIT_TOKEN`
 2. **全局 CLI 配置**：`~/.config/ckit/config.json`
    ```json
    { "default_endpoint": "https://comfy.example.com", "token": "<TOKEN>" }
    ```
 3. **通用 Agent 环境**：`~/.agents/.env` 中的 `CKIT_URL` 与 `CKIT_TOKEN`
    —— 已安装的 `ckit` 会自动读取该文件；当 `~/.config/ckit/config.json` 不存在或缺少对应键时，由它补齐 `default_endpoint` 与 `token`。
+
+> 💡 **本地单机运行模式**：若在本地机器直接运行 comfy-gate（开启 `AUTH_DISABLED=true`，见 `docs/DEPLOY_LOCAL.md`），`CKIT_URL` 直接设为 `http://localhost:8080`，**无需配置任何 Token 或 Cloudflare 凭证**，Agent 即可直接调用所有接口。
 
 所有 HTTP 接口均使用**相对路径**描述，由 Agent 拼接 Base URL，请求头附带：
 `Authorization: Bearer <CKIT_TOKEN>`

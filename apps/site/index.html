@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Comfy Colab Kit — Remote, Wake-on-Demand ComfyUI on Google Colab</title>
-<meta name="description" content="Wake ComfyUI on Google Colab L4 GPUs on-demand from your phone, browser, or autonomous AI agent. Built-in profiles for MOSS-Image, FLUX.2 Klein 4B, Wan 2.2 & LTX-Video (T2V/I2V), SD 3.5, and Qwen-Image behind Cloudflare Access zero-trust auth with auto-shutdown.">
-<meta name="keywords" content="ComfyUI, Google Colab, FLUX.2 Klein, Flux ComfyUI Colab, Wan 2.2, LTX-Video, Text-to-Video, Image-to-Video, Stable Diffusion, Remote GPU, AI Agents, Cloudflare Access, MOSS-Image, SD 3.5, Qwen-Image, Zero-Trust, Model Context Protocol, MCP, generative AI">
+<meta name="description" content="Wake ComfyUI on Google Colab L4 GPUs on-demand from your Mac, PC, or autonomous AI agent. Run 100% locally on localhost (zero VPS, zero domain, no Cloudflare) or deploy to a VPS behind Cloudflare Access. Built-in profiles for FLUX.2 Klein 4B, Wan 2.2 Video, MOSS-Image, SD 3.5, and Qwen-Image with auto-shutdown.">
+<meta name="keywords" content="ComfyUI, Google Colab, Local ComfyUI, ComfyUI Mac, Run ComfyUI without VPS, Zero VPS GPU gateway, FLUX.2 Klein, Wan 2.2 Video, LTX-Video, Text-to-Video, Image-to-Video, AI Agents, Model Context Protocol, MCP, Cloudflare Access, MOSS-Image, SD 3.5, Qwen-Image, Localhost ComfyUI">
 <meta name="author" content="FireTable">
 <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
 
@@ -49,7 +49,7 @@
 <meta name="coverage" content="Worldwide">
 <meta name="target" content="all">
 
-<!-- Structured Data (JSON-LD) -->
+<!-- Structured Data (JSON-LD) for SEO & GEO (Generative Engine Optimization) -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -59,7 +59,7 @@
       "@id": "https://comfy-colab-kit.firetable.tech/#website",
       "url": "https://comfy-colab-kit.firetable.tech/",
       "name": "Comfy Colab Kit",
-      "description": "Wake-on-demand ComfyUI on Google Colab GPU instances with zero-trust protection and automated idle shutdown.",
+      "description": "Wake-on-demand ComfyUI on Google Colab GPU instances. Runs 100% locally on Mac/PC with zero VPS, or on a Linux VPS behind Cloudflare Zero Trust.",
       "image": "https://comfy-colab-kit.firetable.tech/assets/og.png",
       "inLanguage": ["en", "zh-CN"]
     },
@@ -68,7 +68,7 @@
       "@id": "https://comfy-colab-kit.firetable.tech/#software",
       "name": "Comfy Colab Kit",
       "applicationCategory": "DeveloperApplication",
-      "operatingSystem": "Linux, Cloud, Google Colab",
+      "operatingSystem": "macOS, Linux, Windows WSL2, Google Colab",
       "image": "https://comfy-colab-kit.firetable.tech/assets/og.png",
       "screenshot": "https://comfy-colab-kit.firetable.tech/assets/og.png",
       "offers": {
@@ -82,6 +82,36 @@
         "url": "https://github.com/FireTable"
       },
       "downloadUrl": "https://github.com/FireTable/comfy-colab-kit"
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://comfy-colab-kit.firetable.tech/#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Can I run Comfy Colab Kit locally without a VPS or Cloudflare?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes! You can run comfy-gate 100% locally on your Mac, Linux, or Windows machine via Docker or Python with AUTH_DISABLED=true. Your computer commands an on-demand Google Colab L4 GPU (24GB VRAM) and streams ComfyUI directly to http://localhost:8080. Zero VPS fees, zero domain required, and zero Cloudflare setup."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do autonomous AI coding agents use Comfy Colab Kit?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AI coding agents like Claude Code, Cursor, OpenClaw, and LangGraph can wake, prompt, and stop ComfyUI instances programmatically via Model Context Protocol (MCP) or the ckit CLI. In local mode, agents connect to http://localhost:8080 with zero authentication overhead."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What AI models and profiles are supported?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Comfy Colab Kit includes 5 built-in profiles: MOSS-Image (DeBand T2I/I2I), FLUX.2 Klein 4B (Distilled & Base + ReferenceLatent edit), Wan 2.2 5B TI2V & Lightricks LTX-Video 2B (Text/Image-to-Video), Stable Diffusion 3.5 Large fp8, and Qwen-Image 2.1. Custom profiles can be added dynamically."
+          }
+        }
+      ]
     }
   ]
 }
@@ -177,7 +207,7 @@
     <p class="state-line"><span class="states"><i data-i18n="hero.stateSleep">Sleeping</i> → <i data-i18n="hero.stateWake">Waking</i> → <b data-i18n="hero.stateReady">Ready</b></span></p>
     <img class="hero-logo" src="assets/logo-e-fusion-dark.svg" alt="Comfy Colab Kit logo" width="96" height="96">
     <h1 class="shiny" data-i18n="hero.title">ComfyUI on Colab GPUs, awake only when you need it</h1>
-    <p class="sub" data-i18n="hero.sub">Break free from baby-sitting Colab browser tabs. Comfy Colab Kit lets you wake ComfyUI on demand on Google Colab L4 GPUs from your phone, laptop, or autonomous AI agent. Protected by your personal Cloudflare Access zero-trust gate with automated idle shutdown.</p>
+    <p class="sub" data-i18n="hero.sub">Break free from baby-sitting Colab browser tabs. Comfy Colab Kit lets you wake ComfyUI on demand on Google Colab L4 GPUs from your phone, laptop, or autonomous AI agent. Run 100% locally on your Mac/PC (zero VPS, zero domain, zero Cloudflare) or deploy to a VPS behind Cloudflare Access.</p>
     <div class="hero-actions">
       <a class="btn btn-primary" href="#quickstart" data-i18n="hero.btnPrimary">Quick Start</a>
       <a class="btn btn-secondary" href="https://github.com/FireTable/comfy-colab-kit" target="_blank" rel="noopener">
@@ -197,23 +227,23 @@
     <div class="section-header">
       <span class="badge" data-i18n="quickstart.badge">Deployment</span>
       <h2><span data-i18n="quickstart.titlePrefix">Quick</span> <span class="shiny" data-i18n="quickstart.titleShiny">Start</span></h2>
-      <p class="lead" data-i18n="quickstart.lead">Deploy the lightweight gateway on your VPS behind Cloudflare Access, then wake Colab from your browser or AI agent in 3 minutes.</p>
+      <p class="lead" data-i18n="quickstart.lead">Run 100% locally on your Mac/PC (no VPS or domain required) or deploy on a Linux VPS behind Cloudflare Access. Ready in 3 minutes.</p>
     </div>
     <div class="quickstart-steps-grid">
       <div class="card qs-card">
         <div class="qs-badge">Step 1</div>
         <h3 data-i18n="quickstart.s1Title">Clone &amp; Configure</h3>
-        <p data-i18n="quickstart.s1Desc">Clone the repository and copy .env.example to set your Cloudflare Access audience and Google Colab session name.</p>
+        <p data-i18n="quickstart.s1Desc">Clone the repository and copy .env.example. For local mode, set AUTH_DISABLED=true (zero-auth).</p>
       </div>
       <div class="card qs-card">
         <div class="qs-badge">Step 2</div>
         <h3 data-i18n="quickstart.s2Title">Run Gateway Container</h3>
-        <p data-i18n="quickstart.s2Desc">Launch via Docker Compose on your VPS or server. Caddy handles automatic HTTPS and WebSocket streaming.</p>
+        <p data-i18n="quickstart.s2Desc">Launch via Docker Compose on your Mac/PC or cloud VPS. Supports standalone local ports or Caddy HTTPS.</p>
       </div>
       <div class="card qs-card">
         <div class="qs-badge">Step 3</div>
         <h3 data-i18n="quickstart.s3Title">Wake &amp; Generate</h3>
-        <p data-i18n="quickstart.s3Desc">Visit your custom domain. One click wakes the Colab L4 GPU, syncs the model, and proxies ComfyUI.</p>
+        <p data-i18n="quickstart.s3Desc">Open localhost:8080 or your custom domain. One click wakes the Colab L4 GPU, syncs models, and proxies ComfyUI.</p>
       </div>
     </div>
     <div class="terminal-frame card">
@@ -236,17 +266,16 @@
           </button>
         </div>
       </div>
-      <pre class="terminal-content"><code><span class="cmd-comment"># 1. Clone the repository</span>
-git clone https://github.com/FireTable/comfy-colab-kit.git
-cd comfy-colab-kit
-
-<span class="cmd-comment"># 2. Configure your environment and secrets</span>
+      <pre class="terminal-content"><code><span class="cmd-comment"># 💻 OPTION A: 100% Local Run (Zero VPS, Zero Domain, Zero Cloudflare)</span>
+git clone https://github.com/FireTable/comfy-colab-kit.git &amp;&amp; cd comfy-colab-kit
 cp .env.example .env
+sed -i '' 's/AUTH_DISABLED=false/AUTH_DISABLED=true/' .env
+sed -i '' 's/PUBLIC_HOST=comfy.example.com/PUBLIC_HOST=localhost:8080/' .env
+docker compose -f deploy/docker-compose.local.yml up -d
+<span class="cmd-comment"># 👉 Open http://localhost:8080 in your browser!</span>
 
-<span class="cmd-comment"># 3. Start the gateway daemon via Docker Compose</span>
-docker compose -f deploy/docker-compose.yml up -d --build
-
-<span class="cmd-comment"># 4. Open your domain (e.g. https://comfy.yourdomain.com) and click Wake!</span></code></pre>
+<span class="cmd-comment"># ☁️ OPTION B: Cloud VPS + Cloudflare Zero Trust (Production Team Setup)</span>
+docker compose -f deploy/docker-compose.yml up -d</code></pre>
       <div class="terminal-footer">
         <div class="terminal-footer-main">
           <button class="btn btn-primary btn-copy-prompt" id="copy-ai-prompt-btn" type="button" aria-label="Copy AI Deploy Prompt">
@@ -255,8 +284,13 @@ docker compose -f deploy/docker-compose.yml up -d --build
           <span class="terminal-hint" data-i18n="quickstart.aiPromptHint">Paste into Claude Code, Cursor, or OpenClaw to deploy automatically.</span>
         </div>
         <div class="terminal-footer-sub">
+          <a class="terminal-doc-link" href="https://github.com/FireTable/comfy-colab-kit/blob/main/docs/DEPLOY_LOCAL.md" target="_blank" rel="noopener">
+            <span data-i18n="quickstart.localLink">Local Guide</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a>
+          <span class="link-divider">·</span>
           <a class="terminal-doc-link" href="https://github.com/FireTable/comfy-colab-kit/blob/main/docs/DEPLOY_VPS.md" target="_blank" rel="noopener">
-            <span data-i18n="quickstart.manualLink">Read Full Manual</span>
+            <span data-i18n="quickstart.manualLink">VPS Manual</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
           </a>
         </div>
@@ -680,6 +714,13 @@ docker compose -f deploy/docker-compose.yml up -d --build
         </summary>
         <div class="answer" data-i18n="faq.a6">No. It is an independent open-source project created by the community.</div>
       </details>
+      <details class="card">
+        <summary>
+          <span class="faq-q" data-i18n="faq.q7">Can I run it completely locally on my laptop without a VPS or Cloudflare?</span>
+          <svg class="faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="answer" data-i18n="faq.a7">Yes, 100%! You can run comfy-gate directly on your Mac, Linux, or Windows machine via Docker or Python with AUTH_DISABLED=true. Your computer commands an on-demand Google Colab L4 GPU (24GB VRAM) and streams ComfyUI directly to http://localhost:8080. Zero VPS fees, zero domain required, and zero Cloudflare setup.</div>
+      </details>
     </div>
   </div>
 </section>
@@ -720,6 +761,7 @@ docker compose -f deploy/docker-compose.yml up -d --build
         <h4 data-i18n="footer.docsTitle">Documentation</h4>
         <ul>
           <li><a href="#quickstart" data-i18n="nav.quickstart">Quick Start</a></li>
+          <li><a href="https://github.com/FireTable/comfy-colab-kit/blob/main/docs/DEPLOY_LOCAL.md" target="_blank" rel="noopener">Local Standalone Guide (Zero VPS)</a></li>
           <li><a href="https://github.com/FireTable/comfy-colab-kit/blob/main/docs/ACCESS.md" target="_blank" rel="noopener">User &amp; Agent Access Guide</a></li>
           <li><a href="https://github.com/FireTable/comfy-colab-kit/blob/main/docs/DEPLOY_VPS.md" target="_blank" rel="noopener">VPS Deployment Runbook</a></li>
           <li><a href="https://github.com/FireTable/comfy-colab-kit/blob/main/docs/MCP.md" target="_blank" rel="noopener">Model Context Protocol (MCP)</a></li>
@@ -752,6 +794,6 @@ docker compose -f deploy/docker-compose.yml up -d --build
 </footer>
 
 <script src="vendor/lenis.min.js" defer></script>
-<script src="main.js?v=df6f4e91" defer></script>
+<script src="main.js?v=cdb7bdf3" defer></script>
 </body>
 </html>

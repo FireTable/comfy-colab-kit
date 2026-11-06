@@ -1,0 +1,34 @@
+# Local Standalone Deployment — Zero VPS & Zero Cloudflare required
+# Run from repository root:
+#   docker compose -f deploy/docker-compose.local.yml up -d
+# Then open: http://localhost:8080
+name: comfy-colab-kit-local
+
+services:
+  comfy-gate:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: ${GATE_IMAGE:-ghcr.io/firetable/comfy-colab-kit:latest}
+    container_name: comfy-gate-local
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:8080"
+    env_file:
+      - ../.env
+    environment:
+      HOME: /data/home
+      PYTHONPATH: /app/apps
+      AUTH_DISABLED: "true"
+      PUBLIC_HOST: "localhost:${PORT:-8080}"
+    volumes:
+      - ../data:/data
+      - ../apps/gate:/app/apps/gate:ro
+      - ../profiles:/app/profiles:ro
+      - ../packages/colab:/app/packages/colab:ro
+      - ../packages/cli:/usr/local/lib/python3.12/site-packages/ckit:ro
+      - ../apps/gate/web:/app/apps/gate/web:ro
+    tmpfs:
+      - /tmp
+    security_opt:
+      - "no-new-privileges:true"

@@ -36,7 +36,7 @@
 
 ## 📖 概述
 
-VPS 上运行一个轻量网关 **comfy-gate**（Python / aiohttp），前端受 Cloudflare Access 保护。
+轻量网关 **comfy-gate**（Python / aiohttp）既可以**100% 跑在本地电脑上（无需 VPS、无需域名、无需 Cloudflare 配置）**，也可以跑在 Linux VPS 上并通过 Cloudflare Access 进行团队保护。
 
 > [!NOTE]
 > **网关的核心定位**：`comfy-gate` 本质上是一个**生命周期冷启动与自动休眠网关** —— 它**绝非**自己重新造一套 ComfyUI 前端。当 GPU 休眠时，它展示零算力开销的唤醒卡片与实时 SSE 启动进度；一旦启动就绪（`ready`），网关的反向代理将无缝直通**官方原汁原味的 ComfyUI Web 应用**（包括完整节点图、App 线性模式、自定义节点、扩展插件生态与 WebSocket 实时流），仅在右下角注入轻量浮层用于在 App 视图与节点图之间快速切换。
@@ -46,6 +46,7 @@ VPS 上运行一个轻量网关 **comfy-gate**（Python / aiohttp），前端受
 | **1 按需唤醒** | 休眠卡片 → 唤醒 → 阶段与日志 → 官方 ComfyUI 界面 | 10 状态状态机，`colab new`（L4）+ `colab exec` 初始化，同主机双向反代（HTTP + `/ws`） |
 | **2 可切换 Profile** | 唤醒前选择 MOSS-Image、FLUX.2 Klein、Wan 2.2 视频、SD3.5、Qwen 等 | `profile.yaml` + JSON Schema；零密钥，模型按公开 URL 引用 |
 | **3 自动停机** | 浮层显示剩余时间；闲置 / 会话上限 / 静默时段 / CU 预算触发休眠 | 全部规则严格由 `.env` 配置控制 |
+| **4 随时随地运行** | **本地单机运行**（`localhost:8080`）或 **云端 VPS**（`comfy.domain.com`） | 一条命令 Docker / Python 启动；本地运行无需任何 VPS 和公网域名开销 |
 
 ---
 
@@ -137,10 +138,38 @@ VPS 上运行一个轻量网关 **comfy-gate**（Python / aiohttp），前端受
 - **ComfyUI 完整透传**：透传图生图参考图上传 `/upload/image`、工作流排队 `/prompt`、历史记录 `/history`、图片查看 `/view`、节点 Schema `/object_info`、硬件负载 `/system_stats` 及 WebSocket `/ws`。
 - **对 Agent 极度友好**：RFC 8628 设备码一键配对（`ckit auth`）、网页端一键复制 AI 接入指令（智能复用未激活令牌）、`docs/MCP.md`、`skills/comfy-colab-kit/SKILL.md`、`docs/AGENT_SKILL.md`、`llms.txt`。
 
-## 🚀 快速开始（VPS + Cloudflare）
+## 🚀 快速开始
+
+根据您的使用场景选择最适合的部署方式：
+
+### 选项 A：💻 100% 本地单机部署（零 VPS、零域名、零 Cloudflare，推荐个人与本地 Agent！）
+> **极力推荐个人创作者、轻薄本/Mac 用户与本地 AI 助手使用！** 你的电脑不需要昂贵的 NVIDIA 显卡，本地网关直接掌控云端 Google Colab L4 GPU（24GB 显存），并直连映射到 `http://localhost:8080`。
 
 ```bash
-git clone <本仓库> comfy-colab-kit && cd comfy-colab-kit
+git clone https://github.com/FireTable/comfy-colab-kit.git && cd comfy-colab-kit
+cp .env.example .env
+sed -i '' 's/AUTH_DISABLED=false/AUTH_DISABLED=true/' .env
+sed -i '' 's/PUBLIC_HOST=comfy.example.com/PUBLIC_HOST=localhost:8080/' .env
+
+# 1. 一次性授权 Google Colab 登录
+mkdir -p data && chmod 700 data
+docker run --rm -it -v $(pwd)/data:/data -e HOME=/data/home ghcr.io/firetable/comfy-colab-kit:latest colab sessions
+
+# 2. 一键启动本地网关
+docker compose -f deploy/docker-compose.local.yml up -d
+# （或 Python 原生启动：pip install -e ".[dev]" && python3 -m gate）
+
+# 3. 浏览器打开 http://localhost:8080 即可直接使用！
+```
+*本地部署与本地 AI 编程助手集成详解：[docs/DEPLOY_LOCAL.md](docs/DEPLOY_LOCAL.md)*
+
+---
+
+### 选项 B：☁️ 云端 VPS + Cloudflare Zero Trust（生产团队协作）
+> **适合多人团队共享、24/7 全天候自动化运行与公网 Webhook 回调场景。**
+
+```bash
+git clone https://github.com/FireTable/comfy-colab-kit.git && cd comfy-colab-kit
 cp .env.example .env                         # 填 PUBLIC_HOST、COLAB_TUNNEL_HOST、CF_ACCESS_*、邮箱
 mkdir -p secrets data && chmod 700 secrets data
 ZONE_NAME=example.com COLAB_TUNNEL_HOST=comfy-colab.example.com \
@@ -153,7 +182,7 @@ docker compose -f deploy/docker-compose.yml up -d
 
 仓库同时提供 GHCR 官方预构建容器镜像（`docker pull ghcr.io/firetable/comfy-colab-kit:latest`），以及支持独立安装的 `ckit` CLI / MCP 客户端（运行 `uv tool install git+https://github.com/FireTable/comfy-colab-kit.git` 或直接下载 [GitHub Releases](https://github.com/FireTable/comfy-colab-kit/releases) 中的 `.whl` 安装包）。
 
-完整步骤见 [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md)，用户与 Agent 访问指南详见 [docs/ACCESS.md](docs/ACCESS.md)（浏览器/免登链接/局域网/Agent），零门槛申请凭证详见 [docs/AGENT.md](docs/AGENT.md)。
+完整步骤见 [docs/DEPLOY_LOCAL.md](docs/DEPLOY_LOCAL.md)（本地单机）、[docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md)（VPS）、用户与 Agent 访问指南详见 [docs/ACCESS.md](docs/ACCESS.md)（浏览器/免登链接/局域网/Agent），零门槛申请凭证详见 [docs/AGENT.md](docs/AGENT.md)。
 
 ## 🤖 针对 AI 智能体与自动化运维 (Agent Skill Protocol)
 

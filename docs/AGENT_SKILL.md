@@ -17,9 +17,13 @@ This document defines an **Agent Skill** for autonomous AI coding agents (Claude
 
 | Item | Environment Variable | Transmission Method |
 |---|---|---|
-| Gate URL | `CKIT_URL=https://<PUBLIC_HOST>` | Base URL for all HTTP/SSE/WebSocket calls |
-| Agent Token | `CKIT_TOKEN_FILE=/path/to/token` | Sent as `Authorization: Bearer <token>` |
-| Cloudflare Service Token | `CF_ACCESS_CLIENT_ID` + `CF_ACCESS_CLIENT_SECRET_FILE` | Attached to bypass Cloudflare Access on `PUBLIC_HOST` (if configured) |
+| Gate URL | `CKIT_URL=https://<PUBLIC_HOST>` or `http://localhost:8080` | Base URL for all HTTP/SSE/WebSocket calls |
+| Agent Token | `CKIT_TOKEN_FILE=/path/to/token` | Sent as `Authorization: Bearer <token>` (omitted in local mode with `AUTH_DISABLED=true`) |
+| Cloudflare Service Token | `CF_ACCESS_CLIENT_ID` + `CF_ACCESS_CLIENT_SECRET_FILE` | Attached to bypass Cloudflare Access (omitted when running on localhost) |
+
+> [!TIP]
+> **Local Standalone Mode (Zero VPS & No Cloudflare)**:
+> When running locally ([docs/DEPLOY_LOCAL.md](DEPLOY_LOCAL.md)), set `CKIT_URL=http://localhost:8080`. No tokens, cookies, or Cloudflare credentials are required!
 
 > [!IMPORTANT]
 > Never print, log, or commit secret tokens. Agents authenticate as owners and have full permission to wake, prompt, extend, and stop sessions.
