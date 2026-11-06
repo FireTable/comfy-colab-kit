@@ -148,11 +148,12 @@
 ```bash
 git clone https://github.com/FireTable/comfy-colab-kit.git && cd comfy-colab-kit
 cp .env.example .env
+# 启用本地免密与本地端口（macOS: sed -i ''; Linux: sed -i）
 sed -i '' 's/AUTH_DISABLED=false/AUTH_DISABLED=true/' .env
 sed -i '' 's/PUBLIC_HOST=comfy.example.com/PUBLIC_HOST=localhost:8080/' .env
 
-# 1. 一次性授权 Google Colab 登录
-mkdir -p data && chmod 700 data
+# 1. 一次性授权 Google Colab 登录与目录准备
+mkdir -p data secrets && chmod 777 data
 docker run --rm -it -v $(pwd)/data:/data -e HOME=/data/home ghcr.io/firetable/comfy-colab-kit:latest colab sessions
 
 # 2. 一键启动本地网关

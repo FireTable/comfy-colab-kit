@@ -524,8 +524,10 @@ def handle_tool_call(name: str, args: dict) -> dict:
     return {"isError": True, "content": [{"type": "text", "text": f"Unknown tool: {name}"}]}
 
 
-def run_stdio_server():
+def run_stdio_server(base_url: str = ""):
     """Stdio JSON-RPC loop adhering to the Model Context Protocol."""
+    if base_url:
+        os.environ["CKIT_URL"] = base_url
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -609,4 +611,8 @@ def run_stdio_server():
 
 
 if __name__ == "__main__":
-    run_stdio_server()
+    import argparse
+    ap = argparse.ArgumentParser(description="Comfy Colab Kit MCP Server")
+    ap.add_argument("--gate-url", "--url", dest="gate_url", help="gate endpoint URL (default: http://127.0.0.1:8080)")
+    args, _ = ap.parse_known_args()
+    run_stdio_server(args.gate_url or "")

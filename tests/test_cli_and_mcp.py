@@ -147,3 +147,19 @@ async def test_gate_mcp_endpoint_tools_list(tmp_path):
         assert "gate_stop" in tools
     finally:
         await c.close()
+
+
+def test_cli_gate_url_flag(monkeypatch):
+    import argparse
+    import ckit.cli as cli_mod
+    ap = argparse.ArgumentParser(prog="ckit")
+    ap.add_argument("cmd", choices=["status", "mcp"])
+    ap.add_argument("--gate-url", "--url", dest="gate_url")
+    args = ap.parse_args(["--gate-url", "http://localhost:8080", "status"])
+    assert args.gate_url == "http://localhost:8080"
+    assert args.cmd == "status"
+
+    args2 = ap.parse_args(["mcp", "--url", "http://127.0.0.1:9090"])
+    assert args2.gate_url == "http://127.0.0.1:9090"
+    assert args2.cmd == "mcp"
+

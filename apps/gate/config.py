@@ -205,7 +205,7 @@ class Settings:
             hf_token_file=(env.get("HF_TOKEN_FILE") or "").strip(),
             agent_token_file=(env.get("AGENT_TOKEN_FILE") or "").strip(),
             colab_bin=(env.get("COLAB_BIN") or "colab").strip(),
-            colab_token_dir=(env.get("COLAB_TOKEN_DIR") or "").strip(),
+            colab_token_dir=(env.get("COLAB_TOKEN_DIR") or ("/data/colab-cli" if os.path.isdir("/data") and os.access("/data", os.W_OK) else "./data/colab-cli")).strip(),
             colab_accelerator=(env.get("COLAB_ACCELERATOR") or "L4").strip(),
             colab_session_name=(env.get("COLAB_SESSION_NAME") or "comfy").strip(),
             profiles=tuple(_csv(env.get("PROFILES"))) or Settings.profiles,
@@ -220,7 +220,7 @@ class Settings:
             enable_smoke_test=_bool(env, "ENABLE_SMOKE_TEST", False),
             listen_host=host,
             listen_port=int(port),
-            state_dir=(env.get("STATE_DIR") or "/data/state").strip(),
+            state_dir=(env.get("STATE_DIR") or ("/data/state" if os.path.isdir("/data") and os.access("/data", os.W_OK) else "./data/state")).strip(),
             log_level=(env.get("LOG_LEVEL") or "info").strip(),
             auto_stop=auto,
         )

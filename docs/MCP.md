@@ -101,13 +101,7 @@ Add the `comfy-colab` server to your Cursor MCP settings:
   }
 }
 ```
-*(Point `CKIT_URL` to `http://localhost:8080` for local mode or `https://comfy.yourdomain.com` for VPS mode).*
-        "CKIT_TOKEN": "YOUR_AGENT_BEARER_TOKEN"
-      }
-    }
-  }
-}
-```
+*(Point `CKIT_URL` to `http://localhost:8080` for local mode or `https://comfy.yourdomain.com` for VPS mode; set `CKIT_TOKEN` if authentication is enabled).*
 
 ### 3. Universal Agent Configuration (`~/.agents/.env` or `~/.agents/mcp.json`)
 To share credentials across all agents in your environment:
