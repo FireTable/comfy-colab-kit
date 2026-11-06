@@ -5,6 +5,11 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version tag to release (e.g. v0.3.1)"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -18,27 +23,44 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify release tag
+        id: check_tag
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          if [[ ! "$TAG" =~ ^v[0-9] ]]; then
+            echo "Ref '$TAG' is not a semver version tag (v*). Skipping release."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Set up Python
+        if: steps.check_tag.outputs.skip != 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install build tool
+        if: steps.check_tag.outputs.skip != 'true'
         run: pip install --upgrade build
 
       - name: Build distribution packages (wheel & sdist)
+        if: steps.check_tag.outputs.skip != 'true'
         run: python -m build
 
       - name: Publish GitHub Release
+        if: steps.check_tag.outputs.skip != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
-            echo "Release already exists, updating distribution assets..."
-            gh release upload "${{ github.ref_name }}" dist/* --clobber
+          TAG="${{ steps.check_tag.outputs.tag }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists, updating distribution assets..."
+            gh release upload "$TAG" dist/* --clobber
           else
-            echo "Creating new GitHub Release for ${{ github.ref_name }}..."
-            gh release create "${{ github.ref_name }}" dist/* \
-              --title "${{ github.ref_name }}" \
+            echo "Creating new GitHub Release for $TAG..."
+            gh release create "$TAG" dist/* \
+              --title "$TAG" \
               --generate-notes
           fi
