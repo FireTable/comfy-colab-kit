@@ -145,6 +145,8 @@ docker compose -f deploy/docker-compose.yml up -d
 # add deploy/Caddyfile.snippet to Caddy, reload, open https://$PUBLIC_HOST
 ```
 
+Pre-built container images are also published on GHCR (`docker pull ghcr.io/firetable/comfy-colab-kit:latest`), and the operator CLI / MCP client can be installed standalone via `uv tool install git+https://github.com/FireTable/comfy-colab-kit.git` (or from the `.whl` attached to [GitHub Releases](https://github.com/FireTable/comfy-colab-kit/releases)).
+
 Full walkthrough: [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md), [docs/ACCESS.md](docs/ACCESS.md) (browser, guest link, LAN & agent access), [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md), and [docs/AGENT.md](docs/AGENT.md) (comprehensive credential guide).
 
 ## 🤖 For AI Agents & Automation (Agent Skill Protocol)

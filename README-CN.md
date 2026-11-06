@@ -144,6 +144,8 @@ docker compose -f deploy/docker-compose.yml up -d
 # 把 deploy/Caddyfile.snippet 加进 Caddy 并 reload，打开 https://$PUBLIC_HOST
 ```
 
+仓库同时提供 GHCR 官方预构建容器镜像（`docker pull ghcr.io/firetable/comfy-colab-kit:latest`），以及支持独立安装的 `ckit` CLI / MCP 客户端（运行 `uv tool install git+https://github.com/FireTable/comfy-colab-kit.git` 或直接下载 [GitHub Releases](https://github.com/FireTable/comfy-colab-kit/releases) 中的 `.whl` 安装包）。
+
 完整步骤见 [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md)，用户与 Agent 访问指南详见 [docs/ACCESS.md](docs/ACCESS.md)（浏览器/免登链接/局域网/Agent），零门槛申请凭证详见 [docs/AGENT.md](docs/AGENT.md)。
 
 ## 🤖 针对 AI 智能体与自动化运维 (Agent Skill Protocol)
