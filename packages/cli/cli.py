@@ -421,16 +421,44 @@ def do_doctor(a):
 
 def do_validate(a):
     """Validate profile directories using scripts/validate-profile.py or gate.profiles."""
-    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-    validator = os.path.join(repo_root, "scripts", "validate-profile.py")
-    cmd = [sys.executable, validator]
-    if a.extra_arg:
-        cmd.append(a.extra_arg)
-    if os.path.isfile(validator):
-        rc = subprocess.call(cmd)
-        sys.exit(rc)
-    print("[validate] Error: scripts/validate-profile.py not found.", file=sys.stderr)
-    sys.exit(1)
+    has_jsonschema = False
+    try:
+        import jsonschema  # noqa: F401
+        has_jsonschema = True
+    except ImportError:
+        pass
+
+    if has_jsonschema:
+        candidates = [
+            os.path.join(os.getcwd(), "scripts", "validate-profile.py"),
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "scripts", "validate-profile.py")),
+        ]
+        for validator in candidates:
+            if os.path.isfile(validator):
+                cmd = [sys.executable, validator]
+                if a.extra_arg:
+                    cmd.append(a.extra_arg)
+                rc = subprocess.call(cmd)
+                sys.exit(rc)
+
+    try:
+        from pathlib import Path
+        from gate.profiles import ProfileError, load_profile
+        target = Path(a.extra_arg or os.path.join(os.getcwd(), "profiles", "examples"))
+        targets = [target] if (target.is_file() or (target / "profile.yaml").is_file()) else sorted(target.iterdir())
+        bad = 0
+        for t in targets:
+            f = t / "profile.yaml" if t.is_dir() else t
+            try:
+                p = load_profile(f)
+                print(f"ok  {p.id:<16} {len(p.workflows)} workflows, wake download ~{p.wake_size_gb()} GB")
+            except (ProfileError, OSError) as e:
+                bad = 1
+                print(f"ERR {f}: {e}")
+        sys.exit(bad)
+    except Exception as e:
+        print(f"[validate] Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 def main():

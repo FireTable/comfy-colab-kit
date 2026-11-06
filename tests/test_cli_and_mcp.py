@@ -60,8 +60,8 @@ def test_make_moss_img2img_graph_and_multi_profile():
         denoise=0.65,
         seed=42,
     )
-    assert g["23_load"]["class_type"] == "LoadImage"
-    assert g["23_load"]["inputs"]["image"] == "ref_upload.png"
+    assert g["30"]["class_type"] == "LoadImage"
+    assert g["30"]["inputs"]["image"] == "ref_upload.png"
     assert g["23"]["class_type"] == "VAEEncode"
     assert g["20"]["inputs"]["denoise"] == 0.65
     assert g["22"]["inputs"]["value"] == 42
@@ -72,7 +72,7 @@ def test_make_moss_img2img_graph_and_multi_profile():
     assert sd_t2i["3"]["inputs"]["seed"] == 99
 
     sd_i2i = make_img2img_graph(profile="sd-latest", prompt="oil painting style", image="input.png", denoise=0.5, seed=77)
-    assert sd_i2i["53_load"]["inputs"]["image"] == "input.png"
+    assert sd_i2i["54"]["inputs"]["image"] == "input.png"
     assert sd_i2i["53"]["class_type"] == "VAEEncode"
     assert sd_i2i["3"]["inputs"]["denoise"] == 0.5
 

@@ -89,14 +89,14 @@ def make_moss_img2img_graph(
     graph["20"]["inputs"]["denoise"] = max(0.05, min(1.0, float(denoise if denoise is not None else 0.75)))
     graph["22"]["inputs"]["value"] = _resolve_seed(seed)
 
-    # Replace EmptyFlux2LatentImage ("23") with LoadImage ("23_load") -> VAEEncode ("23")
-    graph["23_load"] = {
+    # Replace EmptyFlux2LatentImage ("23") with LoadImage ("30") -> VAEEncode ("23")
+    graph["30"] = {
         "class_type": "LoadImage",
-        "inputs": {"image": image},
+        "inputs": {"image": image, "upload": "image"},
     }
     graph["23"] = {
         "class_type": "VAEEncode",
-        "inputs": {"pixels": ["23_load", 0], "vae": ["5", 0]},
+        "inputs": {"pixels": ["30", 0], "vae": ["5", 0]},
     }
     graph["26"]["inputs"]["filename_prefix"] = "moss_img2img"
     return graph
@@ -168,13 +168,13 @@ def make_sd35_img2img_graph(
 ) -> dict:
     """Official SD 3.5 Large fp8 image-to-image workflow graph."""
     graph = make_sd35_txt2img_graph(prompt=prompt, negative_prompt=negative_prompt, seed=seed, steps=steps)
-    graph["53_load"] = {
+    graph["54"] = {
         "class_type": "LoadImage",
-        "inputs": {"image": image},
+        "inputs": {"image": image, "upload": "image"},
     }
     graph["53"] = {
         "class_type": "VAEEncode",
-        "inputs": {"pixels": ["53_load", 0], "vae": ["4", 2]},
+        "inputs": {"pixels": ["54", 0], "vae": ["4", 2]},
     }
     graph["3"]["inputs"]["denoise"] = max(0.05, min(1.0, float(denoise if denoise is not None else 0.75)))
     graph["9"]["inputs"]["filename_prefix"] = "sd35_img2img"

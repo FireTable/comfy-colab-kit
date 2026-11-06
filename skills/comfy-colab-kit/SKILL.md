@@ -7,14 +7,22 @@ description: ComfyUI on Colab L4 GPU gate operator. Wake, manage shared session,
 
 本 Skill 专为接入并操作 **Comfy Colab Kit** 绘图网关的自主 AI Agent 设计。包含工具安装、工作流查询、任务决策、参考图上传、生命周期管理、CU 算力核对、原生 ComfyUI API 透传与关机释放策略。
 
+> **本文件不存放任何令牌。** 凭据一律从环境变量或配置文件读取（见 §1）。
+> **若需新建模型 Profile 或将网关复用于其他 Colab GPU 服务**，请参阅 [`docs/AGENT_SCAFFOLDING.md`](../../docs/AGENT_SCAFFOLDING.md)。
+
 ---
 
 ## 1. 核心凭据与端点解析
 
 Agent 操作网关时，网关地址与凭据按以下优先级解析：
-1. **环境变量**: `CKIT_URL` (如 `https://comfy.example.com`), `CKIT_TOKEN`
-2. **通用 Agent 配置**: `~/.agents/.env` 中的 `CKIT_URL` 与 `CKIT_TOKEN`
-3. **全局 CLI 配置**: `~/.config/ckit/config.json`
+
+1. **环境变量**：`CKIT_URL`（如 `https://comfy.example.com`）、`CKIT_TOKEN`
+2. **全局 CLI 配置**：`~/.config/ckit/config.json`
+   ```json
+   { "default_endpoint": "https://comfy.example.com", "token": "<TOKEN>" }
+   ```
+3. **通用 Agent 环境**：`~/.agents/.env` 中的 `CKIT_URL` 与 `CKIT_TOKEN`
+   —— 已安装的 `ckit` 会自动读取该文件；当 `~/.config/ckit/config.json` 不存在或缺少对应键时，由它补齐 `default_endpoint` 与 `token`。
 
 所有 HTTP 接口均使用**相对路径**描述，由 Agent 拼接 Base URL，请求头附带：
 `Authorization: Bearer <CKIT_TOKEN>`
@@ -25,34 +33,42 @@ Agent 操作网关时，网关地址与凭据按以下优先级解析：
 
 `ckit` 是专为 Agent 和工程师打造的轻量命令行工具与 MCP 服务器，**完全基于 Python 3 标准库，无任何第三方 pip 运行时依赖**。
 
-### 安装方式 (任选其一)
-- **通过 pip 安装 (推荐)**:
-  ```bash
-  pip install "git+https://github.com/FireTable/comfy-colab-kit.git"
-  ```
-- **通过 uv 工具安装**:
+### 安装方式（任选其一）
+
+- **通过 uv 工具安装（推荐）**：
   ```bash
   uv tool install "git+https://github.com/FireTable/comfy-colab-kit.git"
+  uv tool upgrade comfy-colab-kit
   ```
-- **单脚本免安装运行 (直接下载)**:
+- **通过 pip 安装**：
   ```bash
-  mkdir -p ~/.local/bin
-  curl -sSL "https://raw.githubusercontent.com/FireTable/comfy-colab-kit/main/packages/cli/ckit" -o ~/.local/bin/ckit
-  chmod +x ~/.local/bin/ckit
+  pip install "git+https://github.com/FireTable/comfy-colab-kit.git"
+  # 上游更新后强制重装：
+  pip install --force-reinstall --no-deps "git+https://github.com/FireTable/comfy-colab-kit.git"
   ```
-- **从本地仓库源码运行**:
+- **免安装运行（克隆后直接执行仓库内 shim）**：
   ```bash
-  pip install -e .
-  # 或直接执行 python3 packages/cli/ckit
+  git clone --depth 1 https://github.com/FireTable/comfy-colab-kit.git
+  python3 comfy-colab-kit/packages/cli/ckit status
   ```
+  > ⚠️ `packages/cli/ckit` 是**仓库内相对路径 shim**（导入同目录 `cli.cli`），请勿单独复制该文件到 `~/.local/bin/ckit`，应通过 `uv tool install` 或 `pip install` 安装。
 
 ### 常用命令速查
-- `ckit status [--json]`: 检查 GPU 实例状态、当前模型 Profile、排队情况与 CU 余额
-- `ckit profiles [--json]`: 查询网关支持的所有模型 Profiles 及 Workflows 工作流列表
-- `ckit wake [--profile ID] [--wait]`: 唤醒或加入 GPU 实例（加入现有会话无需重复开机）
-- `ckit generate --prompt "..." [--negative "..."] [--preset "Fast alt"]`: 执行快速文生图
-- `ckit stop`: 立即关闭 GPU 实例，停止扣费
-- `ckit mcp`: 启动标准输入输出 (stdio) MCP 服务
+
+| 命令 | 作用 |
+|---|---|
+| `ckit doctor [URL] [--json]` | **一键自检**：检查本地凭据、网关 `/_gate/healthz` 连通性、`/mcp` Access 绕过与鉴权状态 |
+| `ckit validate [PATH]` | **校验 Profile**：校验 `profiles/` 下的 YAML Schema、工作流引用与 SHA-256 |
+| `ckit status [--json]` | 检查 GPU 实例状态、当前模型 Profile、排队情况与 CU 余额 |
+| `ckit profiles [--json]` | 查询网关支持的所有模型 Profiles 及 Workflows 工作流列表 |
+| `ckit wake [--profile ID] [--wait]` | 唤醒或加入 GPU 实例（加入现有会话无需重复开机） |
+| `ckit generate --prompt "..." [--preset "Fast alt"] [--width N] [--height N] [--seed N]` | 执行快速文生图（自动适配当前 Profile：`moss-image` 或 `sd-latest`） |
+| `ckit generate --prompt "..." --image <PATH_OR_URL> [--denoise 0.75]` | **执行图生图 (Img2Img)**：自动上传本地图片或 URL 到 `/upload/image` 并重绘 |
+| `ckit stop` | 立即关闭 GPU 实例，停止扣费 |
+| `ckit switch <profile-id>` | 切换当前运行的模型 Profile（需 owner 权限） |
+| `ckit extend` | 延长当前会话的存活时间 |
+| `ckit auth <url>` | RFC 8628 设备流配对：浏览器点「批准」换取新令牌 |
+| `ckit mcp` | 启动标准输入输出 (stdio) MCP 服务（暴露 6 大工具：`gate_status`, `gate_wake`, `gate_txt2img`, `gate_img2img`, `gate_generate`, `gate_stop`） |
 
 ---
 
@@ -62,16 +78,12 @@ Agent 操作网关时，网关地址与凭据按以下优先级解析：
 
 ### 方式 A: 通过 CLI 命令行查询
 ```bash
-# 人类易读格式
-ckit profiles
-
-# Agent 结构化 JSON 格式
-ckit profiles --json
+ckit profiles          # 人类易读
+ckit profiles --json   # Agent 结构化 JSON
 ```
 
 ### 方式 B: 通过网关 HTTP API (相对路径)
-请求相对路径：`GET /_gate/profiles`
-携带请求头：`Authorization: Bearer <CKIT_TOKEN>`
+请求相对路径：`GET /_gate/profiles`，携带请求头 `Authorization: Bearer <CKIT_TOKEN>`。
 
 **响应 JSON 示例**:
 ```json
@@ -84,47 +96,25 @@ ckit profiles --json
       "accelerator": "L4",
       "app_default": "matlowai-presets",
       "workflows": [
-        {
-          "id": "matlowai-presets",
-          "title": "Default · DeBand banding-fix LoRAs on SFT bf16 (+ DMD/DMAD fast modes)",
-          "optional": false,
-          "license": "Apache-2.0"
-        },
-        {
-          "id": "matlowai-img2img",
-          "title": "Img2Img · DeBand LoRAs on SFT bf16 with Denoise",
-          "optional": false,
-          "license": "Apache-2.0"
-        },
-        {
-          "id": "akhaliq-4step",
-          "title": "Fast · 4-step turbo LoRA (akhaliq)",
-          "optional": false
-        },
-        {
-          "id": "official-t2i",
-          "title": "Quality · official Text to Image (Comfy-Org)",
-          "optional": false
-        }
+        { "id": "matlowai-presets", "title": "Default · DeBand banding-fix LoRAs on SFT bf16 (+ DMD/DMAD fast modes)", "optional": false, "license": "Apache-2.0" },
+        { "id": "matlowai-img2img", "title": "Img2Img · DeBand LoRAs on SFT bf16 with Denoise", "optional": false, "license": "Apache-2.0" },
+        { "id": "akhaliq-4step", "title": "Fast · 4-step turbo LoRA (akhaliq)", "optional": false },
+        { "id": "official-t2i", "title": "Quality · official Text to Image (Comfy-Org)", "optional": false }
       ]
     },
-    {
-      "id": "sd-latest",
-      "title": "Stable Diffusion 3.5 (Large fp8 default · TurboX / Medium turbo)",
-      "workflows": [...]
-    },
-    {
-      "id": "qwen-image",
-      "title": "Qwen-Image 2.1 (Turbo default · T2I / Edit)",
-      "workflows": [...]
-    }
-  ]
+    { "id": "sd-latest", "title": "Stable Diffusion 3.5 (Large fp8 default · TurboX / Medium turbo)", "workflows": [] },
+    { "id": "qwen-image", "title": "Qwen-Image 2.1 (Turbo default · T2I / Edit)", "workflows": [] }
+  ],
+  "errors": []
 }
 ```
 
+> **`/_gate/profiles` 只返回工作流的元数据**（`id` / `title` / `optional` / `license` / `prefetch` / `size_gb`），**不返回可提交的 node graph**。要提交任务：
+> - 直接调用 MCP `gate_txt2img` 或 `gate_img2img`（或 `ckit generate`），或
+> - 参考 `packages/cli/moss_template.py` 与下方 §6.2 的已验证 API 格式模板。
+
 ### 方式 C: 查询当前活跃会话状态
-请求相对路径：`GET /_gate/status`
-响应中 `profile` 字段即为当前 GPU 运行的模型配置，`default_view` 指示默认视图（`app` 或 `graph`）。
+请求相对路径：`GET /_gate/status`；响应中 `profile` 为当前 GPU 运行的模型配置，`default_view` 指示默认视图（`app` / `graph`）。
 
 ---
 
@@ -135,42 +125,55 @@ flowchart TD
     Req[用户绘画需求] --> HasImg{是否提供或指定参考底图?}
     HasImg -- 否: 纯文字描述/概念构思 --> Txt2Img[使用文生图 Txt2Img]
     HasImg -- 是: 参考图改图/重绘/风格迁移 --> Img2Img[使用图生图 Img2Img]
-    
-    Txt2Img --> ToolT2I[调用 MCP: gate_txt2img 或 matlowai-presets]
-    Img2Img --> UploadRef[1. POST /upload/image 上传参考底图]
-    UploadRef --> ToolI2I[2. 调用 matlowai-img2img 或原生 /prompt 透传]
-    
+
+    Txt2Img --> ToolT2I[调用 MCP: gate_txt2img 或 ckit generate]
+    Img2Img --> ToolI2I[调用 MCP: gate_img2img 或 ckit generate --image]
+
     ToolT2I --> FastAlt[默认画质预设: Fast alt · 10步抗条纹]
-    ToolI2I --> SetDenoise[按需求设定 Denoise 重绘幅度]
+    ToolI2I --> SetDenoise[BasicScheduler.denoise = 重绘幅度]
 ```
 
 ### A. 文生图 (Text-to-Image)
 - **触发时机**：用户输入场景、人物、产品、艺术画面描述，未提供参考底图。
 - **推荐工具**：
   - **MCP 工具**：`gate_txt2img(prompt=..., negative_prompt=..., preset="Fast alt", seed=..., width=1024, height=1024)`
+  - **CLI**：`ckit generate --prompt "..." --preset "Fast alt" --width 1024 --height 1024`
   - **默认预设**：`"Fast alt"`（10 步急速生成，画质优异且彻底去除条纹色带）。
-  - **负向提示词**：默认配置 `worst quality, bad anatomy, watermark, jpeg artifact`。
+  - **负向提示词**：默认 `worst quality, bad anatomy, watermark, jpeg artifact`。
 
 ### B. 图生图 (Image-to-Image)
-- **触发时机**：用户给出了参考图片，要求在原图基础上进行微调、画面扩展、姿态保持重绘或风格转换。
-- **推荐工作流**：`matlowai-img2img`。
-- **必须步骤**：先调用 `POST /upload/image` 上传图片获取服务器端文件名。
-- **关键参数 `denoise` (重绘幅度)**：
+- **触发时机**：用户给出了参考图片，要求在原图基础上微调、扩图、姿态保持重绘或风格转换。
+- **推荐工具（首选自动化方式）**：
+  - **MCP 工具**：`gate_img2img(image="<本地路径、图片URL或已上传文件名>", prompt="...", denoise=0.75, preset="Fast alt")`
+  - **CLI**：`ckit generate --prompt "..." --image <本地路径或URL> --denoise 0.75`
+- **关键参数 `denoise`（重绘幅度）**：
+  - ⚠️ **MOSS-Image 管线的 denoise 在 `BasicScheduler` 节点上**（`20.inputs.denoise`），**不是** `KSampler.denoise`。
   - `0.2 ~ 0.35`：微调质感、去噪增强、高清放大，构图完全保持。
-  - `0.4 ~ 0.65`：适度改变细节、服装、发型或光影，主体轮廓保留。
-  - `0.7 ~ 1.0`：剧烈重新创作，仅保留原图大概色彩与氛围。
+  - `0.4 ~ 0.65`：改变服装、发型、局部物品或光影风格，主体轮廓保留。
+  - `0.7 ~ 1.0`：剧烈重绘创作，仅保留原图大概色彩与氛围。
 
 ---
 
 ## 5. 原生 ComfyUI 接口透传与开放接口清单
 
-当 Gateway 状态为 `ready` 时，网关同时扮演安全反向代理角色，所有原生 ComfyUI 请求直接透传到后端内核。**所有接口均受 Bearer Token 保护并绕过 Cloudflare 访问拦截**。
+当 Gateway 状态为 `ready` 时，网关扮演安全反向代理角色，所有原生 ComfyUI 请求直接透传到后端内核。**所有接口均受 Bearer Token 保护并绕过 Cloudflare 访问拦截。**
+
+### ⚠️ 先看状态语义（实测）
+
+| 响应 | 含义 | 正确动作 |
+|---|---|---|
+| `401 {"error":"bad_agent_token"}` | 令牌无效/被吊销 | 换令牌；`ckit auth <url>` 重新配对 |
+| `503 {"error":"asleep", ...}` | **GPU 在睡**，请求已到达网关 | 先 `gate_wake` / `ckit wake --wait`，再重试 |
+| `302` + `cdn-cgi/access/login` | Cloudflare Access 拦截 | 运行 `ckit doctor` 检查 Access Bypass 规则 |
+| `200` | 正常 | — |
+
+原生透传接口在 GPU 处于 `sleeping` 时统一返回 **503 asleep**（不是 401/403）——**任何原生接口调用前都要先确认 `state == "ready"`**。
 
 ### 核心开放接口清单 (全部使用相对路径)
 
 | 相对路径 | 请求方法 | 数据格式 | 作用与功能说明 |
 |---|---|---|---|
-| `/upload/image` | `POST` | `multipart/form-data` | **图生图核心**：上传参考底图到 ComfyUI input 目录 |
+| `/upload/image` | `POST` | `multipart/form-data` | **图生图核心**：上传参考底图到 ComfyUI input 目录（字段 `image` / `overwrite=true` / `type=input`） |
 | `/upload/mask` | `POST` | `multipart/form-data` | **局部重绘**：上传 Inpainting 蒙版图 |
 | `/prompt` | `POST` | `application/json` | 提交原生 node graph JSON 任务排队 |
 | `/prompt` | `GET` | `application/json` | 查询当前队列中的任务列表与剩余任务数 |
@@ -189,12 +192,14 @@ flowchart TD
 
 ---
 
-## 6. 图生图 (Img2Img) 端到端参考代码示例
+## 6. 端到端原生 API 参考代码（自定义高级 Graph 时使用）
 
-### 第一步：上传参考图片 (`POST /upload/image`)
+> 若仅需常规图生图，直接调用 `gate_img2img` 或 `ckit generate --image <path>` 即可自动完成下方两步。
+
+### 6.1 图生图第一步：上传参考图 (`POST /upload/image`)
 
 ```python
-import urllib.request, mimetypes, uuid, json
+import urllib.request, uuid, json
 
 def upload_reference_image(gateway_url: str, token: str, file_path: str) -> str:
     """上传本地图片到 ComfyUI，返回服务器端分配的文件名。"""
@@ -210,6 +215,9 @@ def upload_reference_image(gateway_url: str, token: str, file_path: str) -> str:
         f"\r\n--{boundary}\r\n"
         f'Content-Disposition: form-data; name="overwrite"\r\n\r\n'
         f"true\r\n"
+        f"\r\n--{boundary}\r\n"
+        f'Content-Disposition: form-data; name="type"\r\n\r\n'
+        f"input\r\n"
         f"--{boundary}--\r\n"
     ).encode()
 
@@ -218,9 +226,9 @@ def upload_reference_image(gateway_url: str, token: str, file_path: str) -> str:
         data=body,
         headers={
             "Authorization": f"Bearer {token}",
-            "Content-Type": f"multipart/form-data; boundary={boundary}"
+            "Content-Type": f"multipart/form-data; boundary={boundary}",
         },
-        method="POST"
+        method="POST",
     )
     with urllib.request.urlopen(req) as resp:
         res = json.loads(resp.read())
@@ -228,8 +236,43 @@ def upload_reference_image(gateway_url: str, token: str, file_path: str) -> str:
         return res["name"]
 ```
 
-### 第二步：将图片名代入工作流并提交 (`POST /prompt`)
-在工作流节点的 `LoadImage` 节点中将 `"image"` 设置为返回的 `name`（如 `"ref_image.png"`），调节 `denoise` 后调用 `/prompt` 提交生成。
+### 6.2 图生图第二步：提交 API graph (`POST /prompt`)
+
+把上传拿到的 `name` 填进下面 graph 的 `30.inputs.image`；把提示词填进 `6` / `8`；按需改 `20.inputs.denoise`：
+
+```json
+{
+  "1":  {"class_type":"CustomCombo","inputs":{"choice":"Fast alt · fix + darask0 0.35 · 10 steps","index":4}},
+  "3":  {"class_type":"UNETLoader","inputs":{"unet_name":"moss_image_sft_bf16.safetensors","weight_dtype":"default"}},
+  "4":  {"class_type":"CLIPLoader","inputs":{"clip_name":"qwen3.5_9b_int8_convrot.safetensors","type":"moss_image","device":"default"}},
+  "5":  {"class_type":"VAELoader","inputs":{"vae_name":"flux2-vae.safetensors"}},
+  "6":  {"class_type":"PrimitiveStringMultiline","inputs":{"value":"<POSITIVE PROMPT>"}},
+  "7":  {"class_type":"CLIPTextEncode","inputs":{"clip":["4",0],"text":["6",0]}},
+  "8":  {"class_type":"CLIPTextEncode","inputs":{"text":"<NEGATIVE PROMPT>","clip":["4",0]}},
+  "9":  {"class_type":"ComfyMathExpression","inputs":{"expression":"1 if a == 0 else (1 if a == 1 else (1 if a == 2 else (1 if a == 3 else (1 if a == 4 else (0)))))","values.a":["1",1]}},
+  "10": {"class_type":"ComfyMathExpression","inputs":{"expression":"0 if a == 0 else (1 if a == 1 else (0 if a == 2 else (0 if a == 3 else (0 if a == 4 else (0)))))","values.a":["1",1]}},
+  "11": {"class_type":"ComfyMathExpression","inputs":{"expression":"0 if a == 0 else (0 if a == 1 else (0.28 if a == 2 else (0.35 if a == 3 else (0 if a == 4 else (0)))))","values.a":["1",1]}},
+  "12": {"class_type":"ComfyMathExpression","inputs":{"expression":"0 if a == 0 else (0 if a == 1 else (0 if a == 2 else (0 if a == 3 else (0.35 if a == 4 else (0)))))","values.a":["1",1]}},
+  "13": {"class_type":"ComfyMathExpression","inputs":{"expression":"25 if a == 0 else (25 if a == 1 else (14 if a == 2 else (10 if a == 3 else (10 if a == 4 else (25)))))","values.a":["1",1]}},
+  "14": {"class_type":"LoraLoaderModelOnly","inputs":{"lora_name":"moss_image_sft_banding_fix_L37-41_bf16.safetensors","model":["3",0],"strength_model":["9",0]}},
+  "15": {"class_type":"LoraLoaderModelOnly","inputs":{"lora_name":"moss_image_sft_banding_fix_L32-36_extra_bf16.safetensors","model":["14",0],"strength_model":["10",0]}},
+  "16": {"class_type":"LoraLoaderModelOnly","inputs":{"lora_name":"lodestones_moss_sft_8step_dmd_lora_latest.safetensors","model":["15",0],"strength_model":["11",0]}},
+  "17": {"class_type":"LoraLoaderModelOnly","inputs":{"lora_name":"darask0_moss_sft_4step_dmad_lora.safetensors","model":["16",0],"strength_model":["12",0]}},
+  "18": {"class_type":"TemporalScoreRescaling","inputs":{"tsr_k":0.95,"tsr_sigma":1.0,"model":["17",0]}},
+  "19": {"class_type":"SkipLayerGuidanceDiTSimple","inputs":{"double_layers":"","single_layers":"22, 24","start_percent":0.1,"end_percent":0.7,"model":["18",0]}},
+  "20": {"class_type":"BasicScheduler","inputs":{"scheduler":"simple","denoise":0.75,"model":["19",0],"steps":["13",1]}},
+  "21": {"class_type":"SamplerER_SDE","inputs":{"solver_type":"ER-SDE","max_stage":3,"eta":1.0,"s_noise":1.05}},
+  "22": {"class_type":"PrimitiveInt","inputs":{"value":12345}},
+  "23": {"class_type":"VAEEncode","inputs":{"pixels":["30",0],"vae":["5",0]}},
+  "24": {"class_type":"SamplerCustom","inputs":{"add_noise":true,"cfg":3.0,"model":["19",0],"positive":["7",0],"negative":["8",0],"sampler":["21",0],"sigmas":["20",0],"latent_image":["23",0],"noise_seed":["22",0]}},
+  "25": {"class_type":"VAEDecode","inputs":{"samples":["24",0],"vae":["5",0]}},
+  "26": {"class_type":"SaveImage","inputs":{"filename_prefix":"moss_img2img","images":["25",0]}},
+  "30": {"class_type":"LoadImage","inputs":{"image":"<UPLOADED_NAME.png>","upload":"image"}}
+}
+```
+
+> **底图尺寸**：Flux2 建议宽高为 16 的倍数；`LoadImage → VAEEncode` 不自动缩放，请自行把参考图裁剪/缩放到目标尺寸再上传。
+> **出图字节要立刻落盘**：`/view` 是代理转发，拿到 URL 后应马上把字节下载到本地（否则会话结束后链接可能失效）。
 
 ---
 
@@ -240,12 +283,7 @@ def upload_reference_image(gateway_url: str, token: str, file_path: str) -> str:
 ```json
 {
   "state": "ready",
-  "you": {
-    "email": "user@example.com",
-    "owner": true,
-    "can_wake": true,
-    "can_stop": true
-  }
+  "you": { "email": "user@example.com", "owner": true, "can_wake": true, "can_stop": true }
 }
 ```
 
@@ -256,7 +294,7 @@ def upload_reference_image(gateway_url: str, token: str, file_path: str) -> str:
   - 当一轮生图全部完成，且用户明确表示“好了/完成了/暂时不需要生图”时，Agent 应**主动询问或执行关机**（调用 `gate_stop` 或相对路径 `POST /_gate/stop`），释放 GPU 算力。
   - 避免让 GPU 机器长时间处于空转状态。
 - **如果是 Member (普通协作者)**：
-  - 无权执行主动关机；在机器 `ready` 时直接生图即可，网关闲置超时会自动休眠。
+  无权执行主动关机；在机器 `ready` 时直接生图即可，网关闲置超时会自动休眠。
 
 ---
 
@@ -281,13 +319,27 @@ def upload_reference_image(gateway_url: str, token: str, file_path: str) -> str:
 1. **检查状态**：调用 MCP `gate_status`（或 `GET /_gate/status`）。
 2. **唤醒 (如需)**：
    - 若 `state === "sleeping"`：
-     - 调用 `gate_wake(profile="moss-image")`（或 `POST /_gate/wake`）。
-     - 等待状态轮询变为 `"ready"`（当前实测：分配算力 ~10 秒 + 装依赖 ~22 秒 + 下载 24.9 GB 权重 ~30 秒，与 ComfyUI 启动并行；整体约 60~95 秒，取决于 Colab 分配 VM 的快慢）。
+     - 调用 `gate_wake(profile="moss-image")`（或 `POST /_gate/wake` / `ckit wake --wait`）。
+     - 等待状态轮询变为 `"ready"`（实测整机冷启动约 **90 秒 / 一分半左右**）。
    - 若处于 `allocating` / `downloading` / `booting`：等待就绪即可。
 3. **执行生成**：
-   - 文生图：首选 MCP `gate_txt2img`，生成完成后直接返回结果图片 URL。
-   - 图生图：调用 `POST /upload/image` 上传底图，然后调用图生图工作流。
+   - 文生图：首选 MCP `gate_txt2img`（或 `ckit generate --prompt "..."`），生成完成后直接返回结果图片 URL。
+   - 图生图：首选 MCP `gate_img2img(image=..., prompt=..., denoise=0.75)`（或 `ckit generate --prompt "..." --image ...`），自动完成底图上传与重绘。
 4. **交付结果**：
-   - 向用户呈现生成的图片 Markdown 预览与链接。
+   - 向用户呈现生成的图片 Markdown 预览与链接；**同时把图片字节下载到本地留存**（`/view` 代理不保证长期有效）。
 5. **结束关机**：
    - 确认无后续绘画任务时，Owner Agent 调用 `gate_stop` 释放机器。
+
+---
+
+## 10. 排错速查
+
+| 现象 | 原因 | 处理 |
+|---|---|---|
+| `401 bad_agent_token` | 令牌过期/被吊销 | 用 §2 的 `ckit auth <url>` 重新配对；或运行 `ckit doctor` 自检 |
+| `503 asleep` | GPU 在睡 | `gate_wake` 后重试 |
+| `ModuleNotFoundError: No module named 'cli'` | 把仓库内 shim 单独复制到 `~/.local/bin` | 改用 `uv tool install` / `pip install`，或 `python3 packages/cli/ckit` |
+| 改了上游代码但 CLI 行为没变 | 本地全局工具未升级 | 执行 `uv tool upgrade comfy-colab-kit` 或 `pip install --force-reinstall --no-deps ...` |
+| `ckit status` 报 `Connection refused` | 端点没解析到，回落到 `127.0.0.1:8080` | 检查 `CKIT_URL` / `~/.config/ckit/config.json` / `~/.agents/.env` |
+| `/upload/image` 返回 302 跳登录 | 网关侧未部署放行 `/upload` 的版本 | 更新并部署网关（或运行 `ckit doctor` 检查绕过状态） |
+| 图生图报「文件不存在」 | `LoadImage` 的 `image` 填的不是上传返回的 `name` | 使用 `gate_img2img` 自动处理，或用上传返回的 `name` 覆盖并带 `type=input` |

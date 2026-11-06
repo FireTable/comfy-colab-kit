@@ -173,6 +173,8 @@ def upload_image_to_gate(image_ref: str) -> tuple[bool, str]:
         raw_bytes,
         f"\r\n--{boundary}\r\n".encode(),
         b'Content-Disposition: form-data; name="overwrite"\r\n\r\ntrue\r\n',
+        f"--{boundary}\r\n".encode(),
+        b'Content-Disposition: form-data; name="type"\r\n\r\ninput\r\n',
         f"--{boundary}--\r\n".encode(),
     ]
     payload = b"".join(body_parts)
