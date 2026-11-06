@@ -679,13 +679,13 @@ def remap_models(obj, aliases):
 def _slot_type_for(wname):
     if wname in ("text", "value", "prompt"):
         return "STRING"
-    if wname in ("seed", "noise_seed", "width", "height", "batch_size"):
+    if wname in ("seed", "noise_seed", "width", "height", "batch_size", "length", "steps"):
         return "INT"
     if wname == "image":
         return "IMAGE"
     if wname == "switch":
         return "BOOLEAN"
-    if wname == "denoise":
+    if wname in ("denoise", "fps", "frame_rate", "cfg"):
         return "FLOAT"
     if wname == "choice":
         return "COMBO"
@@ -702,67 +702,81 @@ def decorate_app_nodes(g, wf):
         if not node:
             continue
         ntype = str(node.get("type", ""))
+        is_subgraph = bool(re.fullmatch(r"[0-9a-f-]{36}", ntype))
         curr_title = str(node.get("title") or "")
         curr_lower = curr_title.lower()
 
-        label = custom_label
+        default_label = None
         new_title = None
 
-        if not label:
-            if wname == "image":
-                if "1" in curr_lower or "first" in curr_lower:
-                    label = "首张参考底图 (First Image)"
-                    new_title = "参考底图 (Input Image)"
-                elif "2" in curr_lower or "second" in curr_lower or nid in (19, 475):
-                    label = "第二张参考底图 (Second Image)"
-                    new_title = "参考底图 (Input Image)"
-                else:
-                    label = "参考底图 (Input Image)"
-                    new_title = "参考底图 (Input Image)"
-            elif wname == "denoise":
-                label = "重绘幅度 (Denoise)"
-                new_title = "重绘幅度 (Denoise)"
-            elif wname == "choice":
-                label = "画质与速度预设 (Preset)"
-                new_title = "画质与速度预设 (Preset)"
-            elif wname in ("seed", "noise_seed"):
-                label = "随机种子 (Seed)"
+        if wname == "image":
+            if "1" in curr_lower or "first" in curr_lower:
+                default_label = "首张参考底图 (First Image)"
+                new_title = "参考底图 (Input Image)"
+            elif "2" in curr_lower or "second" in curr_lower or nid in (19, 475):
+                default_label = "第二张参考底图 (Second Image)"
+                new_title = "参考底图 (Input Image)"
+            else:
+                default_label = "参考底图 (Input Image)"
+                new_title = "参考底图 (Input Image)"
+        elif wname == "denoise":
+            default_label = "重绘幅度 (Denoise)"
+            new_title = "重绘幅度 (Denoise)"
+        elif wname == "choice":
+            default_label = "画质与速度预设 (Preset)"
+            new_title = "画质与速度预设 (Preset)"
+        elif wname in ("seed", "noise_seed"):
+            default_label = "随机种子 (Seed)"
+            new_title = "随机种子 (Seed)"
+        elif wname == "width":
+            default_label = "图像宽度 (Width)"
+            new_title = "图像尺寸 (Image Size)"
+        elif wname == "height":
+            default_label = "图像高度 (Height)"
+            new_title = "图像尺寸 (Image Size)"
+        elif wname == "length":
+            default_label = "视频帧数 (Frames)"
+            new_title = "视频尺寸与时长 (Video Size & Length)"
+        elif wname in ("fps", "frame_rate"):
+            default_label = "视频帧率 (FPS)"
+            new_title = "视频帧率 (FPS)"
+        elif wname == "batch_size":
+            default_label = "生成张数 (Batch Size)"
+            new_title = "图像尺寸 (Image Size)"
+        elif wname == "switch":
+            default_label = "提示词增强 (Prompt Enhancer)"
+            new_title = "提示词增强 (Prompt Enhancer)"
+        elif wname in ("value", "text", "prompt"):
+            if "width" in curr_lower:
+                default_label = "图像宽度 (Width)"
+                new_title = "图像宽度 (Width)"
+            elif "height" in curr_lower:
+                default_label = "图像高度 (Height)"
+                new_title = "图像高度 (Height)"
+            elif "batch" in curr_lower:
+                default_label = "生成张数 (Batch Size)"
+                new_title = "生成张数 (Batch Size)"
+            elif "seed" in curr_lower or ntype == "PrimitiveInt":
+                default_label = "随机种子 (Seed)"
                 new_title = "随机种子 (Seed)"
-            elif wname == "width":
-                label = "图像宽度 (Width)"
-                new_title = "图像尺寸 (Image Size)"
-            elif wname == "height":
-                label = "图像高度 (Height)"
-                new_title = "图像尺寸 (Image Size)"
-            elif wname == "batch_size":
-                label = "生成张数 (Batch Size)"
-                new_title = "图像尺寸 (Image Size)"
-            elif wname == "switch":
-                label = "提示词增强 (Prompt Enhancer)"
-                new_title = "提示词增强 (Prompt Enhancer)"
-            elif wname in ("value", "text", "prompt"):
-                if "width" in curr_lower:
-                    label = "图像宽度 (Width)"
-                    new_title = "图像宽度 (Width)"
-                elif "height" in curr_lower:
-                    label = "图像高度 (Height)"
-                    new_title = "图像高度 (Height)"
-                elif "batch" in curr_lower:
-                    label = "生成张数 (Batch Size)"
-                    new_title = "生成张数 (Batch Size)"
-                elif "seed" in curr_lower or ntype == "PrimitiveInt":
-                    label = "随机种子 (Seed)"
-                    new_title = "随机种子 (Seed)"
-                elif "neg" in curr_lower or nid in (4, 8, 40) or (nid == 18 and wname == "text") or (nid == 10 and "chinoll" in wf.get("id", "")):
-                    label = "负面提示词 (Negative Prompt)"
-                    new_title = "负面提示词 (Negative Prompt)"
-                else:
-                    label = "正向提示词 (Positive Prompt)"
-                    new_title = "正向提示词 (Positive Prompt)"
+            elif "neg" in curr_lower or nid in (4, 8, 33, 40) or (nid == 18 and wname == "text") or (nid == 10 and "chinoll" in wf.get("id", "")):
+                default_label = "负面提示词 (Negative Prompt)"
+                new_title = "负面提示词 (Negative Prompt)"
+            else:
+                default_label = "正向提示词 (Positive Prompt)"
+                new_title = "正向提示词 (Positive Prompt)"
 
-        generic_titles = {"", "none", "cliptextencode", "primitivestringmultiline", "primitiveint",
-                          "emptyflux2latentimage", "randomnoise", "basicscheduler", "loadimage", "customcombo"}
-        if new_title and (not curr_title or curr_lower in generic_titles):
+        label = custom_label or default_label
+        if custom_label and wname not in ("width", "height", "batch_size", "length"):
+            new_title = custom_label
+
+        generic_titles = {"", "none", "prompt", "cliptextencode", "clip text encode (positive prompt)",
+                          "clip text encode (negative prompt)", "clip text encode ( negative prompt)",
+                          "primitivestringmultiline", "primitiveint", "emptyflux2latentimage", "emptysd3latentimage",
+                          "randomnoise", "basicscheduler", "loadimage", "customcombo",
+                          "emptyhunyuanlatentvideo", "wan22imagetovideolatent", "emptyltxvlatentvideo", "ltxvimgtovideo",
+                          "createvideo", "ksampler", "samplercustom", "图像尺寸 (image size)"}
+        if not is_subgraph and new_title and (not curr_title or curr_lower in generic_titles):
             node["title"] = new_title
 
         # Set widget label via LiteGraph's canonical backing slot channel:
@@ -781,7 +795,13 @@ def decorate_app_nodes(g, wf):
                     slot.setdefault("widget", {})["name"] = wname
                     matched = True
                     break
-            if not matched:
+            if is_subgraph:
+                for sg in (g.get("definitions") or {}).get("subgraphs") or []:
+                    if sg.get("id") == ntype:
+                        for inp in sg.get("inputs") or []:
+                            if inp.get("name") == wname:
+                                inp["label"] = label
+            elif not matched:
                 inputs.append({
                     "name": wname,
                     "type": _slot_type_for(wname),
@@ -803,11 +823,39 @@ def prepare_workflow(wf, data, default_view):
     remap_models(g, PLAN.get("model_aliases") or {})
     decorate_app_nodes(g, wf)
     extra = g.setdefault("extra", {})
-    if wf.get("app_outputs"):
+    if wf.get("app_outputs") or wf.get("app_inputs"):
         extra["linearData"] = {"inputs": [list(x[:2]) for x in wf.get("app_inputs", [])],
-                               "outputs": list(wf["app_outputs"])}
+                               "outputs": list(wf.get("app_outputs") or [])}
         extra["linearMode"] = default_view == "app"
     return g
+
+
+def _ensure_input_assets(g):
+    """Ensure any default LoadImage asset referenced by an official template exists in ComfyUI/input/."""
+    inp_dir = f"{COMFY}/input"
+    os.makedirs(inp_dir, exist_ok=True)
+    example_png = f"{inp_dir}/example.png"
+    for n in g.get("nodes", []):
+        if n.get("type") == "LoadImage":
+            wvals = n.get("widgets_values") or []
+            fname = wvals[0] if wvals and isinstance(wvals[0], str) else ""
+            if not fname or "/" in fname or ".." in fname:
+                continue
+            dst = f"{inp_dir}/{fname}"
+            if os.path.exists(dst):
+                continue
+            try:
+                raw = fetch(f"https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/input/{fname}", timeout=15)
+                with open(dst, "wb") as f:
+                    f.write(raw)
+                continue
+            except Exception:
+                pass
+            if os.path.exists(example_png):
+                try:
+                    shutil.copyfile(example_png, dst)
+                except Exception:
+                    pass
 
 
 def install_workflows(update_default=True):
@@ -817,6 +865,7 @@ def install_workflows(update_default=True):
     for wf in PLAN["workflows"]:
         data = wf["inline"].encode() if wf.get("inline") else fetch(wf["url"])
         g = prepare_workflow(wf, data, PLAN.get("default_view", "app"))
+        _ensure_input_assets(g)
         for u in wf.get("loras") or []:
             dst = f"{COMFY}/models/loras/{u.rsplit('/', 1)[1]}"
             if not os.path.exists(dst):
@@ -1114,7 +1163,7 @@ def smoke():
             st = h[pid].get("status", {})
             if st.get("status_str") == "error":
                 raise RuntimeError(json.dumps(st.get("messages"))[:800])
-            if any(o.get("images") for o in h[pid].get("outputs", {}).values()):
+            if any(o.get("images") or o.get("videos") or o.get("gifs") for o in h[pid].get("outputs", {}).values()):
                 return
     raise RuntimeError("timeout waiting for smoke image")
 

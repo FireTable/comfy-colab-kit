@@ -1,6 +1,6 @@
 ---
 name: comfy-colab-kit
-description: ComfyUI on Colab L4 GPU gate operator. Wake, manage shared session, check CU budget, query workflows, upload reference images for Img2Img, generate images via text-to-image or image-to-image, and release compute.
+description: ComfyUI on Colab L4 GPU gate operator. Wake, switch profiles (moss-image, flux-klein, wan-ltx-video, sd-latest, qwen-image), check CU budget, upload reference images, generate images (Txt2Img / Img2Img / ReferenceLatent edit) or videos (Wan 2.2 TI2V / LTX-Video), and release compute.
 ---
 
 # Comfy Colab Kit Operator Skill (`/comfy-colab-kit`)
@@ -61,9 +61,9 @@ Agent 操作网关时，网关地址与凭据按以下优先级解析：
 | `ckit validate [PATH]` | **校验 Profile**：校验 `profiles/` 下的 YAML Schema、工作流引用与 SHA-256 |
 | `ckit status [--json]` | 检查 GPU 实例状态、当前模型 Profile、排队情况与 CU 余额 |
 | `ckit profiles [--json]` | 查询网关支持的所有模型 Profiles 及 Workflows 工作流列表 |
-| `ckit wake [--profile ID] [--wait]` | 唤醒或加入 GPU 实例（加入现有会话无需重复开机） |
-| `ckit generate --prompt "..." [--preset "Fast alt"] [--width N] [--height N] [--seed N]` | 执行快速文生图（自动适配当前 Profile：`moss-image` 或 `sd-latest`） |
-| `ckit generate --prompt "..." --image <PATH_OR_URL> [--denoise 0.75]` | **执行图生图 (Img2Img)**：自动上传本地图片或 URL 到 `/upload/image` 并重绘 |
+| `ckit wake [--profile ID] [--wait]` | 唤醒或加入 GPU 实例（可选 `moss-image` / `flux-klein` / `wan-ltx-video` / `sd-latest` / `qwen-image`） |
+| `ckit generate --prompt "..." [--preset "..."] [--width N] [--height N] [--seed N] [--timeout 300]` | **执行文生图或文生视频**：自动适配当前活跃 Profile（`moss-image`、`flux-klein`、`wan-ltx-video`、`sd-latest`） |
+| `ckit generate --prompt "..." --image <PATH_OR_URL> [--denoise 0.75] [--timeout 300]` | **执行图生图 / 指令改图 / 首帧图生视频**：自动上传本地图片或 URL 到 `/upload/image` 并根据当前 Profile 执行重绘、FLUX.2 Klein `ReferenceLatent` 改图或 Wan 2.2 5B 首帧生视频 |
 | `ckit stop` | 立即关闭 GPU 实例，停止扣费 |
 | `ckit switch <profile-id>` | 切换当前运行的模型 Profile（需 owner 权限） |
 | `ckit extend` | 延长当前会话的存活时间 |
@@ -102,6 +102,8 @@ ckit profiles --json   # Agent 结构化 JSON
         { "id": "official-t2i", "title": "Quality · official Text to Image (Comfy-Org)", "optional": false }
       ]
     },
+    { "id": "flux-klein", "title": "FLUX.2 Klein (4B Distilled 4-step T2I & Image Edit · Base 20-step · Schnell)", "workflows": [] },
+    { "id": "wan-ltx-video", "title": "Wan 2.2 & LTX-Video (Wan 2.2 5B TI2V · Wan 2.1 1.3B T2V · LTX-Video 2B)", "workflows": [] },
     { "id": "sd-latest", "title": "Stable Diffusion 3.5 (Large fp8 default · TurboX / Medium turbo)", "workflows": [] },
     { "id": "qwen-image", "title": "Qwen-Image 2.1 (Turbo default · T2I / Edit)", "workflows": [] }
   ],
@@ -109,48 +111,98 @@ ckit profiles --json   # Agent 结构化 JSON
 }
 ```
 
+### 5 大内置 Profile 选型速查表
+
+| Profile ID | 核心模型与能力 | 核心体积 / 下载耗时 | 推荐场景 |
+|---|---|---|---|
+| `moss-image`（默认） | MOSS-Image SFT + DeBand 去色带 LoRA + 10 步加速 | ~25 GB / ~25s | 高清通用文生图、带 `denoise` 的图生图重绘 |
+| `flux-klein` | FLUX.2 Klein 4B fp8（4 步蒸馏 Apache-2.0 + 20 步 Base） | ~15.4 GB / **~11.5s** | **极速文生图（~5–8s）**、**`ReferenceLatent` 精准指令改图（8s）** |
+| `wan-ltx-video` | Wan 2.2 5B TI2V（文生视频 + 首帧图生视频）+ Wan 2.1 1.3B | ~16.9 GB / **~20s** | **一句话文生视频 (T2V)**、**传入首帧图让角色动起来 (I2V)** |
+| `sd-latest` | Stable Diffusion 3.5 Large fp8 + TurboX 8-step | ~15 GB / ~15s | SD 3.5 生态风格文生图 |
+| `qwen-image` | Qwen-Image 2.1 int8 Turbo T2I + Edit | ~27 GB / ~28s | 中英文文字渲染海报、Qwen 图像编辑 |
+
 > **`/_gate/profiles` 只返回工作流的元数据**（`id` / `title` / `optional` / `license` / `prefetch` / `size_gb`），**不返回可提交的 node graph**。要提交任务：
-> - 直接调用 MCP `gate_txt2img` 或 `gate_img2img`（或 `ckit generate`），或
-> - 参考 `packages/cli/moss_template.py` 与下方 §6.2 的已验证 API 格式模板。
+> - 直接调用 MCP `gate_txt2img` 或 `gate_img2img`（或 `ckit generate`），它们会根据当前激活的 Profile 自动构建对应的文生图、指令改图或视频生成节点图！
+> - 若需自定义帧数（如 49 帧视频）或高级参数，可参考 `packages/cli/moss_template.py`（`make_flux_klein_txt2img_graph`、`make_flux_klein_img2img_graph`、`make_wan_video_graph`）与下方 §6 的 API 模板。
 
 ### 方式 C: 查询当前活跃会话状态
-请求相对路径：`GET /_gate/status`；响应中 `profile` 为当前 GPU 运行的模型配置，`default_view` 指示默认视图（`app` / `graph`）。
+请求相对路径：`GET /_gate/status`；响应中 `profile` 为当前 GPU 运行的模型配置。若当前运行的 Profile 与任务不匹配（例如当前是 `moss-image`，但用户要求生成视频），Owner Agent 可直接调用 `ckit switch wan-ltx-video`（或 `ckit wake --profile wan-ltx-video --wait`）切换。
 
 ---
 
-## 4. 选型决策：什么时候用文生图？什么时候用图生图？
+## 4. 选型决策与各 Profile 提示词指南 (Decision Tree & Prompting Guide)
 
 ```mermaid
 flowchart TD
-    Req[用户绘画需求] --> HasImg{是否提供或指定参考底图?}
-    HasImg -- 否: 纯文字描述/概念构思 --> Txt2Img[使用文生图 Txt2Img]
-    HasImg -- 是: 参考图改图/重绘/风格迁移 --> Img2Img[使用图生图 Img2Img]
+    Req[用户生成需求] --> IsVideo{生成图片还是视频?}
+    IsVideo -- 视频: 文生视频 / 让图片动起来 --> WakeWan[唤醒或切换 profile: wan-ltx-video]
+    WakeWan --> HasStartImg{是否提供首帧参考图?}
+    HasStartImg -- 否: 文生视频 T2V --> WanT2V[调用 gate_txt2img 或 ckit generate]
+    HasStartImg -- 是: 首帧图生视频 I2V --> WanI2V[调用 gate_img2img 或 ckit generate --image]
 
-    Txt2Img --> ToolT2I[调用 MCP: gate_txt2img 或 ckit generate]
-    Img2Img --> ToolI2I[调用 MCP: gate_img2img 或 ckit generate --image]
+    IsVideo -- 图片: 文生图 / 改图 --> HasRefImg{是否提供参考底图?}
+    HasRefImg -- 否: 纯文字生图 --> PickT2I{追求极速4步还是MOSS质感?}
+    PickT2I -- MOSS高清去色带 --> MossT2I[moss-image: gate_txt2img / ckit generate]
+    PickT2I -- 极速4步/指令遵循 --> FluxT2I[flux-klein: gate_txt2img / ckit generate]
 
-    ToolT2I --> FastAlt[默认画质预设: Fast alt · 10步抗条纹]
-    ToolI2I --> SetDenoise[BasicScheduler.denoise = 重绘幅度]
+    HasRefImg -- 是: 参考图改图 --> PickI2I{局部增删改指令还是全局重绘?}
+    PickI2I -- 指令增删改且锁死背景 --> FluxEdit[flux-klein: gate_img2img / ckit generate --image]
+    PickI2I -- 按denoise比例重绘风格 --> MossI2I[moss-image: gate_img2img --denoise 0.6]
 ```
 
-### A. 文生图 (Text-to-Image)
+### A. 文生图 (Text-to-Image：`moss-image` / `flux-klein`)
 - **触发时机**：用户输入场景、人物、产品、艺术画面描述，未提供参考底图。
 - **推荐工具**：
   - **MCP 工具**：`gate_txt2img(prompt=..., negative_prompt=..., preset="Fast alt", seed=..., width=1024, height=1024)`
   - **CLI**：`ckit generate --prompt "..." --preset "Fast alt" --width 1024 --height 1024`
-  - **默认预设**：`"Fast alt"`（10 步急速生成，画质优异且彻底去除条纹色带）。
-  - **负向提示词**：默认 `worst quality, bad anatomy, watermark, jpeg artifact`。
+- **提示词与预设技巧**：
+  - **`moss-image`**：默认预设 `"Fast alt"`（10 步抗条纹 DeBand），质量模式用 `"Quality"`（25 步）。正向词建议包含主体、光影、材质与镜头描述；负向词默认 `worst quality, bad anatomy, watermark, jpeg artifact`。
+  - **`flux-klein`**：默认预设 `"Fast"` 使用 4 步蒸馏版（`flux-2-klein-4b-fp8`，`cfg=1.0`，无需负向词，约 **5~8 秒**出图）；需要更细腻光影与负向词控制时传 `--preset "Quality"`（切换 20 步 Base 模型 `cfg=5.0`）。
 
-### B. 图生图 (Image-to-Image)
-- **触发时机**：用户给出了参考图片，要求在原图基础上微调、扩图、姿态保持重绘或风格转换。
+### B. 图生图与指令改图 (Img2Img & Edit：`flux-klein` / `moss-image`)
+- **触发时机**：用户给出了参考图片，要求在原图基础上修改局部元素、换装、改变风格或重绘。
 - **推荐工具（首选自动化方式）**：
   - **MCP 工具**：`gate_img2img(image="<本地路径、图片URL或已上传文件名>", prompt="...", denoise=0.75, preset="Fast alt")`
-  - **CLI**：`ckit generate --prompt "..." --image <本地路径或URL> --denoise 0.75`
-- **关键参数 `denoise`（重绘幅度）**：
-  - ⚠️ **MOSS-Image 管线的 denoise 在 `BasicScheduler` 节点上**（`20.inputs.denoise`），**不是** `KSampler.denoise`。
-  - `0.2 ~ 0.35`：微调质感、去噪增强、高清放大，构图完全保持。
-  - `0.4 ~ 0.65`：改变服装、发型、局部物品或光影风格，主体轮廓保留。
-  - `0.7 ~ 1.0`：剧烈重绘创作，仅保留原图大概色彩与氛围。
+  - **CLI**：`ckit generate --prompt "..." --image <本地路径或URL> [--denoise 0.75]`
+- **两种改图模式对比与提示词写法**：
+  1. **`flux-klein`（`ReferenceLatent` 精准指令改图，强烈推荐用于局部增删改）**：
+     - **特点**：无需手绘蒙版、无需调节 `denoise`，自动读取原图尺寸并通过 `ReferenceLatent` 像素级保持原图背景、人物脸型与构图，仅耗时 **~8 秒**。
+     - **提示词写法（直接写英文修改指令）**：
+       - 示例：`Add cool neon cyan sunglasses on the hedgehog and change the party hat to bright gold`
+       - 示例：`Change the character's outfit to a futuristic silver jacket while keeping the background unchanged`
+  2. **`moss-image`（`VAEEncode` 重绘幅度控制，适合全局风格转换或精修）**：
+     - ⚠️ **MOSS-Image 管线的 denoise 在 `BasicScheduler` 节点上**（`20.inputs.denoise`），**不是** `KSampler.denoise`。
+     - `0.2 ~ 0.35`：微调质感、去噪增强、高清放大，构图完全保持。
+     - `0.4 ~ 0.65`：改变服装、发型、局部物品或光影风格，主体轮廓保留。
+     - `0.7 ~ 1.0`：剧烈重绘创作，仅保留原图大概色彩与氛围。
+
+### C. 视频生成：文生视频 (T2V) 与首帧图生视频 (I2V) (`wan-ltx-video`)
+- **触发时机**：用户要求生成视频、动画短片，或上传一张图片要求“让画面动起来 / 让角色跳出画面打招呼”。
+- **第一步：确认并切换 Profile 为 `wan-ltx-video`**：
+  ```bash
+  # 若当前休眠，直接以 wan-ltx-video 唤醒（约 70~90 秒就绪）：
+  ckit wake --profile wan-ltx-video --wait
+  # 若当前已就绪但运行的是其他图片 Profile，在线切换：
+  ckit switch wan-ltx-video
+  ```
+- **第二步：调用生成命令或 MCP 工具（自动返回 `.mp4` 视频链接）**：
+  - **文生视频 (T2V)**：
+    - CLI：`ckit generate --prompt "A cinematic tracking shot of a cute red panda walking through a mossy bamboo forest in soft morning sunlight, golden dust motes floating in the air, shallow depth of field" --width 832 --height 480 --timeout 300`
+    - MCP：`gate_txt2img(prompt="...", width=832, height=480)`（可传 `preset="1.3B"` 切换轻量 Wan 2.1 1.3B，默认使用画质最佳的 **Wan 2.2 5B TI2V**）
+  - **首帧图生视频 (I2V)**：
+    - CLI：`ckit generate --image /path/to/start_frame.png --prompt "The cute anime girl with coral pink hair suddenly steps and leaps forward toward the viewer as if popping right out of the screen frame, raising her hand and waving cheerfully to say hi to everyone with a bright lively smile, dynamic camera push-in, smooth 2D anime animation" --width 832 --height 544 --timeout 300`
+    - MCP：`gate_img2img(image="/path/to/start_frame.png", prompt="...")`
+- **视频分辨率、帧数与提示词黄金法则**：
+  - **分辨率必须为 32 的倍数**，且在图生视频 (I2V) 时**务必匹配原图长宽比**（避免画面拉伸）：
+    - 横屏 `16:9`：`832 × 480`（默认）
+    - 宽屏 `16:10`（如 `1024×658` 桌面壁纸）：`832 × 544`
+    - 竖屏 `9:16`：`480 × 832`
+    - 方图 `1:1`：`640 × 640`
+  - **视频提示词公式（英文效果最佳）**：
+    `[主体外观描述] + [明确的连续动作动词 (suddenly steps and leaps forward, waving her hand cheerfully, blinking eyes)] + [镜头运动 (dynamic camera push-in / cinematic tracking shot / handheld digicam)] + [画面风格 (smooth 2D anime animation / photorealistic 4k)]`
+  - **负向提示词**：`make_wan_video_graph` 已自动内置阿里万相官方中文防崩坏负向词（防静止画面、防过曝、防肢体畸变），无需手动填写。
+  - **自定义视频帧数（如 49 帧 / 2 秒 24fps）**：默认生成 `33` 帧（约 50 秒）；若需更长动作（如 `length=49` 帧，约 85 秒），可直接调用 `moss_template.make_wan_video_graph(..., length=49)` 并通过 `POST /prompt` 或 `gate_generate` 提交。
+  - **交付预览技巧**：下载 `.mp4` 到本地后，可用 `ffmpeg` 顺手转一份 `.gif` 动图嵌入 Markdown 回复，方便用户在聊天界面直接预览动态效果，随后**立即执行 `ckit stop` 释放 L4 GPU**！
 
 ---
 

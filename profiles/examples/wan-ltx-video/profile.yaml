@@ -1,0 +1,223 @@
+# Wan 2.2 5B TI2V, Wan 2.1 1.3B T2V & Lightricks LTX-Video 2B profile for Colab L4 (24 GB VRAM).
+# Official Comfy-Org templates (MIT, vendored unchanged); weights are referenced by URL from Alibaba Wan Team, Lightricks & Comfy-Org.
+# yaml-language-server: $schema=../../../packages/schemas/profile.schema.json
+id: wan-ltx-video
+title: Wan 2.2 5B TI2V & LTX-Video (Fast L4 Video · Text/Image to Video)
+accelerator: L4
+comfyui:
+  repo: https://github.com/comfyanonymous/ComfyUI
+  commit: bc5f880
+  args:
+  - --preview-method
+  - auto
+  - --highvram
+  - --reserve-vram
+  - '0.2'
+  settings: {}
+  env:
+    PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
+    CUDA_MODULE_LOADING: LAZY
+    TORCH_CUDNN_V8_API: '1'
+    TORCH_ALLOW_TF32_CUBLAS_OVERRIDE: '1'
+frontend:
+  package: comfyui-frontend-package==1.57.1
+models:
+- id: wan22-ti2v-5b
+  dest: diffusion_models/wan2.2_ti2v_5B_fp16.safetensors
+  url: hf://Comfy-Org/Wan_2.2_ComfyUI_Repackaged/split_files/diffusion_models/wan2.2_ti2v_5B_fp16.safetensors
+  license: Apache-2.0
+  sha256: 456f901338bd9eadbded3828b819109a9b68e8a525ca5cf8d0049a69fcfeca1e
+  size_gb: 9.31
+  core: true
+- id: umt5-xxl-fp8
+  dest: text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors
+  url: hf://Comfy-Org/Wan_2.1_ComfyUI_repackaged/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors
+  license: Apache-2.0
+  sha256: c3355d30191f1f066b26d93fba017ae9809dce6c627dda5f6a66eaa651204f68
+  size_gb: 6.27
+  core: true
+- id: wan22-vae
+  dest: vae/wan2.2_vae.safetensors
+  url: hf://Comfy-Org/Wan_2.2_ComfyUI_Repackaged/split_files/vae/wan2.2_vae.safetensors
+  license: Apache-2.0
+  sha256: e40321bd36b9709991dae2530eb4ac303dd168276980d3e9bc4b6e2b75fed156
+  size_gb: 1.31
+  core: true
+- id: wan21-t2v-1-3b
+  dest: diffusion_models/wan2.1_t2v_1.3B_fp16.safetensors
+  url: hf://Comfy-Org/Wan_2.1_ComfyUI_repackaged/split_files/diffusion_models/wan2.1_t2v_1.3B_fp16.safetensors
+  license: Apache-2.0
+  sha256: be531024cd9018cb5b48c40cfbb6a6191645b1c792eb8bf4f8c1c6e10f924dc5
+  size_gb: 2.64
+- id: wan21-vae
+  dest: vae/wan_2.1_vae.safetensors
+  url: hf://Comfy-Org/Wan_2.1_ComfyUI_repackaged/split_files/vae/wan_2.1_vae.safetensors
+  license: Apache-2.0
+  sha256: 2fc39d31359a4b0a64f55876d8ff7fa8d780956ae2cb13463b0223e15148976b
+  size_gb: 0.24
+- id: ltxv-2b
+  dest: checkpoints/ltx-video-2b-v0.9.5.safetensors
+  url: hf://Lightricks/LTX-Video/ltx-video-2b-v0.9.5.safetensors
+  license: OpenRail-M (Lightricks LTX-Video license)
+  sha256: 720d15c9f19f7d0f6b2a92bbbc34410e2cfb2f6856a100b38f734fbf973d4adf
+  size_gb: 5.91
+- id: t5-fp8
+  dest: text_encoders/t5xxl_fp8_e4m3fn.safetensors
+  url: hf://comfyanonymous/flux_text_encoders/t5xxl_fp8_e4m3fn.safetensors
+  license: Apache-2.0
+  sha256: 7d330da4816157540d6bb7838bf63a0f02f573fc48ca4d8de34bb0cbfd514f09
+  size_gb: 4.89
+model_aliases:
+  ltx-video-2b-v0.9.safetensors: ltxv-2b
+  t5xxl_fp16.safetensors: t5-fp8
+workflows:
+- id: wan22-ti2v-5b
+  title: Quality · Wan 2.2 5B Text/Image-to-Video (official)
+  source: https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged
+  license: MIT template; weights Apache-2.0 (Alibaba Wan Team)
+  file: workflows/official_video_wan2_2_5B_ti2v.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/video_wan2_2_5B_ti2v.json
+  upstream_sha256: 23c93b88adecbdf5bcf4c5438117070fe757f30aca373dd6a2eb488d2c6a585a
+  models:
+  - wan22-ti2v-5b
+  - umt5-xxl-fp8
+  - wan22-vae
+  overrides:
+  - node: 55
+    widget_index: 0
+    value: 832
+  - node: 55
+    widget_index: 1
+    value: 480
+  - node: 55
+    widget_index: 2
+    value: 49
+  app:
+    inputs:
+    - - 6
+      - text
+      - 正向提示词 (Positive Prompt)
+    - - 7
+      - text
+      - 负面提示词 (Negative Prompt)
+    - - 56
+      - image
+      - 起始帧参考图 (Start Image)
+    - - 55
+      - width
+      - 视频宽度 (Width)
+    - - 55
+      - height
+      - 视频高度 (Height)
+    - - 55
+      - length
+      - 视频帧数 (Frames)
+    - - 3
+      - seed
+      - 随机种子 (Seed)
+    outputs:
+    - 58
+- id: wan21-t2v-1-3b
+  title: Fast · Wan 2.1 1.3B Text-to-Video (official)
+  source: https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged
+  license: MIT template; weights Apache-2.0 (Alibaba Wan Team)
+  file: workflows/official_text_to_video_wan.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/text_to_video_wan.json
+  upstream_sha256: 6cfcb2bcc842926d462667f1858651a7a73d698591013e4d0370bdc2984a6fea
+  prefetch: true
+  models:
+  - wan21-t2v-1-3b
+  - umt5-xxl-fp8
+  - wan21-vae
+  app:
+    inputs:
+    - - 6
+      - text
+      - 正向提示词 (Positive Prompt)
+    - - 7
+      - text
+      - 负面提示词 (Negative Prompt)
+    - - 40
+      - width
+      - 视频宽度 (Width)
+    - - 40
+      - height
+      - 视频高度 (Height)
+    - - 40
+      - length
+      - 视频帧数 (Frames)
+    - - 3
+      - seed
+      - 随机种子 (Seed)
+    outputs:
+    - 50
+- id: ltxv-2b-i2v
+  title: Fast · LTX-Video 2B Image-to-Video (official)
+  source: https://huggingface.co/Lightricks/LTX-Video
+  license: MIT template; weights OpenRail-M (Lightricks)
+  file: workflows/official_ltxv_image_to_video.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/ltxv_image_to_video.json
+  upstream_sha256: 8d41217612e91b4e067c71eaba261555b142d597b46ee7eca5bf3544ec9d80d7
+  optional: true
+  models:
+  - ltxv-2b
+  - t5-fp8
+  app:
+    inputs:
+    - - 78
+      - image
+      - 起始帧参考图 (Start Image)
+    - - 6
+      - text
+      - 正向提示词 (Positive Prompt)
+    - - 7
+      - text
+      - 负面提示词 (Negative Prompt)
+    - - 77
+      - width
+      - 视频宽度 (Width)
+    - - 77
+      - height
+      - 视频高度 (Height)
+    - - 77
+      - length
+      - 视频帧数 (Frames)
+    - - 72
+      - noise_seed
+      - 随机种子 (Seed)
+    outputs:
+    - 81
+- id: ltxv-2b-t2v
+  title: Fast · LTX-Video 2B Text-to-Video (official)
+  source: https://huggingface.co/Lightricks/LTX-Video
+  license: MIT template; weights OpenRail-M (Lightricks)
+  file: workflows/official_ltxv_text_to_video.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/ltxv_text_to_video.json
+  upstream_sha256: 8bbd5219ec8351fc55da8e8c8cfadcd687e0e6b28edebc49473c9c26ec156392
+  optional: true
+  models:
+  - ltxv-2b
+  - t5-fp8
+  app:
+    inputs:
+    - - 6
+      - text
+      - 正向提示词 (Positive Prompt)
+    - - 7
+      - text
+      - 负面提示词 (Negative Prompt)
+    - - 70
+      - width
+      - 视频宽度 (Width)
+    - - 70
+      - height
+      - 视频高度 (Height)
+    - - 70
+      - length
+      - 视频帧数 (Frames)
+    - - 72
+      - noise_seed
+      - 随机种子 (Seed)
+    outputs:
+    - 79
+app_default: wan22-ti2v-5b

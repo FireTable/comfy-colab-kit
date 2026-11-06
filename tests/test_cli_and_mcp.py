@@ -76,6 +76,28 @@ def test_make_moss_img2img_graph_and_multi_profile():
     assert sd_i2i["53"]["class_type"] == "VAEEncode"
     assert sd_i2i["3"]["inputs"]["denoise"] == 0.5
 
+    flux_t2i = make_txt2img_graph(profile="flux-klein", prompt="a neon cyber cat", seed=101, width=1024, height=1024)
+    assert flux_t2i["70"]["class_type"] == "UNETLoader"
+    assert flux_t2i["74"]["inputs"]["text"] == "a neon cyber cat"
+    assert flux_t2i["73"]["inputs"]["noise_seed"] == 101
+
+    flux_i2i = make_img2img_graph(profile="flux-klein", prompt="turn the background into mars", image="cat.png", seed=202)
+    assert flux_i2i["76"]["inputs"]["image"] == "cat.png"
+    assert flux_i2i["123"]["class_type"] == "ReferenceLatent"
+    assert flux_i2i["74"]["inputs"]["text"] == "turn the background into mars"
+
+    wan_t2v = make_txt2img_graph(profile="wan-ltx-video", prompt="waves crashing on black sand beach", seed=303)
+    assert wan_t2v["37"]["class_type"] == "UNETLoader"
+    assert wan_t2v["55"]["class_type"] == "Wan22ImageToVideoLatent"
+    assert "start_image" not in wan_t2v["55"]["inputs"]
+    assert wan_t2v["58"]["class_type"] == "SaveVideo"
+
+    wan_i2v = make_img2img_graph(profile="wan-ltx-video", prompt="camera pans left slowly", image="beach.png", seed=404)
+    assert wan_i2v["56"]["class_type"] == "LoadImage"
+    assert wan_i2v["56"]["inputs"]["image"] == "beach.png"
+    assert wan_i2v["55"]["inputs"]["start_image"] == ["56", 0]
+    assert wan_i2v["58"]["class_type"] == "SaveVideo"
+
 
 def test_mcp_server_tools_list():
     tool_names = [t["name"] for t in TOOLS]

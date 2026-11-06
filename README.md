@@ -19,6 +19,7 @@
 
 <p align="center">
   <a href="https://comfy-colab-kit.firetable.tech"><img src="https://img.shields.io/badge/Showcase-comfy--colab--kit.firetable.tech-10b981?logo=cloudflare&logoColor=white" alt="Live Showcase" /></a>
+  <a href="https://glama.ai/mcp/servers/FireTable/comfy-colab-kit"><img src="https://glama.ai/mcp/servers/FireTable/comfy-colab-kit/badges/score.svg" alt="Glama MCP Server" /></a>
   <a href="https://github.com/FireTable/comfy-colab-kit/releases"><img src="https://img.shields.io/github/v/release/FireTable/comfy-colab-kit?color=8b5cf6&label=Release" alt="Release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-amber.svg" alt="License" /></a>
   <img src="https://img.shields.io/badge/Python-3.11%2B-3b82f6?logo=python&logoColor=white" alt="Python" />
@@ -44,7 +45,7 @@ A tiny gateway, **comfy-gate** (Python / aiohttp), runs on your VPS behind Cloud
 | Pillar | What you see | How |
 |---|---|---|
 | **1 · Wake on demand** | Sleep card → Wake → stages + logs → ComfyUI Web App | 10-state machine, `colab new` (L4) + setup via `colab exec`, streaming reverse proxy (HTTP + `/ws`) |
-| **2 · Switchable profiles** | Pick MOSS-Image, SD3.5, … before waking | `profile.yaml` + JSON Schema; zero secrets, models by public URL |
+| **2 · Switchable profiles** | Pick MOSS-Image, FLUX.2 Klein, Wan 2.2 Video, SD3.5, Qwen before waking | `profile.yaml` + JSON Schema; zero secrets, models by public URL |
 | **3 · Auto-stop** | Overlay shows time left; sleeps on idle / max session / quiet hours / CU budget | every rule configured in `.env` |
 
 ---
@@ -69,37 +70,41 @@ A tiny gateway, **comfy-gate** (Python / aiohttp), runs on your VPS behind Cloud
   </tr>
 </table>
 
-### 🤖 AI Agent Driving the GPU
+### 🤖 AI Agent Driving the GPU (Image & Video Showcase)
 
-Two real sessions where an AI agent called the gateway end-to-end — no browser, no manual cell.
+Three real sessions where an AI agent called the gateway end-to-end — no browser, no manual cell.
 
 <table>
   <tr>
-    <td align="center" width="50%">
+    <td align="center" width="33%">
       <img src="screenshots/agent-txt2img.png" width="100%" alt="AI agent text-to-image session" /><br/>
       <sub><b>Text-to-Image via <code>/comfy-colab-kit</code></b><br/>41 s from prompt to finished PNG</sub>
     </td>
-    <td align="center" width="50%">
+    <td align="center" width="33%">
       <img src="screenshots/agent-img2img.png" width="100%" alt="AI agent image-to-image session" /><br/>
       <sub><b>Image-to-Image via <code>/comfy-colab-kit</code></b><br/>2 m 14 s, two variations from one reference</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="screenshots/agent-img2vid.gif" width="100%" alt="AI agent video generation session" /><br/>
+      <sub><b>Text-to-Video via <code>wan-ltx-video</code></b><br/>65 s from prompt to 24 fps HD MP4</sub>
     </td>
   </tr>
 </table>
 
-| | 🟢 Text-to-Image | 🟣 Image-to-Image |
-|---|---|---|
-| **Agent command** | `text to img: a pic about "hello world: comfy-colab-kit" 1024 × 1024` | `img to img, using the highest quality, generate an image based on the reference image, maintaining the original composition, and completely change the girl's outfit to a bikini.` |
-| **Skill entry** | `/comfy-colab-kit` | `/comfy-colab-kit` |
-| **Pipeline** | MOSS-Image DeBand text-to-image | character matte → beach plate → MOSS-Image DeBand img2img |
-| **Profile preset** | `Fast alt` — 10 steps + anti-banding LoRAs | `Quality` — 25 steps, banding-fix LoRAs at full strength, no turbo LoRAs |
-| **Resolution** | 1024 × 1024 | 1024 × 1024, 2 variations |
-| **GPU state on arrival** | already `ready` — no wake-up needed | already `ready` — session reused |
-| **Wall time** | 41 s | 2 m 14 s |
-| **Output** | one PNG (`outputs/hello-world-comfy-colab-kit-1024.png`) | `beachA` (sheer wrap) and `beachB` (plain two-piece) |
-| **CU ledger** | 22.16 CU left · 1.71 CU/hr while up | 20.99 CU left · 1.71 CU/hr while up |
-| **Afterwards** | agent can call `stop` to release the GPU immediately | agent keeps the GPU warm for the next variation, then releases it |
+| | 🟢 Text-to-Image | 🟣 Image-to-Image | 🎬 Text/Image-to-Video |
+|---|---|---|---|
+| **Agent command** | `text to img: a pic about "hello world: comfy-colab-kit" 1024 × 1024` | `img to img, using the highest quality, generate an image based on the reference image, maintaining the original composition, and completely change the girl's outfit to a bikini.` | `A cinematic tracking shot of a cute red panda walking through a mossy bamboo forest in soft morning sunlight, golden dust motes floating in the air, shallow depth of field` |
+| **Skill entry** | `/comfy-colab-kit` | `/comfy-colab-kit` | `/comfy-colab-kit` |
+| **Pipeline** | MOSS-Image DeBand text-to-image | character matte → beach plate → MOSS-Image DeBand img2img | `wan-ltx-video` · Wan 2.2 5B TI2V (`Wan22ImageToVideoLatent`) |
+| **Profile preset** | `Fast alt` — 10 steps + anti-banding LoRAs | `Quality` — 25 steps, banding-fix LoRAs at full strength | Official Wan 2.2 5B 20-step `uni_pc` (`shift=5.0`, `cfg=5.0`) |
+| **Resolution** | 1024 × 1024 | 1024 × 1024, 2 variations | 832 × 480 · 33 frames @ 24 fps (HD MP4) |
+| **GPU state on arrival** | already `ready` — no wake-up needed | already `ready` — session reused | woke from `sleeping` (19.8 GB streamed at 518 MB/s) |
+| **Wall time** | 41 s | 2 m 14 s | 65 s generation |
+| **Output** | one PNG (`outputs/hello-world-comfy-colab-kit-1024.png`) | `beachA` (sheer wrap) and `beachB` (plain two-piece) | one H.264 MP4 (`WanVideo_00001_.mp4`) + preview GIF |
+| **CU ledger** | 22.16 CU left · 1.71 CU/hr while up | 20.99 CU left · 1.71 CU/hr while up | 1.71 CU/hr while up · auto-stopped immediately after |
+| **Afterwards** | agent can call `stop` to release the GPU immediately | agent keeps the GPU warm for the next variation, then releases it | agent downloads MP4 & calls `ckit stop` immediately |
 
-Both flows run entirely through the gateway's REST/MCP surface: the agent never touches a browser, a notebook cell, or a Colab URL.
+All flows run entirely through the gateway's REST/MCP surface: the agent never touches a browser, a notebook cell, or a Colab URL.
 
 ---
 
@@ -186,7 +191,9 @@ Autonomous coding agents (Claude Code, Cursor, OpenClaw, Codex, LangGraph) can w
 
 | Profile | Purpose | Default download |
 |---|---|---|
-| [`moss-image`](profiles/examples/moss-image/) (primary) | MOSS-Image: DeBand int8 default, 4-step turbo, official quality / layout, edit (optional) — side by side in App mode | ~26 GB core / ~57 GB full default set |
+| [`moss-image`](profiles/examples/moss-image/) (primary) | MOSS-Image: DeBand int8 default, 4-step turbo, official quality / layout, edit (optional) — side by side in App mode | ~25 GB core / ~57 GB full default set |
+| [`flux-klein`](profiles/examples/flux-klein/) | FLUX.2 Klein 4B: Distilled 4-step (Apache-2.0) & Base 20-step T2I + `ReferenceLatent` Image Edit, plus FLUX.1 Schnell fp8 (optional) | ~15.4 GB core / ~27.6 GB |
+| [`wan-ltx-video`](profiles/examples/wan-ltx-video/) | Wan 2.2 5B TI2V (Text/Image-to-Video), Wan 2.1 1.3B T2V (`prefetch: true`), and Lightricks LTX-Video 2B T2V/I2V (optional) | ~16.9 GB core / ~30.6 GB |
 | [`sd-latest`](profiles/examples/sd-latest/) | Stable Diffusion 3.5: Large fp8 default, TurboX 8-step, Medium turbo (gated, optional) | ~15 GB core / ~22 GB |
 | [`qwen-image`](profiles/examples/qwen-image/) | Qwen-Image 2.1: Turbo T2I default, full T2I, Turbo / full Edit | ~27 GB core / ~43 GB |
 
@@ -236,7 +243,7 @@ comfy-colab-kit/
 │   ├── cli/                  # [Package] Host & developer CLI tool (ckit)
 │   └── schemas/              # [Package] JSON Schema definitions (profile.schema.json)
 ├── profiles/                 # Profiles & Model Configurations
-│   ├── examples/             # Built-in community profiles (moss-image, sd-latest, qwen-image)
+│   ├── examples/             # Built-in community profiles (moss-image, flux-klein, wan-ltx-video, sd-latest, qwen-image)
 │   └── custom/               # Mount point for user custom profiles
 ├── deploy/                   # Infrastructure & deployment configuration
 │   ├── Dockerfile            # Container build recipe
@@ -277,6 +284,8 @@ Comfy Colab Kit stands on the shoulders of giants. We express our deepest gratit
 - **[Hugging Face](https://huggingface.co/)** — High-speed model hosting and parallel weight streaming (`hf_xet`).
 - **[uv by Astral](https://astral.sh/uv)** — Blazing fast Python environment initialization.
 - **[MOSS-Image](https://huggingface.co/MATLOWAI/MOSS-Image-SFT-DeBand-int8)** — Cutting-edge open diffusion weights, DeBand LoRAs, and community workflows by OpenLMLab and MATLOWAI.
+- **[Black Forest Labs](https://blackforestlabs.ai/)** — Creators of the FLUX.2 Klein 4B (Distilled Apache-2.0 & Base) and FLUX.1 Schnell image generation & editing models.
+- **[Alibaba Wan Team (Tongyi Lab)](https://github.com/Wan-Video/Wan2.2) & [Lightricks](https://github.com/Lightricks/LTX-Video)** — Creators of the Apache-2.0 Wan 2.2 5B TI2V / Wan 2.1 1.3B and LTX-Video 2B open video generation models.
 - **[Stability AI](https://stability.ai/) & [Qwen Team](https://github.com/QwenLM)** — For open-weights research (SD 3.5 Large & Qwen-Image 2.1).
 
 ## 📄 License

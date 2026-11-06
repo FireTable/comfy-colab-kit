@@ -1,6 +1,10 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "comfy-colab-kit"
-version = "0.2.0"
+version = "0.3.0"
 description = "Wake-on-demand ComfyUI on Google Colab behind a tiny gateway (comfy-gate)."
 readme = "README.md"
 license = "MIT"

@@ -19,6 +19,7 @@
 
 <p align="center">
   <a href="https://comfy-colab-kit.firetable.tech"><img src="https://img.shields.io/badge/官网展示站-comfy--colab--kit.firetable.tech-10b981?logo=cloudflare&logoColor=white" alt="官网展示站" /></a>
+  <a href="https://glama.ai/mcp/servers/FireTable/comfy-colab-kit"><img src="https://glama.ai/mcp/servers/FireTable/comfy-colab-kit/badges/score.svg" alt="Glama MCP Server" /></a>
   <a href="https://github.com/FireTable/comfy-colab-kit/releases"><img src="https://img.shields.io/github/v/release/FireTable/comfy-colab-kit?color=8b5cf6&label=Release" alt="Release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-amber.svg" alt="License" /></a>
   <img src="https://img.shields.io/badge/Python-3.11%2B-3b82f6?logo=python&logoColor=white" alt="Python" />
@@ -43,7 +44,7 @@ VPS 上运行一个轻量网关 **comfy-gate**（Python / aiohttp），前端受
 | 支柱 | 用户看到什么 | 实现 |
 |---|---|---|
 | **1 按需唤醒** | 休眠卡片 → 唤醒 → 阶段与日志 → 官方 ComfyUI 界面 | 10 状态状态机，`colab new`（L4）+ `colab exec` 初始化，同主机双向反代（HTTP + `/ws`） |
-| **2 可切换 Profile** | 唤醒前选择 MOSS-Image、SD3.5、Qwen 等 | `profile.yaml` + JSON Schema；零密钥，模型按公开 URL 引用 |
+| **2 可切换 Profile** | 唤醒前选择 MOSS-Image、FLUX.2 Klein、Wan 2.2 视频、SD3.5、Qwen 等 | `profile.yaml` + JSON Schema；零密钥，模型按公开 URL 引用 |
 | **3 自动停机** | 浮层显示剩余时间；闲置 / 会话上限 / 静默时段 / CU 预算触发休眠 | 全部规则严格由 `.env` 配置控制 |
 
 ---
@@ -68,37 +69,41 @@ VPS 上运行一个轻量网关 **comfy-gate**（Python / aiohttp），前端受
   </tr>
 </table>
 
-### 🤖 AI Agent 自主驱动 GPU
+### 🤖 AI Agent 自主驱动 GPU（生图与生视频实测展示）
 
-两段真实会话：AI Agent 全程通过网关接口完成，**不碰浏览器、不手动执行单元格**。
+三段真实会话：AI Agent 全程通过网关接口完成，**不碰浏览器、不手动执行单元格**。
 
 <table>
   <tr>
-    <td align="center" width="50%">
+    <td align="center" width="33%">
       <img src="screenshots/agent-txt2img.png" width="100%" alt="AI Agent 文生图会话" /><br/>
       <sub><b>文生图 · <code>/comfy-colab-kit</code></b><br/>从提示词到出图仅 41 秒</sub>
     </td>
-    <td align="center" width="50%">
+    <td align="center" width="33%">
       <img src="screenshots/agent-img2img.png" width="100%" alt="AI Agent 图生图会话" /><br/>
       <sub><b>图生图 · <code>/comfy-colab-kit</code></b><br/>2 分 14 秒，基于同一张参考图出两个变体</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="screenshots/agent-img2vid.gif" width="100%" alt="AI Agent 视频生成会话" /><br/>
+      <sub><b>视频生成 · <code>wan-ltx-video</code></b><br/>65 秒生成 24 fps 电影感晨光竹林小熊猫视频</sub>
     </td>
   </tr>
 </table>
 
-| | 🟢 文生图 | 🟣 图生图 |
-|---|---|---|
-| **Agent 指令** | `text to img: a pic about "hello world: comfy-colab-kit" 1024 × 1024` | `img to img, using the highest quality, generate an image based on the reference image, maintaining the original composition, and completely change the girl's outfit to a bikini.` |
-| **技能入口** | `/comfy-colab-kit` | `/comfy-colab-kit` |
-| **处理链路** | MOSS-Image DeBand 文生图 | 人物抠像 → 沙滩底图 → MOSS-Image DeBand 图生图 |
-| **Profile 预设** | `Fast alt` —— 10 步 + 抗条纹 LoRA | `Quality` —— 25 步，满强度去条纹 LoRA，不叠加加速 LoRA |
-| **分辨率** | 1024 × 1024 | 1024 × 1024，共 2 个变体 |
-| **抵达时 GPU 状态** | 已是 `ready`，无需唤醒 | 已是 `ready`，直接复用会话 |
-| **耗时** | 41 秒 | 2 分 14 秒 |
-| **产出** | 一张 PNG（`outputs/hello-world-comfy-colab-kit-1024.png`） | `beachA`（透明腰封）与 `beachB`（纯白两件式） |
-| **CU 点数账本** | 剩余 22.16 CU · 开机期间 1.71 CU/小时 | 剩余 20.99 CU · 开机期间 1.71 CU/小时 |
-| **收尾** | Agent 可直接调用 `stop` 立即释放 GPU | Agent 为下一个变体保温，说停就停 |
+| | 🟢 文生图 | 🟣 图生图 | 🎬 文生/图生视频 |
+|---|---|---|---|
+| **Agent 指令** | `text to img: a pic about "hello world: comfy-colab-kit" 1024 × 1024` | `img to img, using the highest quality, generate an image based on the reference image, maintaining the original composition, and completely change the girl's outfit to a bikini.` | `A cinematic tracking shot of a cute red panda walking through a mossy bamboo forest in soft morning sunlight, golden dust motes floating in the air, shallow depth of field` |
+| **技能入口** | `/comfy-colab-kit` | `/comfy-colab-kit` | `/comfy-colab-kit` |
+| **处理链路** | MOSS-Image DeBand 文生图 | 人物抠像 → 沙滩底图 → MOSS-Image DeBand 图生图 | `wan-ltx-video` · Wan 2.2 5B TI2V（`Wan22ImageToVideoLatent`） |
+| **Profile 预设** | `Fast alt` —— 10 步 + 抗条纹 LoRA | `Quality` —— 25 步，满强度去条纹 LoRA | 官方 Wan 2.2 5B 20 步 `uni_pc`（`shift=5.0`, `cfg=5.0`） |
+| **分辨率与规格** | 1024 × 1024 | 1024 × 1024，共 2 个变体 | 832 × 480 · 33 帧 @ 24 fps（高清 MP4） |
+| **抵达时 GPU 状态** | 已是 `ready`，无需唤醒 | 已是 `ready`，直接复用会话 | 从 `sleeping` 唤醒（19.8 GB 模型以 518 MB/s 极速直写内存盘） |
+| **推理耗时** | 41 秒 | 2 分 14 秒 | 65 秒 |
+| **产出** | 一张 PNG（`outputs/hello-world-comfy-colab-kit-1024.png`） | `beachA`（透明腰封）与 `beachB`（纯白两件式） | 一段 H.264 MP4（`WanVideo_00001_.mp4`）+ GIF 动图预览 |
+| **CU 点数账本** | 剩余 22.16 CU · 开机期间 1.71 CU/小时 | 剩余 20.99 CU · 开机期间 1.71 CU/小时 | 开机期间 1.71 CU/小时 · 下载完成后立即停机释放 |
+| **收尾** | Agent 可直接调用 `stop` 立即释放 GPU | Agent 为下一个变体保温，说停就停 | Agent 自动下载 MP4 并调用 `ckit stop` 立即关机 |
 
-两条链路都完全跑在网关的 REST / MCP 接口上：Agent 全程不接触浏览器、notebook 单元格或 Colab 链接。
+所有链路都完全跑在网关的 REST / MCP 接口上：Agent 全程不接触浏览器、notebook 单元格或 Colab 链接。
 
 ---
 
@@ -185,7 +190,9 @@ docker compose -f deploy/docker-compose.yml up -d
 
 | Profile | 用途 | 默认下载量 |
 |---|---|---|
-| [`moss-image`](profiles/examples/moss-image/)（主力） | MOSS-Image：默认 DeBand int8，4 步加速、官方高质量 / 布局、编辑（可选），在 App 模式里并排对比 | 核心约 26 GB / 默认全集约 57 GB |
+| [`moss-image`](profiles/examples/moss-image/)（主力） | MOSS-Image：默认 DeBand int8，4 步加速、官方高质量 / 布局、编辑（可选），在 App 模式里并排对比 | 核心约 25 GB / 默认全集约 57 GB |
+| [`flux-klein`](profiles/examples/flux-klein/) | FLUX.2 Klein 4B：Distilled 4 步（Apache-2.0）与 Base 20 步文生图 + `ReferenceLatent` 指令级改图，含 FLUX.1 Schnell fp8（可选） | 核心约 15.4 GB / 约 27.6 GB |
+| [`wan-ltx-video`](profiles/examples/wan-ltx-video/) | Wan 2.2 5B TI2V（文生视频 + 首帧图生视频）、Wan 2.1 1.3B 文生视频（后台预取）与 Lightricks LTX-Video 2B（可选） | 核心约 16.9 GB / 约 30.6 GB |
 | [`sd-latest`](profiles/examples/sd-latest/) | Stable Diffusion 3.5：默认 Large fp8，TurboX 8 步，Medium 加速（需授权，可选） | 核心约 15 GB / 约 22 GB |
 | [`qwen-image`](profiles/examples/qwen-image/) | Qwen-Image 2.1：默认 Turbo 文生图，完整文生图，Turbo / 完整编辑 | 核心约 27 GB / 约 43 GB |
 
@@ -234,7 +241,7 @@ comfy-colab-kit/
 │   ├── cli/                  # [开发工具包] 宿主机与智能体运维命令行（ckit）
 │   └── schemas/              # [规范包] 预设 JSON Schema 约束定义（profile.schema.json）
 ├── profiles/                 # 模型预设与工作流管理
-│   ├── examples/             # 内置社区预设（moss-image、sd-latest、qwen-image）
+│   ├── examples/             # 内置社区预设（moss-image、flux-klein、wan-ltx-video、sd-latest、qwen-image）
 │   └── custom/               # 用户挂载自定义预设目录
 ├── deploy/                   # 基础设施与部署编排
 │   ├── Dockerfile            # 最小化容器镜像构建文件
@@ -264,6 +271,8 @@ Comfy Colab Kit 站在开源巨人的肩膀上。我们由衷感谢以下卓越�
 - **[Hugging Face](https://huggingface.co/)** —— 感谢拥抱开源社区的模型托管服务与极速并行权重分发协议（`hf_xet`）。
 - **[uv by Astral](https://astral.sh/uv)** —— 感谢 Astral 团队打造的毫秒级 Python 依赖解析与极速安装工具。
 - **[MOSS-Image](https://huggingface.co/MATLOWAI/MOSS-Image-SFT-DeBand-int8)** —— 感谢 OpenLMLab 与 MATLOWAI 团队开源的高品质文生图模型、DeBand 去带 LoRA 与社区工作流。
+- **[Black Forest Labs](https://blackforestlabs.ai/)** —— 感谢开源 FLUX.2 Klein 4B（Distilled Apache-2.0 与 Base）及 FLUX.1 Schnell 高速文生图与指令级改图模型。
+- **[阿里通义万相团队 (Alibaba Wan Team)](https://github.com/Wan-Video/Wan2.2) 与 [Lightricks](https://github.com/Lightricks/LTX-Video)** —— 感谢开源 Apache-2.0 的 Wan 2.2 5B TI2V / Wan 2.1 1.3B 与 LTX-Video 2B 轻量高清视频生成模型。
 - **[Stability AI](https://stability.ai/) 与 [阿里通义 Qwen 团队](https://github.com/QwenLM)** —— 感谢开源的高性能图像生成基础模型（SD 3.5 Large 与 Qwen-Image 2.1）。
 
 ## 📄 许可证

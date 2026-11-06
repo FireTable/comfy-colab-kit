@@ -18,6 +18,7 @@ services:
       - ../apps/gate:/app/apps/gate:ro
       - ../profiles:/app/profiles:ro         # profiles (built-in examples + user custom)
       - ../packages/colab:/app/packages/colab:ro  # colab/setup.py, shipped to the VM on each wake
+      - ../packages/cli:/usr/local/lib/python3.12/site-packages/ckit:ro  # ckit & moss_template (MCP & CLI graphs)
       - ../apps/gate/web:/app/apps/gate/web:ro    # static web assets (index.html, bg.js, etc.)
     secrets: [cf_service.json, colab_tunnel_token, agent_token, hf_token]
     networks: [caddy]

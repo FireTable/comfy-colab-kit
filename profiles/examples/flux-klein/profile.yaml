@@ -1,0 +1,169 @@
+# FLUX.2 Klein 4B & FLUX.1 Schnell profile for Colab L4 (24 GB VRAM).
+# Official Comfy-Org templates (MIT, vendored unchanged); weights are referenced by URL from Black Forest Labs & Comfy-Org.
+# yaml-language-server: $schema=../../../packages/schemas/profile.schema.json
+id: flux-klein
+title: FLUX.2 Klein 4B (Distilled 4-step & Base T2I / Image Edit · Schnell)
+accelerator: L4
+comfyui:
+  repo: https://github.com/comfyanonymous/ComfyUI
+  commit: bc5f880
+  args:
+  - --preview-method
+  - auto
+  - --highvram
+  - --reserve-vram
+  - '0.2'
+  settings: {}
+  env:
+    PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
+    CUDA_MODULE_LOADING: LAZY
+    TORCH_CUDNN_V8_API: '1'
+    TORCH_ALLOW_TF32_CUBLAS_OVERRIDE: '1'
+frontend:
+  package: comfyui-frontend-package==1.57.1
+models:
+- id: flux2-klein-4b-fp8
+  dest: diffusion_models/flux-2-klein-4b-fp8.safetensors
+  url: hf://black-forest-labs/FLUX.2-klein-4b-fp8/flux-2-klein-4b-fp8.safetensors
+  license: Apache-2.0
+  sha256: 97ed34fe0567e436200f2faee3939b88f2b5d99f8af2a4dc16532c4245c0ccb6
+  size_gb: 3.79
+  core: true
+- id: flux2-klein-base-4b-fp8
+  dest: diffusion_models/flux-2-klein-base-4b-fp8.safetensors
+  url: hf://black-forest-labs/FLUX.2-klein-base-4b-fp8/flux-2-klein-base-4b-fp8.safetensors
+  license: FLUX Non-Commercial License (see model card; check commercial use)
+  sha256: 44bab3a86fe98b85d21dd2a4729ebdc3ae51fb8a39f76e457e18c724219e6840
+  size_gb: 3.81
+  core: true
+- id: qwen3-4b
+  dest: text_encoders/qwen_3_4b.safetensors
+  url: hf://Comfy-Org/flux2-klein/split_files/text_encoders/qwen_3_4b.safetensors
+  license: Apache-2.0
+  sha256: 6c671498573ac2f7a5501502ccce8d2b08ea6ca2f661c458e708f36b36edfc5a
+  size_gb: 7.49
+  core: true
+- id: flux2-vae
+  dest: vae/flux2-vae.safetensors
+  url: hf://Comfy-Org/flux2-dev/split_files/vae/flux2-vae.safetensors
+  license: Apache-2.0
+  sha256: d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5
+  size_gb: 0.31
+  core: true
+- id: flux1-schnell-fp8
+  dest: checkpoints/flux1-schnell-fp8.safetensors
+  url: hf://Comfy-Org/flux1-schnell/flux1-schnell-fp8.safetensors
+  license: Apache-2.0
+  sha256: ead426278b49030e9da5df862994f25ce94ab2ee4df38b556ddddb3db093bf72
+  size_gb: 16.05
+model_aliases:
+  flux-2-klein-4b.safetensors: flux2-klein-4b-fp8
+  flux-2-klein-base-4b.safetensors: flux2-klein-base-4b-fp8
+  full_encoder_small_decoder.safetensors: flux2-vae
+workflows:
+- id: flux2-klein-t2i
+  title: Fast & Quality · FLUX.2 Klein 4B T2I (official)
+  source: https://huggingface.co/Comfy-Org/flux2-klein
+  license: MIT template; Distilled 4B weights Apache-2.0, Base 4B FLUX Non-Commercial
+  file: workflows/official_image_flux2_klein_text_to_image.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_flux2_klein_text_to_image.json
+  upstream_sha256: cd4a29b0be6f71a7391f2f023e69dfc3b47d7da9f2aa215b4c8b8e17c2eea107
+  models:
+  - flux2-klein-4b-fp8
+  - flux2-klein-base-4b-fp8
+  - qwen3-4b
+  - flux2-vae
+  app:
+    inputs:
+    - - 76
+      - value
+      - 正向提示词 (Positive Prompt)
+    - - 75
+      - value
+      - 图像宽度 (Width)
+    - - 75
+      - value_1
+      - 图像高度 (Height)
+    outputs:
+    - 9
+- id: flux2-klein-edit-distilled
+  title: Fast · FLUX.2 Klein 4B Distilled Edit 4-step (official)
+  source: https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8
+  license: MIT template; weights Apache-2.0
+  file: workflows/official_image_flux2_klein_image_edit_4b_distilled.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_flux2_klein_image_edit_4b_distilled.json
+  upstream_sha256: 7f1ead62d1456d485e95fb432fb492d2783f5ec9cfeefefe4ef71bfb448ba1a3
+  models:
+  - flux2-klein-4b-fp8
+  - qwen3-4b
+  - flux2-vae
+  app:
+    inputs:
+    - - 76
+      - image
+      - 参考底图 (Input Image)
+    - - 75
+      - text
+      - 正向提示词 / 编辑指令 (Edit Prompt)
+    - - 75
+      - noise_seed
+      - 随机种子 (Seed)
+    outputs:
+    - 9
+- id: flux2-klein-edit-base
+  title: Quality · FLUX.2 Klein 4B Base Edit 20-step (official)
+  source: https://huggingface.co/black-forest-labs/FLUX.2-klein-base-4b-fp8
+  license: MIT template; weights FLUX Non-Commercial
+  file: workflows/official_image_flux2_klein_image_edit_4b_base.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_flux2_klein_image_edit_4b_base.json
+  upstream_sha256: e66871102ee6614be8d70b5414536da4c8ef7b0fd13580f2e36b69b2f56d2820
+  models:
+  - flux2-klein-base-4b-fp8
+  - qwen3-4b
+  - flux2-vae
+  app:
+    inputs:
+    - - 76
+      - image
+      - 参考底图 (Input Image)
+    - - 75
+      - text
+      - 正向提示词 / 编辑指令 (Edit Prompt)
+    - - 75
+      - noise_seed
+      - 随机种子 (Seed)
+    outputs:
+    - 9
+- id: flux1-schnell
+  title: Classic · FLUX.1 Schnell fp8 4-step (official)
+  source: https://huggingface.co/Comfy-Org/flux1-schnell
+  license: MIT template; weights Apache-2.0
+  file: workflows/official_flux_schnell.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/flux_schnell.json
+  upstream_sha256: 912fe178607a2c0e1ff12688703d22b34866949c9669ecc2739d19971e916b96
+  optional: true
+  models:
+  - flux1-schnell-fp8
+  app:
+    inputs:
+    - - 6
+      - text
+      - 正向提示词 (Positive Prompt)
+    - - 33
+      - text
+      - 负面提示词 (Negative Prompt)
+    - - 27
+      - width
+      - 图像宽度 (Width)
+    - - 27
+      - height
+      - 图像高度 (Height)
+    - - 27
+      - batch_size
+      - 生成张数 (Batch Size)
+    - - 31
+      - seed
+      - 随机种子 (Seed)
+    outputs:
+    - 9
+app_default: flux2-klein-t2i
