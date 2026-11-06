@@ -329,38 +329,38 @@ async def mcp_endpoint(request: web.Request) -> web.Response:
                     },
                     {
                         "name": "gate_wake",
-                        "description": "Wake or join the shared Google Colab L4 GPU instance with a model profile.",
+                        "description": "Wake or join the shared Google Colab L4 GPU instance with a model profile (e.g. 'moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image').",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "profile": {"type": "string", "description": "Profile ID, e.g. 'moss-image'"}
+                                "profile": {"type": "string", "description": "Profile ID, e.g. 'moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image'."}
                             }
                         }
                     },
                     {
                         "name": "gate_txt2img",
-                        "description": "Generate an image from a text prompt using the active profile's pipeline (MOSS-Image DeBand or SD 3.5 Large fp8).",
+                        "description": "Generate an image or video from a text prompt using the active profile's pipeline (MOSS-Image DeBand, FLUX.2 Klein 4B, Wan 2.2 5B TI2V, or SD 3.5 Large fp8).",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "prompt": {"type": "string", "description": "Text description of the image to generate."},
+                                "prompt": {"type": "string", "description": "Text description of the image or video to generate."},
                                 "negative_prompt": {"type": "string", "description": "Negative elements to avoid."},
                                 "preset": {"type": "string", "description": "Preset: 'Fast alt' (default), 'Fast', 'Balanced', 'Quality'."},
                                 "seed": {"type": "integer", "description": "Random seed (optional)."},
-                                "width": {"type": "integer", "description": "Image width (default 1024)."},
-                                "height": {"type": "integer", "description": "Image height (default 1024)."}
+                                "width": {"type": "integer", "description": "Output width (default 1024; 832 for wan-ltx-video)."},
+                                "height": {"type": "integer", "description": "Output height (default 1024; 480 for wan-ltx-video)."}
                             },
                             "required": ["prompt"]
                         }
                     },
                     {
                         "name": "gate_img2img",
-                        "description": "Generate an image variation from a reference image (filename in ComfyUI input/ or HTTP/HTTPS image URL) and a text prompt.",
+                        "description": "Generate an image edit/variation or image-to-video clip from a reference image (filename in ComfyUI input/ or HTTP/HTTPS image URL) and a text prompt.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
                                 "image": {"type": "string", "description": "Reference image filename in ComfyUI input/ or an HTTP/HTTPS URL."},
-                                "prompt": {"type": "string", "description": "Text prompt guiding the image transformation."},
+                                "prompt": {"type": "string", "description": "Text prompt guiding the image transformation, edit, or video motion."},
                                 "denoise": {"type": "number", "description": "Denoising strength (0.05 to 1.0, default 0.75)."},
                                 "negative_prompt": {"type": "string", "description": "Negative elements to avoid."},
                                 "preset": {"type": "string", "description": "Preset: 'Fast alt' (default), 'Fast', 'Balanced', 'Quality'."},
@@ -541,18 +541,23 @@ async def mcp_endpoint(request: web.Request) -> web.Response:
                                 item = h_out[prompt_id]
                                 outputs = item.get("outputs", {})
                                 images = []
+                                seen = set()
                                 for node_id, node_out in outputs.items():
-                                    for img in node_out.get("images", []):
-                                        fn = img.get("filename", "")
-                                        sub = img.get("subfolder", "")
-                                        t = img.get("type", "output")
-                                        url = f"{public_base}/view?filename={urllib.parse.quote(fn)}&subfolder={urllib.parse.quote(sub)}&type={urllib.parse.quote(t)}"
-                                        images.append({"filename": fn, "url": url, "node_id": node_id})
+                                    for key in ("images", "videos", "gifs"):
+                                        for img in node_out.get(key, []):
+                                            fn = img.get("filename", "")
+                                            sub = img.get("subfolder", "")
+                                            t = img.get("type", "output")
+                                            if not fn or (fn, sub, t) in seen:
+                                                continue
+                                            seen.add((fn, sub, t))
+                                            url = f"{public_base}/view?filename={urllib.parse.quote(fn)}&subfolder={urllib.parse.quote(sub)}&type={urllib.parse.quote(t)}"
+                                            images.append({"filename": fn, "url": url, "node_id": node_id})
                                 res_data = {"prompt_id": prompt_id, "status": item.get("status", {}), "images": images}
                                 res_text = json.dumps(res_data, indent=2, ensure_ascii=False)
                                 if images:
                                     img_md = "\n".join([f"![{img['filename']}]({img['url']})\nLink: {img['url']}" for img in images])
-                                    res_text += f"\n\n### Generated Images\n{img_md}"
+                                    res_text += f"\n\n### Generated Outputs\n{img_md}"
                                 return web.json_response({
                                     "jsonrpc": "2.0",
                                     "id": req_id,

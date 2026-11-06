@@ -96,7 +96,7 @@ def save_config(cfg):
             pass
 
 
-DEFAULT_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 (ckit/0.2.0)"
+DEFAULT_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 (ckit/0.3.0)"
 
 
 def call(method, path, body=None, base_override=None):
@@ -337,19 +337,24 @@ def do_generate(a):
             item = h_out[prompt_id]
             outputs = item.get("outputs", {})
             images = []
+            seen = set()
             for node_id, node_out in outputs.items():
-                for img in node_out.get("images", []):
-                    fn = img.get("filename", "")
-                    sub = img.get("subfolder", "")
-                    t = img.get("type", "output")
-                    url = f"{base}/view?filename={urllib.parse.quote(fn)}&subfolder={urllib.parse.quote(sub)}&type={urllib.parse.quote(t)}"
-                    images.append({"filename": fn, "url": url})
+                for key in ("images", "videos", "gifs"):
+                    for img in node_out.get(key, []):
+                        fn = img.get("filename", "")
+                        sub = img.get("subfolder", "")
+                        t = img.get("type", "output")
+                        if not fn or (fn, sub, t) in seen:
+                            continue
+                        seen.add((fn, sub, t))
+                        url = f"{base}/view?filename={urllib.parse.quote(fn)}&subfolder={urllib.parse.quote(sub)}&type={urllib.parse.quote(t)}"
+                        images.append({"filename": fn, "url": url})
 
             if not images:
-                print(f"[generate] Generation finished with no output images: {json.dumps(item, ensure_ascii=False)}")
+                print(f"[generate] Generation finished with no output files: {json.dumps(item, ensure_ascii=False)}")
                 return
 
-            print(f"\n[generate] Success! {len(images)} image(s) generated:\n")
+            print(f"\n[generate] Success! {len(images)} output(s) generated:\n")
             for img in images:
                 print(f"  • {img['filename']}: {img['url']}")
 

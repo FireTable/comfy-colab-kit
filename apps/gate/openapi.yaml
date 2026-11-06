@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: comfy-gate
-  version: 0.1.0
+  version: 0.3.0
   description: |
     Wake-on-demand gateway for ComfyUI on Google Colab. One global shared session per gate:
     `POST /_gate/wake` is idempotent — callers join an in-flight or running session.

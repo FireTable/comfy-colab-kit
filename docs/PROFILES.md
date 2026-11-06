@@ -10,7 +10,9 @@ JSON Schema validation specification: [`packages/schemas/profile.schema.json`](.
 
 | Profile | Default App Workflow | Download Size | Architecture Highlights |
 |---|---|---|---|
-| [`moss-image`](../profiles/examples/moss-image/) *(Primary)* | `matlowai-presets` | ~26 GB core / ~57 GB full | SFT bf16 + DeBand LoRAs default, 4-step turbo graphs, official quality/layout; DeBand int8 merged, split-qkv rapid, chinoll edit (opt-in). Shared base / text encoder / VAE |
+| [`moss-image`](../profiles/examples/moss-image/) *(Primary)* | `matlowai-presets` | ~25 GB core / ~57 GB full | SFT bf16 + DeBand LoRAs default, 4-step turbo graphs, official quality/layout; DeBand int8 merged, split-qkv rapid, chinoll edit (opt-in). Shared base / text encoder / VAE |
+| [`flux-klein`](../profiles/examples/flux-klein/) | `flux2-klein-t2i` | ~15.4 GB core / ~27.6 GB | FLUX.2 Klein 4B Distilled (4-step Apache-2.0) & Base (20-step) T2I + `ReferenceLatent` instruction image editing, plus FLUX.1 Schnell fp8 (optional) |
+| [`wan-ltx-video`](../profiles/examples/wan-ltx-video/) | `wan22-ti2v-5b` | ~16.9 GB core / ~30.6 GB | Wan 2.2 5B Text/Image-to-Video (TI2V), Wan 2.1 1.3B T2V (`prefetch: true`), and Lightricks LTX-Video 2B T2V/I2V (optional) |
 | [`sd-latest`](../profiles/examples/sd-latest/) | `sd35-large` | ~15 GB core / ~22 GB | SD 3.5 Large fp8, TurboX 8-step acceleration, SD 3.5 Medium turbo (gated, optional) |
 | [`qwen-image`](../profiles/examples/qwen-image/) | `qwen21-turbo-t2i` | ~27 GB core / ~43 GB | Qwen-Image 2.1 Turbo T2I, full text-to-image, and Turbo / full image editing |
 
@@ -124,6 +126,9 @@ To create your own model profile (e.g. for a custom Flux or SDXL setup):
 
 We celebrate the creators and open-source communities behind the profiles supported in this repository:
 - **MOSS-Image**: Created by [OpenLMLab](https://openlmlab.org/) and [MATLOWAI](https://huggingface.co/MATLOWAI). DeBand LoRAs and int8 quantization workflows provide exceptional visual fidelity on Colab L4 GPUs.
+- **FLUX.2 Klein 4B & FLUX.1 Schnell**: Created by [Black Forest Labs](https://blackforestlabs.ai/). Open Apache-2.0 4-step distilled and 20-step base diffusion checkpoints and official ComfyUI templates for fast text-to-image and instruction editing.
+- **Wan 2.2 5B TI2V & Wan 2.1 1.3B**: Created by the [Alibaba Wan Team (Tongyi Lab)](https://github.com/Wan-Video/Wan2.2). Cutting-edge Apache-2.0 open-weight video models enabling text-to-video and first-frame image-to-video directly on consumer and cloud GPUs.
+- **Lightricks LTX-Video 2B**: Created by [Lightricks](https://github.com/Lightricks/LTX-Video). Lightweight high-frame-rate DiT video model for text/image-to-video synthesis.
 - **Stable Diffusion 3.5**: Created by [Stability AI](https://stability.ai/). High-performance FP8 and TurboX community acceleration graphs.
 - **Qwen-Image**: Developed by the [Qwen Team](https://github.com/QwenLM) at Alibaba Cloud. Fast visual synthesis and multimodal generation.
 - **Community Custom Nodes**: We thank **Kijai** and the broad ComfyUI node contributor ecosystem for publishing optimized sampling nodes and adapters.

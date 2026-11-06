@@ -50,11 +50,13 @@ ckit status --json
 # List available profiles and community workflows
 ckit profiles --json
 
-# Wake or join the shared session (blocks until ComfyUI is ready)
+# Wake or join the shared session (profiles: moss-image, flux-klein, wan-ltx-video, sd-latest, qwen-image)
 ckit wake --profile moss-image --wait
 
-# Generate an image directly via high-level pipeline
+# Generate an image or video directly via high-level pipeline (auto-adapts to active profile)
 ckit generate --prompt "cinematic cyberpunk portrait" --preset "Fast alt"
+ckit generate --prompt "Add neon cyan sunglasses" --image ref.png
+ckit generate --prompt "The character leaps forward and waves hi" --image frame.png --width 832 --height 544 --timeout 300
 
 # Extend session duration by +1 hour
 ckit extend

@@ -28,4 +28,8 @@
 
 ## Optional
 - [.env.example](.env.example): all configuration variables
-- [profiles/examples/moss-image/README.md](profiles/examples/moss-image/README.md): primary example profile
+- [profiles/examples/moss-image/README.md](profiles/examples/moss-image/README.md): primary MOSS-Image DeBand example profile
+- [profiles/examples/flux-klein/README.md](profiles/examples/flux-klein/README.md): FLUX.2 Klein 4B (Distilled & Base T2I + ReferenceLatent Image Edit) & FLUX.1 Schnell profile
+- [profiles/examples/wan-ltx-video/README.md](profiles/examples/wan-ltx-video/README.md): Wan 2.2 5B TI2V, Wan 2.1 1.3B T2V & Lightricks LTX-Video 2B profile
+- [profiles/examples/sd-latest/README.md](profiles/examples/sd-latest/README.md): Stable Diffusion 3.5 Large fp8 & TurboX profile
+- [profiles/examples/qwen-image/README.md](profiles/examples/qwen-image/README.md): Qwen-Image 2.1 Turbo T2I & Edit profile

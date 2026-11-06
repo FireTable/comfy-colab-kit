@@ -38,6 +38,7 @@ class ColabRunner(Protocol):
         for i in range(1, attempts + 1):
             try:
                 await self.exec_quick(name, "print('kit-kernel-ready')", timeout_s=45)
+                await asyncio.sleep(2)
                 return True
             except Exception as e:  # noqa: BLE001
                 log.warning("kernel probe %d/%d failed: %s", i, attempts, e)
@@ -102,11 +103,36 @@ class ColabCLI:
         proc.stdin.write(code.encode())
         await proc.stdin.drain()
         proc.stdin.close()
-        async for raw in proc.stdout:
-            yield raw.decode(errors="replace").rstrip("\n")
-        rc = await proc.wait()
-        if rc:
-            raise ColabError(f"colab exec exited with {rc}")
+        try:
+            while True:
+                try:
+                    raw = await asyncio.wait_for(proc.stdout.readline(), timeout=120)
+                except asyncio.TimeoutError as e:
+                    proc.kill()
+                    raise ColabError("colab exec stream stalled (no output for 120s)") from e
+                if not raw:
+                    break
+                line = raw.decode(errors="replace").rstrip("\n")
+                yield line
+                if line.strip().startswith("RuntimeError: Connection was lost."):
+                    try:
+                        await asyncio.wait_for(proc.wait(), timeout=2.0)
+                    except asyncio.TimeoutError:
+                        proc.kill()
+                    raise ColabError("colab exec connection lost")
+            try:
+                rc = await asyncio.wait_for(proc.wait(), timeout=10.0)
+            except asyncio.TimeoutError:
+                proc.kill()
+                rc = await proc.wait()
+            if rc:
+                raise ColabError(f"colab exec exited with {rc}")
+        finally:
+            if proc.returncode is None:
+                try:
+                    proc.kill()
+                except ProcessLookupError:
+                    pass
 
     async def stop(self, name: str) -> None:
         try:
@@ -136,6 +162,7 @@ class ColabCLI:
         for i in range(1, attempts + 1):
             try:
                 await self.exec_quick(name, "print('kit-kernel-ready')", timeout_s=45)
+                await asyncio.sleep(2)
                 return True
             except Exception as e:  # noqa: BLE001
                 log.warning("kernel probe %d/%d failed: %s", i, attempts, e)

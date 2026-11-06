@@ -891,8 +891,10 @@ curl -sSL "https://raw.githubusercontent.com/FireTable/comfy-colab-kit/main/pack
 ### 常用命令速查
 - \`ckit status [--json]\`: 检查 GPU 实例状态、当前模型 Profile、排队情况与 CU 余额
 - \`ckit profiles [--json]\`: 查询网关支持的所有模型 Profiles 及 Workflows 工作流列表
-- \`ckit wake [--profile ID] [--wait]\`: 唤醒或加入 GPU 实例（加入现有会话无需重复开机）
-- \`ckit generate --prompt "..." [--preset "Fast alt"]\`: 执行快速文生图
+- \`ckit wake [--profile ID] [--wait]\`: 唤醒或加入 GPU 实例（可选 \`moss-image\`, \`flux-klein\`, \`wan-ltx-video\`, \`sd-latest\`, \`qwen-image\`）
+- \`ckit switch <profile-id>\`: 在线切换模型 Profile（如从生图切换到 \`wan-ltx-video\` 视频生成）
+- \`ckit generate --prompt "..." [--preset "..."] [--width N] [--height N] [--timeout 300]\`: 执行快速文生图或文生视频（自动适配当前 Profile）
+- \`ckit generate --prompt "..." --image <PATH_OR_URL> [--denoise 0.75] [--timeout 300]\`: 执行图生图重绘、FLUX.2 Klein 指令改图或 Wan 2.2 首帧图生视频
 - \`ckit stop\`: 立即关闭 GPU 实例，释放算力停止计费
 - \`ckit mcp\`: 启动标准输入输出 (stdio) MCP 服务
 
@@ -900,32 +902,33 @@ curl -sSL "https://raw.githubusercontent.com/FireTable/comfy-colab-kit/main/pack
 
 ## 3. 怎么查询支持的 ComfyUI 工作流 (Query Workflows)
 
-在生图前，Agent 可以通过以下方式动态获取网关支持的模型 Profile 及旗下全部可用工作流：
+在生图或生视频前，Agent 可以通过以下方式动态获取网关支持的模型 Profile 及旗下全部可用工作流：
 
 1. **CLI 命令行查询**:
 \`\`\`bash
 ckit profiles --json
 \`\`\`
 2. **HTTP API 查询 (相对路径)**:
-向 \`GET /_gate/profiles\` 发送请求，返回包含当前可用 Profile 列表（如 \`moss-image\`, \`sd-latest\`, \`qwen-image\`）以及每个 Profile 下全部已注册工作流（如 \`matlowai-presets\`, \`matlowai-img2img\`, \`akhaliq-4step\`, \`official-t2i\` 等）的完整定义与许可。
+向 \`GET /_gate/profiles\` 发送请求，返回包含当前可用 Profile 列表（如 \`moss-image\`, \`flux-klein\`, \`wan-ltx-video\`, \`sd-latest\`, \`qwen-image\`）以及每个 Profile 下全部已注册工作流的完整定义与许可。
 3. **查询当前 GPU 运行状态**:
 向 \`GET /_gate/status\` 发送请求，返回当前 GPU 运行的 Profile、会话阶段以及默认视图。
 
 ---
 
-## 4. 选型决策：什么时候用文生图？什么时候用图生图？
+## 4. 选型决策：文生图、指令改图与视频生成 (Txt2Img / Edit / Video)
 
 - **纯文字构思 / 概念生图 -> 使用文生图 (Txt2Img)**:
   - 推荐调用 MCP 工具: \`gate_txt2img(prompt=..., negative_prompt=..., preset="Fast alt", seed=..., width=1024, height=1024)\`
-  - **默认画质预设**: \`"Fast alt"\` (10 步超快且画质极佳，内置抗条纹 DeBand LoRA)。
-  - **负向提示词**: 默认已注入画质优化负向词 (\`worst quality, bad anatomy, watermark, jpeg artifact\`)。
-- **提供参考底图 / 局部重绘 / 风格迁移 -> 使用图生图 (Img2Img)**:
-  - **必须步骤**: 先调用 \`POST /upload/image\` 上传参考底图（见下文透传说明）。
-  - **推荐工作流**: \`matlowai-img2img\` (或原生透传 \`/prompt\`)。
-  - **重绘幅度 \`denoise\` 调节指南**:
-    - \`0.2 ~ 0.35\`: 微调细节、画质修复、高清放大，构图完全锁定。
-    - \`0.4 ~ 0.65\`: 改变服装、发型、局部物品或光影风格，主体轮廓保留。
-    - \`0.7 ~ 1.0\`: 剧烈重绘创作，仅保留原图色彩调性。
+  - **\`moss-image\` (默认)**: \`preset="Fast alt"\` (10 步抗条纹 DeBand LoRA)；\`"Quality"\` (25 步)。
+  - **\`flux-klein\` (极速 4 步)**: 唤醒或切换到 \`flux-klein\` 后，默认 4 步蒸馏版 (~5-8 秒出图)，或 \`preset="Quality"\` (20 步 Base)。
+- **提供参考底图 / 局部增删改 / 风格迁移 -> 使用图生图 (Img2Img)**:
+  - 推荐调用 MCP 工具: \`gate_img2img(image="<本地路径或图片URL>", prompt="...", denoise=0.75)\`（自动完成 \`/upload/image\` 上传与重绘）。
+  - **\`flux-klein\` 指令改图**: 基于 \`ReferenceLatent\` 像素级保持原图背景与构图，直接输入英文修改指令（如 \`"Add cool neon cyan sunglasses and change the hat to gold"\`）。
+  - **\`moss-image\` 重绘幅度 \`denoise\`**: \`0.2~0.35\` 微调修复；\`0.4~0.65\` 换装/换风格；\`0.7~1.0\` 大幅重绘。
+- **文生视频 (T2V) / 首帧图生视频 (I2V) -> 唤醒或切换到 \`wan-ltx-video\`**:
+  - 唤醒命令: \`ckit wake --profile wan-ltx-video --wait\`（或在线切换 \`ckit switch wan-ltx-video\`）。
+  - **文生视频**: \`ckit generate --prompt "主体 + 连续动态动作 + 镜头运动" --width 832 --height 480 --timeout 300\`（或 \`gate_txt2img\`）。
+  - **首帧图生视频**: \`ckit generate --image /path/to/start.png --prompt "The character steps and leaps forward toward the viewer, waving cheerfully to say hi..." --width 832 --height 544 --timeout 300\`（或 \`gate_img2img\`，宽高需为 32 的倍数并匹配原图长宽比）。
 
 ---
 

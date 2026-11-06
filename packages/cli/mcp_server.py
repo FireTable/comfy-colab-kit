@@ -30,9 +30,9 @@ import urllib.request
 import uuid
 
 PROTOCOL_VERSION = "2024-11-05"
-SERVER_VERSION = "0.2.0"
+SERVER_VERSION = "0.3.0"
 
-DEFAULT_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 (ckit/0.2.0)"
+DEFAULT_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 (ckit/0.3.0)"
 
 
 def _read_file(path: str) -> str:
@@ -197,6 +197,13 @@ TOOLS = [
     {
         "name": "gate_status",
         "description": "Inspect the Comfy Colab session state, active profile, progress, remaining time, and Compute Unit balance.",
+        "annotations": {
+            "title": "Inspect Session & CU Status",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": True
+        },
         "inputSchema": {
             "type": "object",
             "properties": {}
@@ -204,13 +211,20 @@ TOOLS = [
     },
     {
         "name": "gate_wake",
-        "description": "Wake or join the shared Google Colab L4 GPU instance with a specified model profile (e.g. 'moss-image', 'sd-latest', 'qwen-image').",
+        "description": "Wake or join the shared Google Colab L4 GPU instance with a specified model profile (e.g. 'moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image').",
+        "annotations": {
+            "title": "Wake or Join Colab GPU Session",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": True
+        },
         "inputSchema": {
             "type": "object",
             "properties": {
                 "profile": {
                     "type": "string",
-                    "description": "The profile ID to wake. If omitted, the gate default profile is used."
+                    "description": "The profile ID to wake (e.g. 'moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image'). If omitted, the gate default profile is used."
                 },
                 "wait": {
                     "type": "boolean",
@@ -221,13 +235,20 @@ TOOLS = [
     },
     {
         "name": "gate_txt2img",
-        "description": "Generate an image from a text prompt using the active profile's pipeline (MOSS-Image DeBand or SD 3.5 Large fp8). Returns full image URLs.",
+        "description": "Generate an image or video from a text prompt using the active profile's pipeline (MOSS-Image DeBand, FLUX.2 Klein 4B, Wan 2.2 5B TI2V, or SD 3.5 Large fp8). Returns full output URLs.",
+        "annotations": {
+            "title": "Text-to-Image / Text-to-Video Generation",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": False,
+            "openWorldHint": True
+        },
         "inputSchema": {
             "type": "object",
             "properties": {
                 "prompt": {
                     "type": "string",
-                    "description": "Text description of the image to generate (positive prompt)."
+                    "description": "Text description of the image or video to generate (positive prompt)."
                 },
                 "negative_prompt": {
                     "type": "string",
@@ -243,11 +264,11 @@ TOOLS = [
                 },
                 "width": {
                     "type": "integer",
-                    "description": "Image width in pixels (default: 1024)."
+                    "description": "Output width in pixels (default: 1024; for wan-ltx-video defaults to 832 if left at 1024)."
                 },
                 "height": {
                     "type": "integer",
-                    "description": "Image height in pixels (default: 1024)."
+                    "description": "Output height in pixels (default: 1024; for wan-ltx-video defaults to 480 if left at 1024)."
                 },
                 "timeout_seconds": {
                     "type": "integer",
@@ -259,7 +280,14 @@ TOOLS = [
     },
     {
         "name": "gate_img2img",
-        "description": "Generate a new image variation from a reference image (local file path, HTTP/HTTPS URL, or uploaded ComfyUI input filename) and a text prompt.",
+        "description": "Generate a new image edit/variation or image-to-video clip from a reference image (local file path, HTTP/HTTPS URL, or uploaded ComfyUI input filename) and a text prompt.",
+        "annotations": {
+            "title": "Image-to-Image / Image Edit / Image-to-Video Generation",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": False,
+            "openWorldHint": True
+        },
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -269,7 +297,7 @@ TOOLS = [
                 },
                 "prompt": {
                     "type": "string",
-                    "description": "Text description guiding the image-to-image transformation."
+                    "description": "Text description guiding the image transformation, instruction edit, or video motion."
                 },
                 "denoise": {
                     "type": "number",
@@ -297,7 +325,14 @@ TOOLS = [
     },
     {
         "name": "gate_generate",
-        "description": "Submit a raw ComfyUI prompt workflow graph to the running instance, wait for execution, and return image URLs and metadata.",
+        "description": "Submit a raw ComfyUI prompt workflow graph to the running instance, wait for execution, and return output URLs and metadata.",
+        "annotations": {
+            "title": "Submit Raw ComfyUI Workflow Graph",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": False,
+            "openWorldHint": True
+        },
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -316,6 +351,13 @@ TOOLS = [
     {
         "name": "gate_stop",
         "description": "Stop the Colab GPU session immediately and release hardware to avoid unnecessary Compute Unit charges.",
+        "annotations": {
+            "title": "Stop & Release Colab GPU Session",
+            "readOnlyHint": False,
+            "destructiveHint": True,
+            "idempotentHint": True,
+            "openWorldHint": True
+        },
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -349,19 +391,24 @@ def _execute_prompt(prompt: dict, timeout_s: int = 180) -> dict:
             item = h_out[prompt_id]
             outputs = item.get("outputs", {})
             images = []
+            seen = set()
             for node_id, node_out in outputs.items():
-                for img in node_out.get("images", []):
-                    fn = img.get("filename", "")
-                    sub = img.get("subfolder", "")
-                    t = img.get("type", "output")
-                    url = f"{base}/view?filename={urllib.parse.quote(fn)}&subfolder={urllib.parse.quote(sub)}&type={urllib.parse.quote(t)}"
-                    images.append({"filename": fn, "url": url, "node_id": node_id})
+                for key in ("images", "videos", "gifs"):
+                    for img in node_out.get(key, []):
+                        fn = img.get("filename", "")
+                        sub = img.get("subfolder", "")
+                        t = img.get("type", "output")
+                        if not fn or (fn, sub, t) in seen:
+                            continue
+                        seen.add((fn, sub, t))
+                        url = f"{base}/view?filename={urllib.parse.quote(fn)}&subfolder={urllib.parse.quote(sub)}&type={urllib.parse.quote(t)}"
+                        images.append({"filename": fn, "url": url, "node_id": node_id})
 
             res_data = {"prompt_id": prompt_id, "status": item.get("status", {}), "images": images}
             res_text = json.dumps(res_data, indent=2, ensure_ascii=False)
             if images:
                 img_md = "\n".join([f"![{img['filename']}]({img['url']})\nLink: {img['url']}" for img in images])
-                res_text += f"\n\n### Generated Images\n{img_md}"
+                res_text += f"\n\n### Generated Outputs\n{img_md}"
             return {"content": [{"type": "text", "text": res_text}]}
 
     return {"isError": True, "content": [{"type": "text", "text": f"Generation timed out after {timeout_s}s. Prompt ID: {prompt_id}"}]}
@@ -509,7 +556,8 @@ def run_stdio_server():
                     "serverInfo": {
                         "name": "comfy-colab-kit",
                         "version": SERVER_VERSION
-                    }
+                    },
+                    "instructions": "Use gate_status to check the Colab L4 GPU session state, gate_wake to boot or join a profile ('moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image'), gate_txt2img / gate_img2img / gate_generate to create images or videos, and gate_stop when finished to release GPU compute units."
                 }
             }
             sys.stdout.write(json.dumps(res) + "\n")
