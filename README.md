@@ -37,7 +37,7 @@
 
 ## 📖 Overview
 
-A tiny gateway, **comfy-gate** (Python / aiohttp), runs on your VPS behind Cloudflare Access.
+A tiny gateway, **comfy-gate** (Python / aiohttp), runs either **100% locally on your Mac/PC (zero VPS, zero domain, zero setup fees)** or on a Linux VPS behind Cloudflare Access.
 
 > [!NOTE]
 > **The Gate's Essential Role**: `comfy-gate` is fundamentally a **lifecycle, cold-start, and auto-shutdown gateway** — it does **NOT** reimplement ComfyUI. When the GPU is asleep, it serves a lightweight, zero-compute wake card with real-time SSE progress. When booted, it transparently reverse-proxies directly into the **authentic, full-featured ComfyUI Web Application** (including node graph, App mode, custom nodes, extensions, and WebSocket streaming), injecting only a non-intrusive floating overlay to switch between App mode and the Node Graph.
@@ -47,6 +47,7 @@ A tiny gateway, **comfy-gate** (Python / aiohttp), runs on your VPS behind Cloud
 | **1 · Wake on demand** | Sleep card → Wake → stages + logs → ComfyUI Web App | 10-state machine, `colab new` (L4) + setup via `colab exec`, streaming reverse proxy (HTTP + `/ws`) |
 | **2 · Switchable profiles** | Pick MOSS-Image, FLUX.2 Klein, Wan 2.2 Video, SD3.5, Qwen before waking | `profile.yaml` + JSON Schema; zero secrets, models by public URL |
 | **3 · Auto-stop** | Overlay shows time left; sleeps on idle / max session / quiet hours / CU budget | every rule configured in `.env` |
+| **4 · Run Anywhere** | **Local Standalone** (`http://localhost:8080`) or **Cloud VPS** (`comfy.domain.com`) | 1-command Docker / Python launch; no VPS or domain needed for local users |
 
 ---
 
@@ -138,10 +139,38 @@ Traditional Colab forces you to sit in front of a computer, manually run noteboo
 - **Full ComfyUI API passthrough** — transparently proxies `/upload/image` for Img2Img reference images, `/prompt`, `/history`, `/view`, `/object_info`, `/system_stats`, `/queue`, and WebSocket `/ws`.
 - **Autonomous Agent friendly** — RFC 8628 device flow (`ckit auth`), 1-click prompt copy in Web UI, `docs/AGENT_SKILL.md`, `docs/MCP.md`, `skills/comfy-colab-kit/SKILL.md`, and `llms.txt`.
 
-## 🚀 Quick start (VPS + Cloudflare)
+## 🚀 Quick start
+
+Choose the deployment path that fits your needs:
+
+### Option A: 💻 100% Local Standalone (Zero VPS, Zero Domain, Zero Cloudflare)
+> **Recommended for individual creators, local AI agents, and Mac / laptop users!** No server to rent, no domain to buy, and no Cloudflare configuration. Your machine commands an ephemeral Google Colab L4 GPU (24GB VRAM) and streams ComfyUI directly to `http://localhost:8080`.
 
 ```bash
-git clone <this repo> comfy-colab-kit && cd comfy-colab-kit
+git clone https://github.com/FireTable/comfy-colab-kit.git && cd comfy-colab-kit
+cp .env.example .env
+sed -i '' 's/AUTH_DISABLED=false/AUTH_DISABLED=true/' .env
+sed -i '' 's/PUBLIC_HOST=comfy.example.com/PUBLIC_HOST=localhost:8080/' .env
+
+# 1. One-time Google Colab login
+mkdir -p data && chmod 700 data
+docker run --rm -it -v $(pwd)/data:/data -e HOME=/data/home ghcr.io/firetable/comfy-colab-kit:latest colab sessions
+
+# 2. Start the gateway locally
+docker compose -f deploy/docker-compose.local.yml up -d
+# (Or run natively: pip install -e ".[dev]" && python3 -m gate)
+
+# 3. Open http://localhost:8080 in your browser!
+```
+*Full local guide & AI agent setup: [docs/DEPLOY_LOCAL.md](docs/DEPLOY_LOCAL.md)*
+
+---
+
+### Option B: ☁️ Cloud VPS + Cloudflare Zero Trust (Production Team Setup)
+> **Recommended for teams, 24/7 background automations, and public webhook integrations.**
+
+```bash
+git clone https://github.com/FireTable/comfy-colab-kit.git && cd comfy-colab-kit
 cp .env.example .env                         # set PUBLIC_HOST, COLAB_TUNNEL_HOST, CF_ACCESS_*, emails
 mkdir -p secrets data && chmod 700 secrets data
 ZONE_NAME=example.com COLAB_TUNNEL_HOST=comfy-colab.example.com \
@@ -152,9 +181,9 @@ docker compose -f deploy/docker-compose.yml up -d
 # add deploy/Caddyfile.snippet to Caddy, reload, open https://$PUBLIC_HOST
 ```
 
-Pre-built container images are also published on GHCR (`docker pull ghcr.io/firetable/comfy-colab-kit:latest`), and the operator CLI / MCP client can be installed standalone via `uv tool install git+https://github.com/FireTable/comfy-colab-kit.git` (or from the `.whl` attached to [GitHub Releases](https://github.com/FireTable/comfy-colab-kit/releases)).
+Pre-built container images are published on GHCR (`docker pull ghcr.io/firetable/comfy-colab-kit:latest`), and the operator CLI / MCP client can be installed standalone via `uv tool install git+https://github.com/FireTable/comfy-colab-kit.git` (or from the `.whl` attached to [GitHub Releases](https://github.com/FireTable/comfy-colab-kit/releases)).
 
-Full walkthrough: [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md), [docs/ACCESS.md](docs/ACCESS.md) (browser, guest link, LAN & agent access), [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md), and [docs/AGENT.md](docs/AGENT.md) (comprehensive credential guide).
+Full walkthroughs: [docs/DEPLOY_LOCAL.md](docs/DEPLOY_LOCAL.md) (local standalone), [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md) (VPS), [docs/ACCESS.md](docs/ACCESS.md) (browser, guest link, LAN & agent access), [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md), and [docs/AGENT.md](docs/AGENT.md) (comprehensive credential guide).
 
 ## 🤖 For AI Agents & Automation (Agent Skill Protocol)
 

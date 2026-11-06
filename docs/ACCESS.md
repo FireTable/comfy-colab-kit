@@ -8,6 +8,7 @@ Comfy Colab Kit provides flexible access paths tailored for end-users, team memb
 
 | Client Type | Authentication Mechanism | Requirements | Typical Use Case |
 |---|---|---|---|
+| **Localhost (Zero VPS & No CF)** | Bypassed Auth (`AUTH_DISABLED=true`) | None (`http://localhost:8080`) | [docs/DEPLOY_LOCAL.md](DEPLOY_LOCAL.md) — solo creators, local AI agents, Mac/PC |
 | **Web Browser (Owner/Team)** | Cloudflare Zero Trust (Email OTP / SSO) | Email listed in `ALLOWED_EMAILS` | Daily generation on desktop or mobile browser |
 | **Web Browser (Guest/Friend)** | URL Token parameter (`?token=...`) | Token in `secrets/agent_token` | Quick sharing with trusted friends without CF accounts |
 | **Autonomous AI Agent** | HTTP Header `Authorization: Bearer <token>` | Token in `secrets/agent_token` | Claude Code, Cursor, OpenClaw, LangGraph automation |

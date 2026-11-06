@@ -146,6 +146,8 @@ class Settings:
 
     @property
     def backend_url(self) -> str:
+        if self.colab_tunnel_host.startswith("http://") or self.colab_tunnel_host.startswith("https://"):
+            return self.colab_tunnel_host
         return f"https://{self.colab_tunnel_host}"
 
     @staticmethod

@@ -1,26 +1,32 @@
 # Comfy Colab Kit
 
-> Wake-on-demand ComfyUI on Google Colab. A small aiohttp gateway (comfy-gate) on a VPS behind Cloudflare Access
-> shows a Hugging-Face-Space-style wake page, starts one shared Colab L4 session via the colab CLI, streams progress
-> to every viewer over SSE, reverse-proxies ComfyUI (incl. /ws) through a Cloudflare tunnel, and auto-stops on idle,
-> max session, quiet hours or compute-unit budget. Profiles describe models by public URL and community/official workflows (vendored only when Apache-2.0/MIT, otherwise by URL).
+> Wake-on-demand ComfyUI on Google Colab. A lightweight aiohttp gateway (comfy-gate) that runs either 100% locally on your Mac/PC (zero VPS, zero domain, zero Cloudflare setup) or on a cloud Linux VPS behind Cloudflare Access. Shows a Hugging-Face-Space-style wake page, starts one shared Colab L4 session via the colab CLI, streams progress to every viewer over SSE, reverse-proxies ComfyUI (incl. /ws), and auto-stops on idle, max session, quiet hours or compute-unit budget. Built-in profiles for MOSS-Image, FLUX.2 Klein 4B, Wan 2.2 & LTX-Video (T2V/I2V), SD 3.5, and Qwen-Image.
 
 ## Docs
-- [README](README.md): overview, quick start, structure
+- [README](README.md): overview, quick start, dual-mode deployment, showcase gallery
 - [AGENTS.md](AGENTS.md): module map, state machine, invariants for coding agents
 - [docs/README.md](docs/README.md): documentation map and agent fast path
+- [docs/DEPLOY_LOCAL.md](docs/DEPLOY_LOCAL.md): 100% local deployment guide (zero VPS, no Cloudflare, zero auth on localhost:8080)
+- [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md): cloud Linux VPS + Caddy + Cloudflare Zero Trust deployment
 - [docs/AGENT_SCAFFOLDING.md](docs/AGENT_SCAFFOLDING.md): AI agent guide for scaffolding custom ComfyUI profiles or adapting a fork for any Google Colab GPU workload
 - [docs/AGENT_SKILL.md](docs/AGENT_SKILL.md): how an agent wakes, uses, and stops a deployed gate
 - [skills/comfy-colab-kit/SKILL.md](skills/comfy-colab-kit/SKILL.md): universal AI agent skill definition (/comfy-colab-kit)
 - [docs/MCP.md](docs/MCP.md): Model Context Protocol (MCP) guide (stdio ckit mcp, remote HTTP, tool reference)
+- [docs/ACCESS.md](docs/ACCESS.md): connection paths (localhost zero-auth, browser, guest links, LAN, agent tokens)
 - [docs/AGENT.md](docs/AGENT.md): VPS deployment runbook and credential procurement guide
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): components, data flow, shared session, proxy
 - [docs/PROFILES.md](docs/PROFILES.md): profile format, ComfyUI passthrough, App mode
 - [docs/AUTO_STOP.md](docs/AUTO_STOP.md): every stop rule and its .env variable
-- [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md), [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md): deployment
+- [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md): Cloudflare Zero Trust Access & Named Tunnel setup
 - [docs/SECURITY.md](docs/SECURITY.md): secrets, scanning, threat model
 - [docs/WAKE_PAGE.md](docs/WAKE_PAGE.md): wake page and overlay UI
 - [docs/API.md](docs/API.md): HTTP API summary
+
+## For Autonomous AI Agents (Local Execution)
+1. **Bootstrap**: Run `docker compose -f deploy/docker-compose.local.yml up -d` or `python3 -m gate` (requires `AUTH_DISABLED=true` in `.env`).
+2. **Inspect**: Call `GET http://localhost:8080/_gate/healthz` and `GET http://localhost:8080/_gate/profiles`.
+3. **Connect via MCP**: Spawn `ckit mcp --gate-url http://localhost:8080` via stdio. Zero tokens or Cloudflare headers required.
+4. **Generate**: Call `gate_wake` with a profile (e.g. `flux-klein` or `wan-ltx-video`), queue prompts with `gate_txt2img` / `gate_img2img`, and call `gate_stop` upon completion.
 
 ## API
 - [apps/gate/openapi.yaml](apps/gate/openapi.yaml): OpenAPI 3.1 for /_gate/*

@@ -64,7 +64,14 @@ Add the `comfy-colab` server to your Cursor MCP settings:
 ```json
 {
   "mcpServers": {
-    "comfy-colab": {
+    "comfy-local": {
+      "command": "python3",
+      "args": ["-m", "ckit.mcp_server"],
+      "env": {
+        "CKIT_URL": "http://localhost:8080"
+      }
+    },
+    "comfy-remote": {
       "command": "python3",
       "args": ["-m", "ckit.mcp_server"],
       "env": {
@@ -75,6 +82,7 @@ Add the `comfy-colab` server to your Cursor MCP settings:
   }
 }
 ```
+*(For local standalone mode, `CKIT_URL: "http://localhost:8080"` requires zero authentication tokens!)*
 
 ### 2. Claude Desktop (`claude_desktop_config.json`)
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
@@ -87,7 +95,13 @@ Add the `comfy-colab` server to your Cursor MCP settings:
       "command": "python3",
       "args": ["-m", "ckit.mcp_server"],
       "env": {
-        "CKIT_URL": "https://comfy.yourdomain.com",
+        "CKIT_URL": "http://localhost:8080"
+      }
+    }
+  }
+}
+```
+*(Point `CKIT_URL` to `http://localhost:8080` for local mode or `https://comfy.yourdomain.com` for VPS mode).*
         "CKIT_TOKEN": "YOUR_AGENT_BEARER_TOKEN"
       }
     }
