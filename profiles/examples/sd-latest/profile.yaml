@@ -1,6 +1,6 @@
 # Stable Diffusion 3.5 profile. Official template vendored (MIT); Tensor.Art workflows are fetched by URL
 # (Stability Community License). SD3.5 Medium base is gated: accept the license on HF and set HF_TOKEN_FILE.
-# yaml-language-server: $schema=../../../schemas/profile.schema.json
+# yaml-language-server: $schema=../../../packages/schemas/profile.schema.json
 id: sd-latest
 title: Stable Diffusion 3.5 (Large fp8 default · TurboX / Medium turbo)
 accelerator: L4

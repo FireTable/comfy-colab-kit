@@ -17,6 +17,17 @@ outputs/
 # node
 node_modules/
 
+# custom user profiles
+profiles/custom/*
+!profiles/custom/README.md
+!profiles/custom/.gitkeep
+
+# ide & editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
 # python / os
 __pycache__/
 *.pyc

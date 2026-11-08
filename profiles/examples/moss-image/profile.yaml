@@ -1,6 +1,6 @@
 # MOSS-Image profile. Every workflow is an unmodified community/official upstream file (vendored only when
 # Apache-2.0/MIT, otherwise fetched by URL at setup). Models are always downloaded from the original repos.
-# yaml-language-server: $schema=../../../schemas/profile.schema.json
+# yaml-language-server: $schema=../../../packages/schemas/profile.schema.json
 id: moss-image
 title: MOSS-Image (DeBand int8 default · 4-step fast · official quality/layout · edit)
 accelerator: L4

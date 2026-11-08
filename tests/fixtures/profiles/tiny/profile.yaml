@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../../../../schemas/profile.schema.json
+# yaml-language-server: $schema=../../../../packages/schemas/profile.schema.json
 # Test fixture only (not an example). Uses a ComfyUI_examples workflow by URL.
 id: tiny
 title: SD 1.5 minimal (img2img example, ~2 GB)

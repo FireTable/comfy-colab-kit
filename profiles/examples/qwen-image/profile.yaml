@@ -1,6 +1,6 @@
 # Qwen-Image profile. Workflow JSONs are official Comfy-Org templates (MIT, vendored); weights are under the
 # qwen-research license and are only referenced by URL. Edit-2511/2512 templates are excluded (20 GB weights / superseded).
-# yaml-language-server: $schema=../../../schemas/profile.schema.json
+# yaml-language-server: $schema=../../../packages/schemas/profile.schema.json
 id: qwen-image
 title: Qwen-Image 2.1 (Turbo default · T2I / Edit)
 accelerator: L4

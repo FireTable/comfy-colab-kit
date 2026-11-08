@@ -96,7 +96,8 @@ def save_config(cfg):
             pass
 
 
-DEFAULT_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 (ckit/0.3.0)"
+CLI_VERSION = "0.3.0"
+DEFAULT_UA = f"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 (ckit/{CLI_VERSION})"
 
 
 def call(method, path, body=None, base_override=None):
@@ -468,6 +469,7 @@ def do_validate(a):
 
 def main():
     ap = argparse.ArgumentParser(prog="ckit", description="Comfy Colab Kit Operator CLI")
+    ap.add_argument("--version", "-v", action="version", version=f"%(prog)s {CLI_VERSION}")
     ap.add_argument(
         "cmd",
         choices=["auth", "doctor", "validate", "status", "profiles", "wake", "switch", "stop", "extend", "generate", "mcp"],
