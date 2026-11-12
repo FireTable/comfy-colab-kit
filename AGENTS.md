@@ -85,7 +85,7 @@ Billing states (CU accrues): every boot state, `ready`, `switching`, `failed`.
   persist through canonical backing slots with `widget: {name: wname}` (see `docs/APP_MODE.md`).
 - macOS ships bash 3.2: shell scripts must avoid `mapfile`, `${var,,}` etc.
 
-## 🧪 Tests & release
+## 🧪 Tests & verification
 
 ```bash
 pip install -e ".[dev]"
@@ -95,6 +95,44 @@ bash scripts/check-secrets.sh       # must print "secret scan: clean"
 ```
 
 Tests never call Google or Cloudflare: `tests/fakes.py::FakeColab` replaces the CLI.
+
+## 🚀 Version bump & Release SOP
+
+Automated release pipelines trigger **strictly on git tags (`v*`)**:
+- `.github/workflows/publish-ghcr.yml`: builds and pushes Docker images (`ghcr.io/firetable/comfy-colab-kit:<tag>`, `latest`)
+- `.github/workflows/release.yml`: builds Python wheels/sdists via `python -m build` and publishes a GitHub Release with assets
+
+### 1. Synchronize Version Numbers
+When releasing a new version `vX.Y.Z`, bump the version string across all 5 canonical locations:
+- `pyproject.toml` (`[project].version`)
+- `apps/gate/__init__.py` (`__version__`)
+- `apps/gate/openapi.yaml` (`info.version`)
+- `packages/cli/cli.py` (`CLI_VERSION`)
+- `packages/cli/mcp_server.py` (`SERVER_VERSION` & `DEFAULT_UA` `ckit/X.Y.Z`)
+
+### 2. Verify Pre-flight Checks
+Run the full test suite and scanners:
+```bash
+python -m pytest -q
+python scripts/validate-profile.py
+bash scripts/check-secrets.sh
+```
+
+### 3. Commit and Tag
+```bash
+git add pyproject.toml apps/gate/__init__.py apps/gate/openapi.yaml packages/cli/cli.py packages/cli/mcp_server.py AGENTS.md
+git commit -m "chore(release): bump version to vX.Y.Z"
+git push origin main
+
+git tag -a vX.Y.Z -m "Release vX.Y.Z: <summary of changes>"
+git push origin vX.Y.Z
+```
+
+### 4. Monitor CI Release Workflows
+Check GitHub Actions progress until both `publish-ghcr` and `release` workflows are green:
+```bash
+gh run list --limit 4
+```
 
 ## 📝 Commit conventions
 

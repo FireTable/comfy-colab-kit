@@ -96,7 +96,7 @@ def save_config(cfg):
             pass
 
 
-CLI_VERSION = "0.3.0"
+CLI_VERSION = "0.4.0"
 DEFAULT_UA = f"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 (ckit/{CLI_VERSION})"
 
 

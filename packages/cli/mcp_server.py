@@ -30,9 +30,9 @@ import urllib.request
 import uuid
 
 PROTOCOL_VERSION = "2024-11-05"
-SERVER_VERSION = "0.3.0"
+SERVER_VERSION = "0.4.0"
 
-DEFAULT_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 (ckit/0.3.0)"
+DEFAULT_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 (ckit/0.4.0)"
 
 
 def _read_file(path: str) -> str:
