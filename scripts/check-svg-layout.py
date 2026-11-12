@@ -67,9 +67,12 @@ MEASURE_JS = r"""
 (() => {
   const svg = document.querySelector('svg');
   const vb = svg.viewBox.baseVal;
-  const r = svg.getBoundingClientRect();
-  const sx = r.width / vb.width, sy = r.height / vb.height;
-  const u = bb => ({x: bb.x / sx, y: bb.y / sy, w: bb.width / sx, h: bb.height / sy});
+  const svgR = svg.getBoundingClientRect();
+  const sx = svgR.width / vb.width, sy = svgR.height / vb.height;
+  const u = bb => ({x: (bb.x !== undefined ? bb.x : bb.left) / sx,
+                    y: (bb.y !== undefined ? bb.y : bb.top) / sy,
+                    w: (bb.width !== undefined ? bb.width : bb.w || 0) / sx,
+                    h: (bb.height !== undefined ? bb.height : bb.h || 0) / sy});
   const texts = [];
   document.querySelectorAll('text').forEach((t, i) => {
     const b = u(t.getBoundingClientRect());
@@ -80,8 +83,12 @@ MEASURE_JS = r"""
       const range = document.createRange();
       range.setStart(t.firstChild, 0);
       range.setEnd(t.firstChild, 1);
-      const r = range.getClientRects()[0];
-      if (r) { startX = r.left; startY = r.top; }
+      const cr = range.getClientRects()[0];
+      if (cr && (cr.width > 0 || cr.height > 0)) {
+        const ur = u(cr);
+        startX = ur.x;
+        startY = ur.y;
+      }
     } catch (e) { /* no text node */ }
     texts.push({i, s: (t.textContent || '').trim().slice(0, 70),
                 x: +b.x.toFixed(2), y: +b.y.toFixed(2),
