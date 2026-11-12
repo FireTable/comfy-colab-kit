@@ -329,11 +329,11 @@ async def mcp_endpoint(request: web.Request) -> web.Response:
                     },
                     {
                         "name": "gate_wake",
-                        "description": "Wake or join the shared Google Colab L4 GPU instance with a model profile (e.g. 'moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image').",
+                        "description": "Wake or join the shared Google Colab L4 GPU instance with a model profile (e.g. 'moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image', 'minimax-h3-image').",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "profile": {"type": "string", "description": "Profile ID, e.g. 'moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image'."}
+                                "profile": {"type": "string", "description": "Profile ID, e.g. 'moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image', 'minimax-h3-image'."}
                             }
                         }
                     },

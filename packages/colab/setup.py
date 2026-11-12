@@ -1213,16 +1213,23 @@ def main():
         os.environ["HF_XET_HIGH_PERFORMANCE"] = "1"  # only bites on the huggingface_hub fallback path
     os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"  # tqdm bars flood the wake-page log
 
-    store = setup_model_store(PLAN)
-    if store:
-        point_models_to(store)
-    dl = Downloads(PLAN["models"], PLAN.get("download_concurrency", 8))
-    dl.start()  # downloads run in parallel from T0 with everything below
-    ts("downloads_started")
-
     with Stage("bootstrap"):
+        if not os.path.isdir(f"{COMFY}/.git"):
+            if os.path.exists(COMFY):
+                shutil.rmtree(COMFY)
+            sh(f"git clone -q {cfg['repo']} {COMFY} && cd {COMFY} && git checkout -q {cfg['commit']}")
+        else:
+            sh(f"cd {COMFY} && git checkout -q {cfg['commit']}")
+
+        store = setup_model_store(PLAN)
+        if store:
+            point_models_to(store)
+        dl = Downloads(PLAN["models"], PLAN.get("download_concurrency", 8))
+        dl.start()  # downloads run in parallel from here with everything below
+        ts("downloads_started")
+
         # uv is only needed by the deps stage -> install it in the background while cloudflared
-        # and the ComfyUI clone run in parallel.
+        # installs and models download.
         pip_uv = subprocess.Popen([sys.executable, "-m", "pip", "install", "-q", "-U", "uv"],
                                   stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
         procs = []
@@ -1230,9 +1237,6 @@ def main():
             procs.append(subprocess.Popen(
                 "wget -q -O /tmp/cf.deb https://github.com/cloudflare/cloudflared/releases/latest/download/"
                 "cloudflared-linux-amd64.deb && dpkg -i /tmp/cf.deb >/dev/null", shell=True))
-        if not os.path.isdir(COMFY):
-            procs.append(subprocess.Popen(
-                f"git clone -q {cfg['repo']} {COMFY} && cd {COMFY} && git checkout -q {cfg['commit']}", shell=True))
         for p in procs:
             if p.wait() != 0:
                 raise RuntimeError("bootstrap step failed")
@@ -1243,7 +1247,8 @@ def main():
 
     with Stage("deps"):
         frontend = cfg.get("frontend_package")
-        sh(f"cd {COMFY} && grep -viE '^(torch|torchvision|torchaudio)([<>=~ ]|$)' requirements.txt > /tmp/req.txt && "
+        filter_rx = '^(torch|torchvision|torchaudio' + ('|comfyui[-_]frontend[-_]package' if frontend else '') + ')([<>=~ ]|$)'
+        sh(f"cd {COMFY} && grep -viE {repr(filter_rx)} requirements.txt > /tmp/req.txt && "
            + (f"(uv pip install --system -q -r /tmp/req.txt {repr(frontend) if frontend else ''} || "
               if PLAN.get("pip_installer", "uv") == "uv" else "(")
            + f"pip install -q -r /tmp/req.txt {repr(frontend) if frontend else ''})")

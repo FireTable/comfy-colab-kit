@@ -228,6 +228,7 @@ Autonomous coding agents (Claude Code, Cursor, OpenClaw, Codex, LangGraph) can w
 | [`wan-ltx-video`](profiles/examples/wan-ltx-video/) | Wan 2.2 5B TI2V (Text/Image-to-Video), Wan 2.1 1.3B T2V (`prefetch: true`), and Lightricks LTX-Video 2B T2V/I2V (optional) | ~16.9 GB core / ~30.6 GB |
 | [`sd-latest`](profiles/examples/sd-latest/) | Stable Diffusion 3.5: Large fp8 default, TurboX 8-step, Medium turbo (gated, optional) | ~15 GB core / ~22 GB |
 | [`qwen-image`](profiles/examples/qwen-image/) | Qwen-Image 2.1: Turbo T2I default, full T2I, Turbo / full Edit | ~27 GB core / ~43 GB |
+| [`minimax-h3-image`](profiles/examples/minimax-h3-image/) | MiniMax-H3-Image: 33.1B DiT W4A8 fast L4 default, Qwen3-VL 32B INT8, 6-step native 4K T2I & Multi-Ref Edit | ~44.9 GB core / ~79 GB |
 
 Workflows are **only** community-published ones, fetched from the author with source and license recorded.
 Format and passthrough options: [docs/PROFILES.md](docs/PROFILES.md).
@@ -275,7 +276,7 @@ comfy-colab-kit/
 │   ├── cli/                  # [Package] Host & developer CLI tool (ckit)
 │   └── schemas/              # [Package] JSON Schema definitions (profile.schema.json)
 ├── profiles/                 # Profiles & Model Configurations
-│   ├── examples/             # Built-in community profiles (moss-image, flux-klein, wan-ltx-video, sd-latest, qwen-image)
+│   ├── examples/             # Built-in community profiles (moss-image, flux-klein, wan-ltx-video, sd-latest, qwen-image, minimax-h3-image)
 │   └── custom/               # Mount point for user custom profiles
 ├── deploy/                   # Infrastructure & deployment configuration
 │   ├── Dockerfile            # Container build recipe

@@ -211,7 +211,7 @@ TOOLS = [
     },
     {
         "name": "gate_wake",
-        "description": "Wake or join the shared Google Colab L4 GPU instance with a specified model profile (e.g. 'moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image').",
+        "description": "Wake or join the shared Google Colab L4 GPU instance with a specified model profile (e.g. 'moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image', 'minimax-h3-image').",
         "annotations": {
             "title": "Wake or Join Colab GPU Session",
             "readOnlyHint": False,
@@ -224,7 +224,7 @@ TOOLS = [
             "properties": {
                 "profile": {
                     "type": "string",
-                    "description": "The profile ID to wake (e.g. 'moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image'). If omitted, the gate default profile is used."
+                    "description": "The profile ID to wake (e.g. 'moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image', 'minimax-h3-image'). If omitted, the gate default profile is used."
                 },
                 "wait": {
                     "type": "boolean",
@@ -559,7 +559,7 @@ def run_stdio_server(base_url: str = ""):
                         "name": "comfy-colab-kit",
                         "version": SERVER_VERSION
                     },
-                    "instructions": "Use gate_status to check the Colab L4 GPU session state, gate_wake to boot or join a profile ('moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image'), gate_txt2img / gate_img2img / gate_generate to create images or videos, and gate_stop when finished to release GPU compute units."
+                    "instructions": "Use gate_status to check the Colab L4 GPU session state, gate_wake to boot or join a profile ('moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image', 'minimax-h3-image'), gate_txt2img / gate_img2img / gate_generate to create images or videos, and gate_stop when finished to release GPU compute units."
                 }
             }
             sys.stdout.write(json.dumps(res) + "\n")

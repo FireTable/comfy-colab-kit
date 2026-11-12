@@ -891,7 +891,7 @@ curl -sSL "https://raw.githubusercontent.com/FireTable/comfy-colab-kit/main/pack
 ### 常用命令速查
 - \`ckit status [--json]\`: 检查 GPU 实例状态、当前模型 Profile、排队情况与 CU 余额
 - \`ckit profiles [--json]\`: 查询网关支持的所有模型 Profiles 及 Workflows 工作流列表
-- \`ckit wake [--profile ID] [--wait]\`: 唤醒或加入 GPU 实例（可选 \`moss-image\`, \`flux-klein\`, \`wan-ltx-video\`, \`sd-latest\`, \`qwen-image\`）
+- \`ckit wake [--profile ID] [--wait]\`: 唤醒或加入 GPU 实例（可选 \`moss-image\`, \`flux-klein\`, \`wan-ltx-video\`, \`sd-latest\`, \`qwen-image\`, \`minimax-h3-image\`）
 - \`ckit switch <profile-id>\`: 在线切换模型 Profile（如从生图切换到 \`wan-ltx-video\` 视频生成）
 - \`ckit generate --prompt "..." [--preset "..."] [--width N] [--height N] [--timeout 300]\`: 执行快速文生图或文生视频（自动适配当前 Profile）
 - \`ckit generate --prompt "..." --image <PATH_OR_URL> [--denoise 0.75] [--timeout 300]\`: 执行图生图重绘、FLUX.2 Klein 指令改图或 Wan 2.2 首帧图生视频
@@ -909,7 +909,7 @@ curl -sSL "https://raw.githubusercontent.com/FireTable/comfy-colab-kit/main/pack
 ckit profiles --json
 \`\`\`
 2. **HTTP API 查询 (相对路径)**:
-向 \`GET /_gate/profiles\` 发送请求，返回包含当前可用 Profile 列表（如 \`moss-image\`, \`flux-klein\`, \`wan-ltx-video\`, \`sd-latest\`, \`qwen-image\`）以及每个 Profile 下全部已注册工作流的完整定义与许可。
+向 \`GET /_gate/profiles\` 发送请求，返回包含当前可用 Profile 列表（如 \`moss-image\`, \`flux-klein\`, \`wan-ltx-video\`, \`sd-latest\`, \`qwen-image\`, \`minimax-h3-image\`）以及每个 Profile 下全部已注册工作流的完整定义与许可。
 3. **查询当前 GPU 运行状态**:
 向 \`GET /_gate/status\` 发送请求，返回当前 GPU 运行的 Profile、会话阶段以及默认视图。
 

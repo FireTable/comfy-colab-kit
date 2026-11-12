@@ -41,7 +41,7 @@ def test_examples_parse(path):
 
 
 def test_three_example_profiles():
-    assert sorted(p.parent.name for p in EXAMPLES) == ["flux-klein", "moss-image", "qwen-image", "sd-latest", "wan-ltx-video"]
+    assert sorted(p.parent.name for p in EXAMPLES) == ["flux-klein", "minimax-h3-image", "moss-image", "qwen-image", "sd-latest", "wan-ltx-video"]
 
 
 def test_moss_profile_contents():

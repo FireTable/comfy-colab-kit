@@ -54,7 +54,7 @@ ckit status --json
 # List available profiles and community workflows
 ckit profiles --json
 
-# Wake or join the shared session (profiles: moss-image, flux-klein, wan-ltx-video, sd-latest, qwen-image)
+# Wake or join the shared session (profiles: moss-image, flux-klein, wan-ltx-video, sd-latest, qwen-image, minimax-h3-image)
 ckit wake --profile moss-image --wait
 
 # Generate an image or video directly via high-level pipeline (auto-adapts to active profile)

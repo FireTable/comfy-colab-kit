@@ -95,7 +95,7 @@ curl -s http://localhost:8080/_gate/healthz
 
 # Inspect available profiles
 curl -s http://localhost:8080/_gate/profiles
-# Returns: ["moss-image", "flux-klein", "wan-ltx-video", "sd-latest", "qwen-image"]
+# Returns: ["moss-image", "flux-klein", "wan-ltx-video", "sd-latest", "qwen-image", "minimax-h3-image"]
 ```
 
 ### 2. Programmatic Wake & GPU Control

@@ -1,0 +1,126 @@
+# MiniMax-H3-Image profile for Colab L4 (24 GB VRAM).
+# Workflows are official Comfy-Org templates (MIT, vendored).
+# Models: DiT W4A8 (pruned 11.69 GB, rock-solid for 24 GB L4 zero-OOM), Qwen3-VL 32B INT8 (25.28 GB, High-RAM offloaded),
+# Qwen3.5 9B GPTQ prompt enhancer (6.84 GB), VAE (1.09 GB). Optional DiT INT8 (19.54 GB) and Text Encoder NVFP4 (14.61 GB).
+# yaml-language-server: $schema=../../../packages/schemas/profile.schema.json
+id: minimax-h3-image
+title: MiniMax-H3-Image (W4A8 fast L4 · Qwen3-VL 32B · T2I & Multi-Ref Edit)
+accelerator: L4
+comfyui:
+  repo: https://github.com/comfyanonymous/ComfyUI
+  commit: ede4e5f
+  args:
+  - --preview-method
+  - auto
+  - --reserve-vram
+  - '1.5'
+  settings:
+    Comfy.LinkRenderMode: 2
+  env:
+    PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
+    CUDA_MODULE_LOADING: LAZY
+    TORCH_CUDNN_V8_API: '1'
+    TORCH_ALLOW_TF32_CUBLAS_OVERRIDE: '1'
+frontend:
+  package: comfyui-frontend-package==1.59.1
+model_aliases:
+  minimax_h3_image_pruned_int8_convrot.safetensors: dit-w4a8
+models:
+- id: dit-w4a8
+  dest: diffusion_models/minimax_h3_image_pruned_w4a8.safetensors
+  url: hf://Comfy-Org/MiniMax-H3-Image/diffusion_models/minimax_h3_image_pruned_w4a8.safetensors
+  license: minimax-h3-image-community-license-agreement
+  sha256: 517cc19b85348386f4df7c806dce80d839d0899e7cdaa3e1dbb09de964381dbb
+  size_gb: 11.69
+  core: true
+- id: dit-int8
+  dest: diffusion_models/minimax_h3_image_pruned_int8_convrot.safetensors
+  url: hf://Comfy-Org/MiniMax-H3-Image/diffusion_models/minimax_h3_image_pruned_int8_convrot.safetensors
+  license: minimax-h3-image-community-license-agreement
+  sha256: 83eb140f1ff95c068f8a6886e6d3f3d0d4ab2e07bb2fe6d2ef992a51146ee622
+  size_gb: 19.54
+- id: q3vl-int8
+  dest: text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors
+  url: hf://Comfy-Org/MiniMax-H3-Image/text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors
+  license: minimax-h3-image-community-license-agreement
+  sha256: bc2ced0fbea64757fa9acddccfc0b3f4819d1dcf1da6c124d690d368be283923
+  size_gb: 25.28
+  core: true
+- id: q3vl-nvfp4
+  dest: text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors
+  url: hf://Comfy-Org/MiniMax-H3-Image/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors
+  license: minimax-h3-image-community-license-agreement
+  sha256: 35a88d51044231fe332301d7a62aa81e3f2cba62febeb446e2c1e3e0ef76f2c6
+  size_gb: 14.61
+- id: pe-gptq
+  dest: text_encoders/qwen3.5_9b_w4a8_gptq.safetensors
+  url: hf://Comfy-Org/MiniMax-H3-Image/text_encoders/qwen3.5_9b_w4a8_gptq.safetensors
+  license: apache-2.0
+  sha256: 4cc6a1543ad2061806da46f35f90cadb4801dcba246c44782cf42ec0feb6407c
+  size_gb: 6.84
+  core: true
+- id: h3-vae
+  dest: vae/minimax_h3_image_vae_fp16.safetensors
+  url: hf://Comfy-Org/MiniMax-H3-Image/vae/minimax_h3_image_vae_fp16.safetensors
+  license: minimax-h3-image-community-license-agreement
+  sha256: d80e9c2e5cfc9844869961ff5a58c9a9e52182df6bfb30b26018dd7f348721af
+  size_gb: 1.09
+  core: true
+workflows:
+- id: h3-t2i
+  title: Quality · MiniMax-H3-Image T2I (official)
+  source: https://huggingface.co/Comfy-Org/MiniMax-H3-Image
+  license: MIT template; weights MiniMax H3 Image community license
+  file: workflows/official_minimax_h3_image_t2i.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_minimax_h3_image_t2i.json
+  upstream_sha256: 73f7d9c137e48de2183d9f9e19cdd0ea9009d9433fd3a48f10c43534eecf255b
+  models:
+  - dit-w4a8
+  - q3vl-int8
+  - pe-gptq
+  - h3-vae
+  app:
+    inputs:
+    - - 23
+      - replace
+      - "正向提示词 (Positive Prompt)"
+    - - 23
+      - switch
+      - "提示词增强 (Prompt Enhancer)"
+    - - 23
+      - width
+      - "图像宽度 (Width)"
+    - - 23
+      - height
+      - "图像高度 (Height)"
+    outputs:
+    - 9
+- id: h3-edit
+  title: Edit · MiniMax-H3-Image Multi-Ref Edit (official)
+  source: https://huggingface.co/Comfy-Org/MiniMax-H3-Image
+  license: MIT template; weights MiniMax H3 Image community license
+  file: workflows/official_minimax_h3_image_edit.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_minimax_h3_image_edit.json
+  upstream_sha256: 5b4330e9c8bc69fe0c8ccc7ba8e433484a419cf23f5cd099626ecaa15b05325f
+  models:
+  - dit-w4a8
+  - q3vl-int8
+  - pe-gptq
+  - h3-vae
+  app:
+    inputs:
+    - - 45
+      - image
+      - "参考底图 (Input Image)"
+    - - 43
+      - value
+      - "编辑指令 (Edit Instruction)"
+    - - 61
+      - value
+      - "提示词增强 (Prompt Enhancer)"
+    - - 38
+      - seed
+      - "随机种子 (Seed)"
+    outputs:
+    - 9
+app_default: h3-t2i

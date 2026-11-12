@@ -126,6 +126,7 @@ class Settings:
         "profiles/examples/wan-ltx-video",
         "profiles/examples/sd-latest",
         "profiles/examples/qwen-image",
+        "profiles/examples/minimax-h3-image",
     )
     default_profile: str = "moss-image"
     default_view: str = "app"

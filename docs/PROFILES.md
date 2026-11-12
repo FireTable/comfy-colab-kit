@@ -15,6 +15,7 @@ JSON Schema validation specification: [`packages/schemas/profile.schema.json`](.
 | [`wan-ltx-video`](../profiles/examples/wan-ltx-video/) | `wan22-ti2v-5b` | ~16.9 GB core / ~30.6 GB | Wan 2.2 5B Text/Image-to-Video (TI2V), Wan 2.1 1.3B T2V (`prefetch: true`), and Lightricks LTX-Video 2B T2V/I2V (optional) |
 | [`sd-latest`](../profiles/examples/sd-latest/) | `sd35-large` | ~15 GB core / ~22 GB | SD 3.5 Large fp8, TurboX 8-step acceleration, SD 3.5 Medium turbo (gated, optional) |
 | [`qwen-image`](../profiles/examples/qwen-image/) | `qwen21-turbo-t2i` | ~27 GB core / ~43 GB | Qwen-Image 2.1 Turbo T2I, full text-to-image, and Turbo / full image editing |
+| [`minimax-h3-image`](../profiles/examples/minimax-h3-image/) | `h3-t2i` | ~44.9 GB core / ~79 GB | MiniMax-H3-Image 33.1B DiT W4A8 (L4-optimized zero-OOM), Qwen3-VL 32B INT8, 6-step native 4K T2I & Multi-Ref Edit |
 
 ---
 
@@ -131,4 +132,5 @@ We celebrate the creators and open-source communities behind the profiles suppor
 - **Lightricks LTX-Video 2B**: Created by [Lightricks](https://github.com/Lightricks/LTX-Video). Lightweight high-frame-rate DiT video model for text/image-to-video synthesis.
 - **Stable Diffusion 3.5**: Created by [Stability AI](https://stability.ai/). High-performance FP8 and TurboX community acceleration graphs.
 - **Qwen-Image**: Developed by the [Qwen Team](https://github.com/QwenLM) at Alibaba Cloud. Fast visual synthesis and multimodal generation.
+- **MiniMax-H3-Image**: Created by [MiniMax](https://github.com/MiniMax-AI/MiniMax-H3-Image) and repackaged by [Comfy-Org](https://huggingface.co/Comfy-Org/MiniMax-H3-Image). 33.1B single-stream DiT architecture delivering native 16 MP image generation and multi-reference editing in 6 distilled sampling steps.
 - **Community Custom Nodes**: We thank **Kijai** and the broad ComfyUI node contributor ecosystem for publishing optimized sampling nodes and adapters.

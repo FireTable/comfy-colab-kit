@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Comfy Colab Kit — Remote, Wake-on-Demand ComfyUI on Google Colab</title>
-<meta name="description" content="Wake ComfyUI on Google Colab L4 GPUs on-demand from your Mac, PC, or autonomous AI agent. Run 100% locally on localhost (zero VPS, zero domain, no Cloudflare) or deploy to a VPS behind Cloudflare Access. Built-in profiles for FLUX.2 Klein 4B, Wan 2.2 Video, MOSS-Image, SD 3.5, and Qwen-Image with auto-shutdown.">
-<meta name="keywords" content="ComfyUI, Google Colab, Local ComfyUI, ComfyUI Mac, Run ComfyUI without VPS, Zero VPS GPU gateway, FLUX.2 Klein, Wan 2.2 Video, LTX-Video, Text-to-Video, Image-to-Video, AI Agents, Model Context Protocol, MCP, Cloudflare Access, MOSS-Image, SD 3.5, Qwen-Image, Localhost ComfyUI">
+<meta name="description" content="Wake ComfyUI on Google Colab L4 GPUs on-demand from your Mac, PC, or autonomous AI agent. Run 100% locally on localhost (zero VPS, zero domain, no Cloudflare) or deploy to a VPS behind Cloudflare Access. Built-in profiles for MiniMax-H3-Image, FLUX.2 Klein 4B, Wan 2.2 Video, MOSS-Image, SD 3.5, and Qwen-Image with auto-shutdown.">
+<meta name="keywords" content="ComfyUI, Google Colab, Local ComfyUI, ComfyUI Mac, Run ComfyUI without VPS, Zero VPS GPU gateway, MiniMax-H3-Image, MiniMax H3, Qwen3-VL, FLUX.2 Klein, Wan 2.2 Video, LTX-Video, Text-to-Video, Image-to-Video, AI Agents, Model Context Protocol, MCP, Cloudflare Access, MOSS-Image, SD 3.5, Qwen-Image, Localhost ComfyUI">
 <meta name="author" content="FireTable">
 <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
 
@@ -20,7 +20,7 @@
 <meta property="og:url" content="https://comfy-colab-kit.firetable.tech/">
 <meta property="og:site_name" content="Comfy Colab Kit">
 <meta property="og:title" content="Comfy Colab Kit — Remote, Wake-on-Demand ComfyUI on Google Colab">
-<meta property="og:description" content="ComfyUI on Colab L4 GPUs, awake only when you need it. Image & video generation (MOSS-Image, FLUX.2 Klein, Wan 2.2 TI2V, SD 3.5, Qwen-Image) with native AI Agent & MCP dispatch.">
+<meta property="og:description" content="ComfyUI on Colab L4 GPUs, awake only when you need it. Image & video generation (MiniMax-H3-Image, MOSS-Image, FLUX.2 Klein, Wan 2.2 TI2V, SD 3.5, Qwen-Image) with native AI Agent & MCP dispatch.">
 <meta property="og:image" content="https://comfy-colab-kit.firetable.tech/assets/og.png">
 <meta property="og:image:secure_url" content="https://comfy-colab-kit.firetable.tech/assets/og.png">
 <meta property="og:image:type" content="image/png">
@@ -35,7 +35,7 @@
 <meta name="twitter:site" content="@FireTable">
 <meta name="twitter:creator" content="@FireTable">
 <meta name="twitter:title" content="Comfy Colab Kit — Remote, Wake-on-Demand ComfyUI on Google Colab">
-<meta name="twitter:description" content="ComfyUI on Colab L4 GPUs, awake only when you need it. Image & video generation (MOSS-Image, FLUX.2 Klein, Wan 2.2 TI2V, SD 3.5, Qwen-Image) with native AI Agent & MCP dispatch.">
+<meta name="twitter:description" content="ComfyUI on Colab L4 GPUs, awake only when you need it. Image & video generation (MiniMax-H3-Image, MOSS-Image, FLUX.2 Klein, Wan 2.2 TI2V, SD 3.5, Qwen-Image) with native AI Agent & MCP dispatch.">
 <meta name="twitter:image" content="https://comfy-colab-kit.firetable.tech/assets/og.png">
 <meta name="twitter:image:alt" content="Comfy Colab Kit — Remote, Wake-on-Demand ComfyUI on Google Colab L4 GPUs">
 
@@ -108,7 +108,7 @@
           "name": "What AI models and profiles are supported?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Comfy Colab Kit includes 5 built-in profiles: MOSS-Image (DeBand T2I/I2I), FLUX.2 Klein 4B (Distilled & Base + ReferenceLatent edit), Wan 2.2 5B TI2V & Lightricks LTX-Video 2B (Text/Image-to-Video), Stable Diffusion 3.5 Large fp8, and Qwen-Image 2.1. Custom profiles can be added dynamically."
+            "text": "Comfy Colab Kit includes 6 built-in profiles: MiniMax-H3-Image (33.1B DiT W4A8 + Qwen3-VL 32B), MOSS-Image (DeBand T2I/I2I), FLUX.2 Klein 4B (Distilled & Base + ReferenceLatent edit), Wan 2.2 5B TI2V & Lightricks LTX-Video 2B (Text/Image-to-Video), Stable Diffusion 3.5 Large fp8, and Qwen-Image 2.1. Custom profiles can be added dynamically."
           }
         }
       ]
@@ -596,6 +596,14 @@ docker compose -f deploy/docker-compose.yml up -d</code></pre>
           <p data-i18n="profiles.p3Desc">Qwen-Image 2.1 official templates on a Colab L4, defaulting to 2.1 Turbo text-to-image with int8 weights that effortlessly fit 24 GB.</p>
         </div>
         <div class="profile-path">profiles/examples/qwen-image</div>
+      </article>
+      <article class="card profile-card">
+        <div>
+          <div class="card-tag"><span>👑</span> <span data-i18n="profiles.p7Tag">33.1B DiT &amp; Qwen3-VL</span></div>
+          <h3>MiniMax-H3-Image</h3>
+          <p data-i18n="profiles.p7Desc">MiniMax-H3-Image 33.1B DiT (W4A8 fast L4) + Qwen3-VL 32B text encoder for 6-step Euler photorealistic T2I and multi-reference image editing.</p>
+        </div>
+        <div class="profile-path">profiles/examples/minimax-h3-image</div>
       </article>
       <article class="card profile-card">
         <div>

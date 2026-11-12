@@ -1,6 +1,6 @@
 # Comfy Colab Kit
 
-> Wake-on-demand ComfyUI on Google Colab. A lightweight aiohttp gateway (comfy-gate) that runs either 100% locally on your Mac/PC (zero VPS, zero domain, zero Cloudflare setup) or on a cloud Linux VPS behind Cloudflare Access. Shows a Hugging-Face-Space-style wake page, starts one shared Colab L4 session via the colab CLI, streams progress to every viewer over SSE, reverse-proxies ComfyUI (incl. /ws), and auto-stops on idle, max session, quiet hours or compute-unit budget. Built-in profiles for MOSS-Image, FLUX.2 Klein 4B, Wan 2.2 & LTX-Video (T2V/I2V), SD 3.5, and Qwen-Image.
+> Wake-on-demand ComfyUI on Google Colab. A lightweight aiohttp gateway (comfy-gate) that runs either 100% locally on your Mac/PC (zero VPS, zero domain, zero Cloudflare setup) or on a cloud Linux VPS behind Cloudflare Access. Shows a Hugging-Face-Space-style wake page, starts one shared Colab L4 session via the colab CLI, streams progress to every viewer over SSE, reverse-proxies ComfyUI (incl. /ws), and auto-stops on idle, max session, quiet hours or compute-unit budget. Built-in profiles for MOSS-Image, MiniMax-H3-Image, FLUX.2 Klein 4B, Wan 2.2 & LTX-Video (T2V/I2V), SD 3.5, and Qwen-Image.
 
 ## Docs
 - [README](README.md): overview, quick start, dual-mode deployment, showcase gallery
@@ -39,3 +39,4 @@
 - [profiles/examples/wan-ltx-video/README.md](profiles/examples/wan-ltx-video/README.md): Wan 2.2 5B TI2V, Wan 2.1 1.3B T2V & Lightricks LTX-Video 2B profile
 - [profiles/examples/sd-latest/README.md](profiles/examples/sd-latest/README.md): Stable Diffusion 3.5 Large fp8 & TurboX profile
 - [profiles/examples/qwen-image/README.md](profiles/examples/qwen-image/README.md): Qwen-Image 2.1 Turbo T2I & Edit profile
+- [profiles/examples/minimax-h3-image/README.md](profiles/examples/minimax-h3-image/README.md): MiniMax-H3-Image 33.1B DiT (W4A8 fast L4 · Qwen3-VL 32B · T2I & Multi-Ref Edit) profile

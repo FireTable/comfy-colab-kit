@@ -524,6 +524,172 @@ def make_wan_video_graph(
     return graph
 
 
+def make_minimax_h3_txt2img_graph(
+    prompt: str,
+    negative_prompt: str = "",
+    seed: int = -1,
+    width: int = 1024,
+    height: int = 1024,
+) -> dict:
+    """Official MiniMax-H3-Image 6-step Euler CFG=1 Txt2Img API graph."""
+    actual_seed = _resolve_seed(seed)
+    w = max(512, min(4096, int(width or 1024)))
+    h = max(512, min(4096, int(height or 1024)))
+
+    return {
+        "1": {
+            "class_type": "UNETLoader",
+            "inputs": {
+                "unet_name": "minimax_h3_image_pruned_w4a8.safetensors",
+                "weight_dtype": "default",
+            },
+        },
+        "2": {
+            "class_type": "CLIPLoader",
+            "inputs": {
+                "clip_name": "qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
+                "type": "minimax",
+                "device": "cpu",
+            },
+        },
+        "3": {
+            "class_type": "VAELoader",
+            "inputs": {
+                "vae_name": "minimax_h3_image_vae_fp16.safetensors",
+            },
+        },
+        "5": {
+            "class_type": "MiniMaxH3ImageConditioning",
+            "inputs": {
+                "clip": ["2", 0],
+                "vae": ["3", 0],
+                "prompt": prompt,
+                "width": w,
+                "height": h,
+            },
+        },
+        "6": {
+            "class_type": "ConditioningZeroOut",
+            "inputs": {
+                "conditioning": ["5", 0],
+            },
+        },
+        "7": {
+            "class_type": "KSampler",
+            "inputs": {
+                "model": ["1", 0],
+                "positive": ["5", 0],
+                "negative": ["6", 0],
+                "latent_image": ["5", 1],
+                "seed": actual_seed,
+                "steps": 6,
+                "cfg": 1.0,
+                "sampler_name": "euler",
+                "scheduler": "simple",
+                "denoise": 1.0,
+            },
+        },
+        "8": {
+            "class_type": "VAEDecode",
+            "inputs": {
+                "samples": ["7", 0],
+                "vae": ["3", 0],
+            },
+        },
+        "9": {
+            "class_type": "SaveImage",
+            "inputs": {
+                "filename_prefix": "minimax_h3_image_t2i",
+                "images": ["8", 0],
+            },
+        },
+    }
+
+
+def make_minimax_h3_img2img_graph(
+    prompt: str,
+    image: str,
+    negative_prompt: str = "",
+    seed: int = -1,
+    denoise: float = 1.0,
+) -> dict:
+    """Official MiniMax-H3-Image Multi-Ref Edit API graph."""
+    actual_seed = _resolve_seed(seed)
+    return {
+        "1": {
+            "class_type": "UNETLoader",
+            "inputs": {
+                "unet_name": "minimax_h3_image_pruned_w4a8.safetensors",
+                "weight_dtype": "default",
+            },
+        },
+        "2": {
+            "class_type": "CLIPLoader",
+            "inputs": {
+                "clip_name": "qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
+                "type": "minimax",
+                "device": "cpu",
+            },
+        },
+        "3": {
+            "class_type": "VAELoader",
+            "inputs": {
+                "vae_name": "minimax_h3_image_vae_fp16.safetensors",
+            },
+        },
+        "4": {
+            "class_type": "LoadImage",
+            "inputs": {"image": image, "upload": "image"},
+        },
+        "5": {
+            "class_type": "MiniMaxH3ImageConditioning",
+            "inputs": {
+                "clip": ["2", 0],
+                "vae": ["3", 0],
+                "prompt": prompt,
+                "image_1": ["4", 0],
+                "width": 1024,
+                "height": 1024,
+            },
+        },
+        "6": {
+            "class_type": "ConditioningZeroOut",
+            "inputs": {
+                "conditioning": ["5", 0],
+            },
+        },
+        "7": {
+            "class_type": "KSampler",
+            "inputs": {
+                "model": ["1", 0],
+                "positive": ["5", 0],
+                "negative": ["6", 0],
+                "latent_image": ["5", 1],
+                "seed": actual_seed,
+                "steps": 6,
+                "cfg": 1.0,
+                "sampler_name": "euler",
+                "scheduler": "simple",
+                "denoise": denoise if denoise is not None else 1.0,
+            },
+        },
+        "8": {
+            "class_type": "VAEDecode",
+            "inputs": {
+                "samples": ["7", 0],
+                "vae": ["3", 0],
+            },
+        },
+        "9": {
+            "class_type": "SaveImage",
+            "inputs": {
+                "filename_prefix": "minimax_h3_image_edit",
+                "images": ["8", 0],
+            },
+        },
+    }
+
+
 def make_txt2img_graph(
     profile: str | None,
     prompt: str,
@@ -534,6 +700,14 @@ def make_txt2img_graph(
     height: int = 1024,
 ) -> dict:
     """Build a Txt2Img / Txt2Vid prompt graph matching the active profile."""
+    if profile == "minimax-h3-image":
+        return make_minimax_h3_txt2img_graph(
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            seed=seed,
+            width=width,
+            height=height,
+        )
     if profile == "flux-klein":
         return make_flux_klein_txt2img_graph(
             prompt=prompt,
@@ -580,6 +754,14 @@ def make_img2img_graph(
     seed: int = -1,
 ) -> dict:
     """Build an Img2Img / Img2Vid prompt graph matching the active profile."""
+    if profile == "minimax-h3-image":
+        return make_minimax_h3_img2img_graph(
+            prompt=prompt,
+            image=image,
+            negative_prompt=negative_prompt,
+            seed=seed,
+            denoise=denoise,
+        )
     if profile == "flux-klein":
         return make_flux_klein_img2img_graph(
             prompt=prompt,

@@ -227,6 +227,7 @@ docker compose -f deploy/docker-compose.yml up -d
 | [`wan-ltx-video`](profiles/examples/wan-ltx-video/) | Wan 2.2 5B TI2V（文生视频 + 首帧图生视频）、Wan 2.1 1.3B 文生视频（后台预取）与 Lightricks LTX-Video 2B（可选） | 核心约 16.9 GB / 约 30.6 GB |
 | [`sd-latest`](profiles/examples/sd-latest/) | Stable Diffusion 3.5：默认 Large fp8，TurboX 8 步，Medium 加速（需授权，可选） | 核心约 15 GB / 约 22 GB |
 | [`qwen-image`](profiles/examples/qwen-image/) | Qwen-Image 2.1：默认 Turbo 文生图，完整文生图，Turbo / 完整编辑 | 核心约 27 GB / 约 43 GB |
+| [`minimax-h3-image`](profiles/examples/minimax-h3-image/) | MiniMax-H3-Image：33.1B DiT W4A8 L4 专属极速默认，Qwen3-VL 32B INT8，6 步原生 4K 文生图与多参考图编辑 | 核心约 44.9 GB / 约 79 GB |
 
 工作流**只用**社区已发布的版本，从作者处下载并记录来源与许可证。格式与透传选项见 [docs/PROFILES.md](docs/PROFILES.md)。
 
@@ -273,7 +274,7 @@ comfy-colab-kit/
 │   ├── cli/                  # [开发工具包] 宿主机与智能体运维命令行（ckit）
 │   └── schemas/              # [规范包] 预设 JSON Schema 约束定义（profile.schema.json）
 ├── profiles/                 # 模型预设与工作流管理
-│   ├── examples/             # 内置社区预设（moss-image、flux-klein、wan-ltx-video、sd-latest、qwen-image）
+│   ├── examples/             # 内置社区预设（moss-image、flux-klein、wan-ltx-video、sd-latest、qwen-image、minimax-h3-image）
 │   └── custom/               # 用户挂载自定义预设目录
 ├── deploy/                   # 基础设施与部署编排
 │   ├── Dockerfile            # 最小化容器镜像构建文件

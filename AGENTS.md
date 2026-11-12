@@ -19,7 +19,7 @@ The repository is structured as a clean engineering monorepo:
 | `packages/colab/` | VM Runtime | Runs in Colab kernel; prints `KIT_STAGE/KIT_PROGRESS/KIT_READY/KIT_FAILED` | stdlib + huggingface_hub only |
 | `packages/cli/` | CLI Tool | `ckit` command line utility for operators and agents | Python stdlib CLI |
 | `packages/schemas/` | Schema Package | JSON schema (`profile.schema.json`) | Validates all profiles |
-| `profiles/examples/` | Community Profiles | `moss-image` (primary), `flux-klein`, `wan-ltx-video`, `sd-latest`, `qwen-image` | Community workflows only |
+| `profiles/examples/` | Community Profiles | `moss-image` (primary), `flux-klein`, `wan-ltx-video`, `sd-latest`, `qwen-image`, `minimax-h3-image` | Community workflows only |
 | `profiles/custom/` | User Profiles | User-defined custom model profiles mount | Re-read dynamically on wake |
 | `deploy/` | Deployment | Dockerfile, compose, Caddyfile snippet | Container run as uid 10001 |
 | `docs/` | Documentation | Product & architecture guides, including `docs/APP_MODE.md` | English only, no secrets |
