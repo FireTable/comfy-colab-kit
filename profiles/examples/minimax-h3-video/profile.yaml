@@ -1,0 +1,342 @@
+# MiniMax-H3 TriPRISM Video profile for Colab A100-80G (primary), G4 96G & L4 24G fallback.
+# Official Comfy-Org templates (MIT, vendored unchanged); MiniMax-H3 TriPRISM TurboFusion weights + ComfyUI_MiniMax_H3_Extender (Apache-2.0).
+# yaml-language-server: $schema=../../../packages/schemas/profile.schema.json
+id: minimax-h3-video
+title: MiniMax-H3 TriPRISM Video (A100/G4/L4 · 8-Step · Ref2V/I2V/ControlNet/Extend · Stereo Audio)
+accelerator: A100
+high_mem: true
+fallback_accelerators:
+- G4
+- L4
+comfyui:
+  repo: https://github.com/comfyanonymous/ComfyUI
+  commit: f40a4fb
+  args:
+  - --preview-method
+  - auto
+  - --reserve-vram
+  - '1.5'
+  settings:
+    Comfy.LinkRenderMode: 2
+  env:
+    PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
+    CUDA_MODULE_LOADING: LAZY
+    TORCH_CUDNN_V8_API: '1'
+    TORCH_ALLOW_TF32_CUBLAS_OVERRIDE: '1'
+frontend:
+  package: comfyui-frontend-package==1.59.15
+model_aliases:
+  minimax_h3_ref2va_pruned_int8_convrot.safetensors: dit-triprism-int8
+  minimax_h3_fl2va_pruned_int8_convrot.safetensors: dit-triprism-int8
+model_aliases_by_gpu:
+  L4:
+    Sulphur3_10ErosMax_SingularityV2_TriPRISM_TurboFusion_realism_int8_convrot.safetensors: dit-triprism-tiny
+    minimax_h3_ref2va_pruned_int8_convrot.safetensors: dit-triprism-tiny
+    minimax_h3_fl2va_pruned_int8_convrot.safetensors: dit-triprism-tiny
+custom_nodes:
+- id: minimax-h3-extender
+  url: https://github.com/tritant/ComfyUI_MiniMax_H3_Extender
+  ref: b1ddb527eaabfbb315b0e1196f8227222a549e6f
+  license: Apache-2.0
+models:
+- id: dit-triprism-int8
+  dest: diffusion_models/Sulphur3_10ErosMax_SingularityV2_TriPRISM_TurboFusion_realism_int8_convrot.safetensors
+  url: hf://OliviaRossi/Minimax-H3-Sulphur3-10Erosmax-SingularityV2-TriPrism-TurboFusion/Sulphur3_10ErosMax_SingularityV2_TriPRISM_TurboFusion_realism_int8_convrot.safetensors
+  license: minimax-h3-community-license-agreement
+  sha256: 75e7dbd540aaac8a14545fc01780da3c9940b89aed2c523f2f7786d36558540f
+  size_gb: 19.61
+  core: true
+- id: dit-triprism-tiny
+  dest: diffusion_models/Sulphur3_10ErosMax_SingularityV2_TriPRISM_TurboFusion_realism_h3tiny17b_int8_convrot.safetensors
+  url: hf://OliviaRossi/Minimax-H3-Sulphur3-10Erosmax-SingularityV2-TriPrism-TurboFusion/Sulphur3_10ErosMax_SingularityV2_TriPRISM_TurboFusion_realism_h3tiny17b_int8_convrot.safetensors
+  license: minimax-h3-community-license-agreement
+  sha256: f29f27aec091fe838510e8c54102ef73764c2a2e8102821eb436f361154e874a
+  size_gb: 16.0
+- id: dit-triprism-w6a8
+  dest: diffusion_models/Sulphur3_10ErosMax_SingularityV2_TriPRISM_TurboFusion_realism_pruned_w6a8_g32.safetensors
+  url: hf://OliviaRossi/Minimax-H3-Sulphur3-10Erosmax-SingularityV2-TriPrism-TurboFusion/Sulphur3_10ErosMax_SingularityV2_TriPRISM_TurboFusion_realism_pruned_w6a8_g32.safetensors
+  license: minimax-h3-community-license-agreement
+  sha256: 8017f3570f9ff5151d13e38c68df88742abe7d2850e94da27494568a5e065560
+  size_gb: 14.97
+- id: q3vl-nvfp4
+  dest: text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors
+  url: hf://Comfy-Org/MiniMax-H3/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors
+  license: minimax-h3-community-license-agreement
+  sha256: 35a88d51044231fe332301d7a62aa81e3f2cba62febeb446e2c1e3e0ef76f2c6
+  size_gb: 14.61
+  core: true
+- id: video-vae-int8
+  dest: vae/minimax_h3_video_vae_int8_convrot.safetensors
+  url: hf://Comfy-Org/MiniMax-H3/vae/minimax_h3_video_vae_int8_convrot.safetensors
+  license: minimax-h3-community-license-agreement
+  sha256: 52a2c8c73583c86e4f41cdcce3a6ad0ea562987bc0bf3d60a0cef5f5c8e60c0e
+  size_gb: 2.62
+  core: true
+- id: audio-vae
+  dest: vae/minimax_h3_audio_vae_fp32.safetensors
+  url: hf://Comfy-Org/MiniMax-H3/vae/minimax_h3_audio_vae_fp32.safetensors
+  license: minimax-h3-community-license-agreement
+  sha256: 8e505d95dd1561d47abd43d4238fd40d9bb1ae9e147ed0a4cba778d76ae4db48
+  size_gb: 0.56
+  core: true
+- id: fun-controlnet-union
+  dest: model_patches/minimax_h3_fun_controlnet_union_pruned_int8_convrot.safetensors
+  url: hf://Comfy-Org/MiniMax-H3/model_patches/minimax_h3_fun_controlnet_union_pruned_int8_convrot.safetensors
+  license: minimax-h3-community-license-agreement
+  sha256: 9c645c0a308c8af361efd43b409710f6f8fec0db297c29503e141a84991fed0c
+  size_gb: 2.14
+- id: sdpose-wholebody
+  dest: checkpoints/sdpose_wholebody_fp16.safetensors
+  url: hf://Comfy-Org/SDPose/checkpoints/sdpose_wholebody_fp16.safetensors
+  license: mit
+  sha256: 63d01f9a7494560693b24767f4469d59c9d3266b31ff0a253e74d1e611442721
+  size_gb: 1.79
+- id: rtdetr-hgnet
+  dest: diffusion_models/rt_detr_v4-x-hgnet_fp16.safetensors
+  url: hf://Comfy-Org/SDPose/diffusion_models/rt_detr_v4-x-hgnet_fp16.safetensors
+  license: apache-2.0
+  sha256: 581f9af9bbabb664d1891cbccd823308b176ecd409146f954dfa39af3bec2476
+  size_gb: 0.12
+- id: relayvsr-x2
+  dest: diffusion_models/relayvsr_x2_lightx2v_int8_convrot.safetensors
+  url: hf://Comfy-Org/RelayVSR/diffusion_models/relayvsr_x2_lightx2v_int8_convrot.safetensors
+  license: apache-2.0
+  sha256: 240e75e0c17cf2845d559b25254a230ff7458f81449d7a8c5e7e3fb8275c7b3c
+  size_gb: 4.81
+- id: relayvsr-vae
+  dest: vae/relayvsr_flash_vae_x2_fp32.safetensors
+  url: hf://Comfy-Org/RelayVSR/vae/relayvsr_flash_vae_x2_fp32.safetensors
+  license: apache-2.0
+  sha256: b5bb0339acb5b52545911ea29a51b4c5b805776a779222b5a14591571f42e21c
+  size_gb: 0.12
+- id: h3-latent-upscaler
+  dest: latent_upscale_models/minimax_h3_latent_upscaler_3d_conv_v1_bf16.safetensors
+  url: hf://LBH-123-AI/Minimax_h3_latent_Upscaler/minimax_h3_latent_upscaler_3d_conv_v1/minimax_h3_latent_upscaler_3d_conv_v1_bf16.safetensors
+  license: apache-2.0
+  sha256: 4f57821f5837f32f7142b67d815606dbd7550f194e5c769f7d6c3f83b146a5e6
+  size_gb: 0.64
+workflows:
+- id: h3-r2v
+  title: Ref2Video · MiniMax-H3 TriPRISM 8-Step R2V + Stereo Audio (official)
+  source: https://github.com/Comfy-Org/workflow_templates
+  license: MIT template; weights MiniMax H3 community license
+  file: workflows/video_minimax_h3_r2v.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/video_minimax_h3_r2v.json
+  upstream_sha256: e083efe44268699f1b5f014f3efa1398161cd32e80781fc358b256e564a9af26
+  models:
+  - dit-triprism-int8
+  - q3vl-nvfp4
+  - video-vae-int8
+  - audio-vae
+  overrides:
+  - node: 143
+    widget_index: 0
+    value: 8
+  - node: 145
+    widget_index: 1
+    value: 0
+  - node: 123
+    widget_index: 0
+    value: euler
+  app:
+    inputs:
+    - - 138
+      - value
+      - 正向提示词与音频描述 (Prompt & Audio)
+    - - 137
+      - image
+      - 参考图 1 (Reference Image 1)
+    - - 139
+      - image
+      - 参考图 2 (Reference Image 2)
+    - - 115
+      - aspect_ratio
+      - 画幅比例 (Aspect Ratio)
+    - - 115
+      - megapixels
+      - 分辨率百万像素 (Megapixels)
+    - - 132
+      - value
+      - 视频时长秒数 (Duration Seconds)
+    - - 129
+      - noise_seed
+      - 随机种子 (Seed)
+    outputs:
+    - 92
+- id: h3-i2v
+  title: I2V · MiniMax-H3 TriPRISM 8-Step Image-to-Video (official)
+  source: https://github.com/Comfy-Org/workflow_templates
+  license: MIT template; weights MiniMax H3 community license
+  file: workflows/video_minimax_h3_i2v.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/video_minimax_h3_i2v.json
+  upstream_sha256: 2a687889e1abe0b29ca29cc1d0f640db8ab07801ae7ed5a5def4759755bcc08c
+  models:
+  - dit-triprism-int8
+  - q3vl-nvfp4
+  - video-vae-int8
+  - audio-vae
+  overrides:
+  - node: 105
+    widget_index: 9
+    value: true
+  - node: 105
+    widget_index: 11
+    value: 0
+  app:
+    inputs:
+    - - 114
+      - image
+      - 首帧参考图 (First Frame)
+    - - 105
+      - prompt
+      - 正向提示词与音频描述 (Prompt & Audio)
+    - - 115
+      - aspect_ratio
+      - 画幅比例 (Aspect Ratio)
+    - - 115
+      - megapixels
+      - 分辨率百万像素 (Megapixels)
+    - - 105
+      - value_1
+      - 视频时长秒数 (Duration Seconds)
+    - - 105
+      - noise_seed
+      - 随机种子 (Seed)
+    outputs:
+    - 92
+- id: h3-extend
+  title: Long · MiniMax-H3 Continuation & Extender + RelayVSR x2 (official + Extender)
+  source: https://github.com/Comfy-Org/workflow_templates
+  license: MIT template + Apache-2.0 Extender; weights MiniMax H3 / RelayVSR
+  file: workflows/video_minimax_h3_i2v_continuation.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/video_minimax_h3_i2v_continuation.json
+  upstream_sha256: cbc5b948dc50f2fb822300f16713c9928280b285eefce9d8a5a9076a79a2a859
+  custom_nodes:
+  - minimax-h3-extender
+  models:
+  - dit-triprism-int8
+  - q3vl-nvfp4
+  - video-vae-int8
+  - audio-vae
+  - relayvsr-x2
+  - relayvsr-vae
+  - h3-latent-upscaler
+  overrides:
+  - node: 105
+    widget_index: 9
+    value: true
+  - node: 105
+    widget_index: 11
+    value: 0
+  app:
+    inputs:
+    - - 114
+      - image
+      - 续接首帧图 (Continuation Start Frame)
+    - - 105
+      - prompt
+      - 续接提示词与音频描述 (Continuation Prompt & Audio)
+    - - 115
+      - aspect_ratio
+      - 画幅比例 (Aspect Ratio)
+    - - 115
+      - megapixels
+      - 分辨率百万像素 (Megapixels)
+    - - 105
+      - value_1
+      - 视频时长秒数 (Duration Seconds)
+    - - 105
+      - noise_seed
+      - 随机种子 (Seed)
+    outputs:
+    - 92
+- id: h3-controlnet
+  title: V2V · MiniMax-H3 Fun ControlNet-Union Pose/Depth/Canny (official)
+  source: https://github.com/Comfy-Org/workflow_templates
+  license: MIT template; weights MiniMax H3 community license + MIT SDPose
+  file: workflows/video_minimax_h3_fun_controlnet_union.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/video_minimax_h3_fun_controlnet_union.json
+  upstream_sha256: 64aea27bc8f72a54ce5bb8e25a5afe51928f27f0a7b63d1396e711fae55ffbfa
+  models:
+  - dit-triprism-int8
+  - q3vl-nvfp4
+  - video-vae-int8
+  - audio-vae
+  - fun-controlnet-union
+  - sdpose-wholebody
+  - rtdetr-hgnet
+  overrides:
+  - node: 143
+    widget_index: 0
+    value: 8
+  - node: 145
+    widget_index: 1
+    value: 0
+  - node: 123
+    widget_index: 0
+    value: euler
+  app:
+    inputs:
+    - - 174
+      - file
+      - 控制参考视频 (Control Video)
+    - - 138
+      - value
+      - 正向提示词与音频描述 (Prompt & Audio)
+    - - 172
+      - strength
+      - ControlNet 强度 (Control Strength)
+    - - 115
+      - aspect_ratio
+      - 画幅比例 (Aspect Ratio)
+    - - 115
+      - megapixels
+      - 分辨率百万像素 (Megapixels)
+    - - 132
+      - value
+      - 视频时长秒数 (Duration Seconds)
+    - - 129
+      - noise_seed
+      - 随机种子 (Seed)
+    outputs:
+    - 707
+- id: h3-t2v
+  title: T2V · MiniMax-H3 TriPRISM 8-Step Text-to-Video (official)
+  source: https://github.com/Comfy-Org/workflow_templates
+  license: MIT template; weights MiniMax H3 community license
+  file: workflows/video_minimax_h3_t2v.json
+  upstream_url: https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/video_minimax_h3_t2v.json
+  upstream_sha256: 5bc82b5d318564ff1d31d330a4fd04dbdee8dc761969857d2fd751b208c44f7f
+  optional: true
+  models:
+  - dit-triprism-int8
+  - q3vl-nvfp4
+  - video-vae-int8
+  - audio-vae
+  overrides:
+  - node: 140
+    widget_index: 9
+    value: true
+  - node: 140
+    widget_index: 11
+    value: 0
+  app:
+    inputs:
+    - - 140
+      - prompt
+      - 正向提示词与音频描述 (Prompt & Audio)
+    - - 115
+      - aspect_ratio
+      - 画幅比例 (Aspect Ratio)
+    - - 115
+      - megapixels
+      - 分辨率百万像素 (Megapixels)
+    - - 140
+      - value_1
+      - 视频时长秒数 (Duration Seconds)
+    - - 140
+      - noise_seed
+      - 随机种子 (Seed)
+    outputs:
+    - 92
+app_default: h3-r2v
