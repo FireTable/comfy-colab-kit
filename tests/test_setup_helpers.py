@@ -154,3 +154,68 @@ p = os.path.join(d, 'a.bin'); open(p, 'wb').write(b'x' * 1000); print(p)
     assert (tmp_path / "ComfyUI/models/x/a.bin").exists()
     p = dl.progress(0)
     assert p["bytes_total"] == 1000 and p["core_done"] is True
+
+
+def test_prepare_controlnet_workflow_attaches_ref_image():
+    import yaml
+
+    profile_dir = ROOT / "profiles/examples/minimax-h3-video"
+    profile_data = yaml.safe_load((profile_dir / "profile.yaml").read_text())
+    wf_cfg = next(w for w in profile_data["workflows"] if w["id"] == "h3-controlnet")
+    wf = {
+        "id": wf_cfg["id"],
+        "format": "json",
+        "overrides": list(wf_cfg.get("overrides") or []),
+        "app_inputs": [list(x) for x in wf_cfg["app"]["inputs"]],
+        "app_outputs": list(wf_cfg["app"]["outputs"]),
+    }
+    orig_app_inputs = [list(x) for x in wf["app_inputs"]]
+    raw = (profile_dir / wf_cfg["file"]).read_bytes()
+
+    g = setup.prepare_workflow(wf, raw, "app")
+
+    # Caller's wf dict/app_inputs must not be mutated in-place
+    assert wf["app_inputs"] == orig_app_inputs
+
+    nodes_by_id = {n["id"]: n for n in g["nodes"]}
+    ref_node = nodes_by_id[136]
+    assert ref_node["type"] == "MiniMaxH3ReferenceToVideo"
+    ref_slot_idx, ref_slot = next(
+        (i, s) for i, s in enumerate(ref_node["inputs"]) if s.get("name") == "ref_images.ref_image_0"
+    )
+    new_lid = ref_slot["link"]
+    assert isinstance(new_lid, int) and new_lid == g["last_link_id"]
+
+    link_entry = next(l for l in g["links"] if l and l[0] == new_lid)
+    new_nid = link_entry[1]
+    assert link_entry == [new_lid, new_nid, 0, 136, ref_slot_idx, "IMAGE"]
+    assert new_nid == g["last_node_id"]
+
+    # Node IDs and link IDs are unique and bounded by last_node_id / last_link_id
+    node_ids = [n["id"] for n in g["nodes"]]
+    link_ids = [l[0] for l in g["links"] if l]
+    assert len(node_ids) == len(set(node_ids))
+    assert len(link_ids) == len(set(link_ids))
+    assert max(int(nid) for nid in node_ids) <= g["last_node_id"]
+    assert max(int(lid) for lid in link_ids) <= g["last_link_id"]
+
+    load_node = nodes_by_id[new_nid]
+    assert load_node["type"] == "LoadImage"
+    assert load_node["title"] == "参考角色图 (Reference Character)"
+    assert load_node["widgets_values"] == ["example.png", "image"]
+    assert load_node["outputs"][0]["links"] == [new_lid]
+    assert any(
+        s.get("widget", {}).get("name") == "image" and s.get("label") == "参考角色图 (Reference Character)"
+        for s in load_node.get("inputs", [])
+    )
+
+    linear_inputs = g["extra"]["linearData"]["inputs"]
+    assert [new_nid, "image"] in linear_inputs
+    assert linear_inputs[0] == [new_nid, "image"]
+    assert linear_inputs[1] == [174, "file"]
+
+    # ZERO nodes (top-level or subgraph) may contain a "widgets" key
+    all_nodes = list(g.get("nodes", []))
+    for sg in (g.get("definitions") or {}).get("subgraphs") or []:
+        all_nodes.extend(sg.get("nodes", []))
+    assert all("widgets" not in n for n in all_nodes)

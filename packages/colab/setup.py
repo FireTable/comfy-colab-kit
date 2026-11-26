@@ -840,6 +840,62 @@ def _bypass_uninstalled_loras(g, wf):
         _scan(sg.get("nodes", []))
 
 
+def _attach_controlnet_ref_image(g, wf):
+    """Attach a LoadImage node to MiniMaxH3ReferenceToVideo's unlinked ref_images.ref_image_0 in ControlNet workflows."""
+    nodes = g.get("nodes")
+    if not nodes or not any(n.get("type") == "MiniMaxH3FunControlNetApply" for n in nodes):
+        return wf
+
+    ref_node = None
+    slot_index = None
+    ref_slot = None
+    for n in nodes:
+        if n.get("type") != "MiniMaxH3ReferenceToVideo":
+            continue
+        for idx, slot in enumerate(n.get("inputs") or []):
+            if slot.get("name") == "ref_images.ref_image_0" and slot.get("link") is None:
+                ref_node = n
+                slot_index = idx
+                ref_slot = slot
+                break
+        if ref_node is not None:
+            break
+
+    if ref_node is None:
+        return wf
+
+    new_nid = max([int(n.get("id", 0)) for n in nodes] + [int(g.get("last_node_id", 0))]) + 1
+    new_lid = max([int(l[0]) for l in g.get("links", []) if l] + [int(g.get("last_link_id", 0))]) + 1
+
+    ref_pos = ref_node.get("pos")
+    ref_x, ref_y = (ref_pos[0], ref_pos[1]) if isinstance(ref_pos, (list, tuple)) and len(ref_pos) >= 2 else (0, 0)
+
+    nodes.append({
+        "id": new_nid,
+        "type": "LoadImage",
+        "title": "参考角色图 (Reference Character)",
+        "pos": [ref_x - 360, ref_y],
+        "size": [274, 314],
+        "flags": {},
+        "mode": 0,
+        "inputs": [],
+        "outputs": [
+            {"name": "IMAGE", "type": "IMAGE", "links": [new_lid]},
+            {"name": "MASK", "type": "MASK", "links": None},
+        ],
+        "properties": {"Node name for S&R": "LoadImage"},
+        "widgets_values": ["example.png", "image"],
+    })
+    ref_slot["link"] = new_lid
+    g.setdefault("links", []).append([new_lid, new_nid, 0, ref_node["id"], slot_index, "IMAGE"])
+    g["last_node_id"] = new_nid
+    g["last_link_id"] = new_lid
+
+    app_inputs = list(wf.get("app_inputs") or [])
+    app_inputs.insert(0, [new_nid, "image", "参考角色图 (Reference Character)"])
+    return {**wf, "app_inputs": app_inputs}
+
+
 def prepare_workflow(wf, data, default_view):
     """Apply declared filename overrides and ComfyUI App-mode metadata; graph otherwise untouched."""
     g = png_workflow(data) if wf["format"] == "png" else json.loads(data)
@@ -851,6 +907,7 @@ def prepare_workflow(wf, data, default_view):
         n["widgets_values"][o["widget_index"]] = o["value"]
     remap_models(g, PLAN.get("model_aliases") or {})
     _bypass_uninstalled_loras(g, wf)
+    wf = _attach_controlnet_ref_image(g, wf)
     decorate_app_nodes(g, wf)
     extra = g.setdefault("extra", {})
     if wf.get("app_outputs") or wf.get("app_inputs"):
