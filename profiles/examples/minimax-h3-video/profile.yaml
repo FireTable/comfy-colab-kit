@@ -28,11 +28,12 @@ frontend:
 model_aliases:
   minimax_h3_ref2va_pruned_int8_convrot.safetensors: dit-triprism-int8
   minimax_h3_fl2va_pruned_int8_convrot.safetensors: dit-triprism-int8
+  minimax_h3_fun_controlnet_union_pruned_int8_convrot.safetensors: fun-controlnet-union
 model_aliases_by_gpu:
   L4:
-    Sulphur3_10ErosMax_SingularityV2_TriPRISM_TurboFusion_realism_int8_convrot.safetensors: dit-triprism-tiny
-    minimax_h3_ref2va_pruned_int8_convrot.safetensors: dit-triprism-tiny
-    minimax_h3_fl2va_pruned_int8_convrot.safetensors: dit-triprism-tiny
+    Sulphur3_10ErosMax_SingularityV2_TriPRISM_TurboFusion_realism_int8_convrot.safetensors: dit-triprism-w6a8
+    minimax_h3_ref2va_pruned_int8_convrot.safetensors: dit-triprism-w6a8
+    minimax_h3_fl2va_pruned_int8_convrot.safetensors: dit-triprism-w6a8
 custom_nodes:
 - id: minimax-h3-extender
   url: https://github.com/tritant/ComfyUI_MiniMax_H3_Extender
@@ -58,6 +59,24 @@ models:
   license: minimax-h3-community-license-agreement
   sha256: 8017f3570f9ff5151d13e38c68df88742abe7d2850e94da27494568a5e065560
   size_gb: 14.97
+- id: dit-official-ref2va-w6a8
+  dest: diffusion_models/minimax_h3_ref2va_pruned_w6a8.safetensors
+  url: hf://Comfy-Org/MiniMax-H3/diffusion_models/minimax_h3_ref2va_pruned_w6a8.safetensors
+  license: minimax-h3-community-license-agreement
+  sha256: ece96bbbce76670ec782de84acc888fd9d9b210bd2ab97c1957b39896734f9f1
+  size_gb: 14.89
+- id: lora-ref2v-turbo-4step
+  dest: loras/minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors
+  url: hf://Comfy-Org/MiniMax-H3/loras/minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors
+  license: minimax-h3-community-license-agreement
+  sha256: 5b9ab5ade15d0775676d01a907268a69a1468dc6033b3b0d3ded5502f3ebb84c
+  size_gb: 1.82
+- id: dit-sulphur3-w4a8
+  dest: diffusion_models/s3_w4a8.safetensors
+  url: hf://SulphurAI/Sulphur-3/quantized/s3_w4a8.safetensors
+  license: minimax-h3-community-license-agreement
+  sha256: 6c496c746d380bc371e5b9ef0c81cbea4f107e8fba1ac3f6b7d821c4e96e9ae0
+  size_gb: 10.65
 - id: q3vl-nvfp4
   dest: text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors
   url: hf://Comfy-Org/MiniMax-H3/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors
@@ -80,11 +99,11 @@ models:
   size_gb: 0.56
   core: true
 - id: fun-controlnet-union
-  dest: model_patches/minimax_h3_fun_controlnet_union_pruned_int8_convrot.safetensors
-  url: hf://Comfy-Org/MiniMax-H3/model_patches/minimax_h3_fun_controlnet_union_pruned_int8_convrot.safetensors
+  dest: model_patches/minimax_h3_fun_controlnet_union_2.0_pruned_int8_convrot.safetensors
+  url: hf://Comfy-Org/MiniMax-H3/model_patches/minimax_h3_fun_controlnet_union_2.0_pruned_int8_convrot.safetensors
   license: minimax-h3-community-license-agreement
-  sha256: 9c645c0a308c8af361efd43b409710f6f8fec0db297c29503e141a84991fed0c
-  size_gb: 2.14
+  sha256: 890af58bb350f0c2f6c409b1c67ea8f4196654297d037769b72de1e6f504c612
+  size_gb: 4.22
 - id: sdpose-wholebody
   dest: checkpoints/sdpose_wholebody_fp16.safetensors
   url: hf://Comfy-Org/SDPose/checkpoints/sdpose_wholebody_fp16.safetensors
