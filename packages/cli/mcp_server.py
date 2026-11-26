@@ -30,9 +30,9 @@ import urllib.request
 import uuid
 
 PROTOCOL_VERSION = "2024-11-05"
-SERVER_VERSION = "0.4.0"
+SERVER_VERSION = "0.5.0"
 
-DEFAULT_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 (ckit/0.4.0)"
+DEFAULT_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 (ckit/0.5.0)"
 
 
 def _read_file(path: str) -> str:
@@ -211,7 +211,7 @@ TOOLS = [
     },
     {
         "name": "gate_wake",
-        "description": "Wake or join the shared Google Colab L4 GPU instance with a specified model profile (e.g. 'moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image', 'minimax-h3-image').",
+        "description": "Wake or join the shared Google Colab GPU instance with a specified model profile (e.g. 'moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image', 'minimax-h3-image', 'minimax-h3-video').",
         "annotations": {
             "title": "Wake or Join Colab GPU Session",
             "readOnlyHint": False,
@@ -224,7 +224,11 @@ TOOLS = [
             "properties": {
                 "profile": {
                     "type": "string",
-                    "description": "The profile ID to wake (e.g. 'moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image', 'minimax-h3-image'). If omitted, the gate default profile is used."
+                    "description": "The profile ID to wake (e.g. 'moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image', 'minimax-h3-image', 'minimax-h3-video'). If omitted, the gate default profile is used."
+                },
+                "accelerator": {
+                    "type": "string",
+                    "description": "Optional preferred GPU tier: 'G4', 'A100', 'L4', 'T4', or 'H100' (overrides profile default)."
                 },
                 "wait": {
                     "type": "boolean",
@@ -434,10 +438,13 @@ def handle_tool_call(name: str, args: dict) -> dict:
 
     if name == "gate_wake":
         profile = args.get("profile")
+        accelerator = args.get("accelerator")
         should_wait = args.get("wait", True)
         body = {}
         if profile:
             body["profile"] = profile
+        if accelerator:
+            body["accelerator"] = accelerator
 
         code, out = call_gate("POST", "/_gate/wake", body)
         if code >= 400:
@@ -559,7 +566,7 @@ def run_stdio_server(base_url: str = ""):
                         "name": "comfy-colab-kit",
                         "version": SERVER_VERSION
                     },
-                    "instructions": "Use gate_status to check the Colab L4 GPU session state, gate_wake to boot or join a profile ('moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image', 'minimax-h3-image'), gate_txt2img / gate_img2img / gate_generate to create images or videos, and gate_stop when finished to release GPU compute units."
+                    "instructions": "Use gate_status to check the Colab GPU session state, gate_wake to boot or join a profile ('moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image', 'minimax-h3-image', 'minimax-h3-video'), gate_txt2img / gate_img2img / gate_generate to create images or videos, and gate_stop when finished to release GPU compute units."
                 }
             }
             sys.stdout.write(json.dumps(res) + "\n")
