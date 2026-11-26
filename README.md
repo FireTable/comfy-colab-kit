@@ -229,7 +229,7 @@ Autonomous coding agents (Claude Code, Cursor, OpenClaw, Codex, LangGraph) can w
 | [`sd-latest`](profiles/examples/sd-latest/) | Stable Diffusion 3.5: Large fp8 default, TurboX 8-step, Medium turbo (gated, optional) | ~15 GB core / ~22 GB |
 | [`qwen-image`](profiles/examples/qwen-image/) | Qwen-Image 2.1: Turbo T2I default, full T2I, Turbo / full Edit | ~27 GB core / ~43 GB |
 | [`minimax-h3-image`](profiles/examples/minimax-h3-image/) | MiniMax-H3-Image: 33.1B DiT W4A8 fast L4 default, Qwen3-VL 32B INT8, 6-step native 4K T2I & Multi-Ref Edit | ~44.9 GB core / ~79 GB |
-| [`minimax-h3-video`](profiles/examples/minimax-h3-video/) | MiniMax-H3-Video (TriPRISM): 8-step Ref2V/I2V/T2V w/ native stereo audio, Continuation/Extend (`ComfyUI_MiniMax_H3_Extender` + RelayVSR/Latent upscaler), Fun ControlNet-Union V2V; `A100 (80G) → G4 (96G) → L4 (24G)` auto-fallback | ~37.40 GB core (~33.79 GB L4) / ~47.02 GB full |
+| [`minimax-h3-video`](profiles/examples/minimax-h3-video/) | MiniMax-H3-Video (TriPRISM): 6 workflows — 8-step Ref2V/I2V/T2V w/ native stereo audio, `h3-extend` (`ColorTransfer` anchor + RelayVSR/Latent upscaler), `h3-extender-latent` (zero-MP4 latent chaining), Fun ControlNet-Union 2.0 V2V; `A100 (80G) → G4 (96G) → L4 (24G)` auto-fallback + per-GPU `megapixels` (`overrides_by_gpu`) | ~39.63 GB core (~32.76 GB L4) / ~49.25 GB full |
 
 Workflows are **only** community-published ones, fetched from the author with source and license recorded.
 Format and passthrough options: [docs/PROFILES.md](docs/PROFILES.md).
@@ -293,7 +293,7 @@ comfy-colab-kit/
 │   ├── comfy-colab-kit/      # Gateway operator skill (wake, prompt, generate, stop)
 │   └── comfy-workflow-ui/    # Workflow UI & App Mode inspector and audit skill
 ├── scripts/                  # CI, validation and secret check utilities
-└── tests/                    # Pytest test suite (157 tests)
+└── tests/                    # Pytest test suite (195 tests)
 ```
 
 ## 🛠️ Development

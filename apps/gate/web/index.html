@@ -969,7 +969,7 @@ ckit profiles --json
   - **\`flux-klein\` 指令改图**: 基于 \`ReferenceLatent\` 像素级保持原图背景与构图，直接输入英文修改指令（如 \`"Add cool neon cyan sunglasses and change the hat to gold"\`）。
   - **\`moss-image\` 重绘幅度 \`denoise\`**: \`0.2~0.35\` 微调修复；\`0.4~0.65\` 换装/换风格；\`0.7~1.0\` 大幅重绘。
 - **文生视频 (T2V) / 图生视频 (I2V) / 音画同出 -> 唤醒或切换到 \`minimax-h3-video\` 或 \`wan-ltx-video\`**:
-  - **\`minimax-h3-video\` (TriPRISM 音画同出视频管线)**: 默认按 \`A100 (80G) → G4 (96G) → L4 (24G)\` 自动回退分配，支持 8 步 TurboFusion Ref2V / I2V / T2V 原生立体声音频、视频续写 (Continuation/Extend)、Fun ControlNet-Union (depth/pose/canny) 与高清超分。
+  - **\`minimax-h3-video\` (TriPRISM 音画同出视频管线)**: 默认按 \`A100 (80G) → G4 (96G) → L4 (24G)\` 自动回退并按卡调整默认分辨率（\`overrides_by_gpu\`），支持 8 步 TurboFusion Ref2V / I2V / T2V 原生立体声音频、\`h3-extender-latent\` 纯 Latent 无衰减续写与 \`ColorTransfer\` 防变暗、Fun ControlNet-Union 2.0 (depth/pose/canny) 与高清超分。
   - **\`wan-ltx-video\` (轻量 L4 视频管线)**: \`ckit wake --profile wan-ltx-video --wait\`（或在线切换 \`ckit switch wan-ltx-video\`）。
   - **文生视频**: \`ckit generate --prompt "主体 + 连续动态动作 + 镜头运动" --width 832 --height 480 --timeout 300\`（或 \`gate_txt2img\`）。
   - **首帧图生视频**: \`ckit generate --image /path/to/start.png --prompt "The character steps and leaps forward toward the viewer, waving cheerfully to say hi..." --width 832 --height 544 --timeout 300\`（或 \`gate_img2img\`，宽高需为 32 的倍数并匹配原图长宽比）。

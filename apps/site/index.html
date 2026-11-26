@@ -124,7 +124,7 @@
           "name": "How does multi-GPU fallback (A100 → G4 → L4) work when Colab GPUs are scarce?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Profiles can declare a primary accelerator, high_mem flag, fallback_accelerators chain, and model_aliases_by_gpu. When Colab returns 503 or capacity errors, the gate reconciles active sessions, retries with jittered backoff, and automatically falls back (for example A100 80G at ~7.2 CU/h → G4 96G at ~9.4 CU/h → L4 24G at ~1.71 CU/h, swapping to the 16 GB h3tiny17b checkpoint on L4) while tracking the actual GPU CU rate."
+            "text": "Profiles can declare a primary accelerator, high_mem flag, fallback_accelerators chain, model_aliases_by_gpu, and workflow overrides_by_gpu. When Colab returns 503 or capacity errors, the gate reconciles active sessions, retries with jittered backoff, and automatically falls back (e.g. A100 80G at ~7.2 CU/h with 0.8 MP & FP16 Video VAE → G4 96G at ~9.4 CU/h with 0.9 MP → L4 24G at ~1.71 CU/h, swapping to the 14.97 GB 50-block w6a8 checkpoint + INT8 VAE at 0.4 MP) while tracking the actual GPU CU rate."
           }
         }
       ]
@@ -625,7 +625,7 @@ docker compose -f deploy/docker-compose.yml up -d</code></pre>
         <div>
           <div class="card-tag"><span>🎥</span> <span data-i18n="profiles.p8Tag">TriPRISM Video + Audio</span></div>
           <h3>MiniMax-H3-Video</h3>
-          <p data-i18n="profiles.p8Desc">MiniMax-H3 TriPRISM (8-step Ref2V/I2V/T2V) with native stereo audio, video continuation/Extend, Fun ControlNet-Union (depth/pose/canny V2V), and RelayVSR upscaling — A100 (80G) → G4 (96G) → L4 (24G) auto-fallback.</p>
+          <p data-i18n="profiles.p8Desc">MiniMax-H3 TriPRISM (8-step Ref2V/I2V/T2V) with native stereo audio, FP16 Video VAE &amp; pure latent continuation (ColorTransfer anti-darkening), Fun ControlNet-Union 2.0 (depth/pose/canny V2V), and RelayVSR/Latent upscaling — A100 (80G) → G4 (96G) → L4 (24G) auto-fallback w/ per-GPU megapixels.</p>
         </div>
         <div class="profile-path">profiles/examples/minimax-h3-video</div>
       </article>

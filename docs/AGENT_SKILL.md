@@ -54,7 +54,7 @@ ckit status --json
 # List available profiles and community workflows
 ckit profiles --json
 
-# Wake or join the shared session (profiles: moss-image, flux-klein, wan-ltx-video, sd-latest, qwen-image, minimax-h3-image)
+# Wake or join the shared session (profiles: moss-image, flux-klein, wan-ltx-video, sd-latest, qwen-image, minimax-h3-image, minimax-h3-video)
 ckit wake --profile moss-image --wait
 
 # Generate an image or video directly via high-level pipeline (auto-adapts to active profile)
@@ -264,7 +264,7 @@ To connect Claude Desktop, Cursor, OpenClaw, or Cline to your deployed gate via 
 
 ### Available MCP Tools:
 - `gate_status`: Query session state, active profile, progress, and CU balance.
-- `gate_wake`: Wake or join the shared Google Colab L4 GPU instance (`profile: "moss-image"`).
+- `gate_wake`: Wake or join the shared Google Colab GPU instance (`profile: "moss-image"`, optional `accelerator: "A100" | "G4" | "L4"`).
 - `gate_txt2img`: **Recommended high-level text-to-image generator**! Automatically executes the anti-banding MOSS-Image DeBand pipeline with anti-banding LoRAs (L37-41 & L32-36) and fast sampling.
   - `prompt`: Positive text description (required).
   - `negative_prompt`: Negative elements to avoid (optional).

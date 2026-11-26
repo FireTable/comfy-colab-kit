@@ -26,7 +26,7 @@ All routes except `GET /_gate/healthz`, `GET /robots.txt`, and `GET /_gate/stati
 | `GET /_gate/status` | Current session state, telemetry, and CU ledger | `200` (see Status Object below) |
 | `GET /_gate/events` | Real-time Server-Sent Events (SSE) telemetry stream | `200 text/event-stream` (`state`, `progress`, `log`, `warn`) |
 | `GET /_gate/profiles` | Available model profiles, default selection, errors | `200` |
-| `POST /_gate/wake` | Wake a profile or join in-flight boot `{"profile": "id"}` | `202` started, `200 {"joined": true}`, `409 <refusal>` |
+| `POST /_gate/wake` | Wake a profile or join in-flight boot `{"profile": "id", "accelerator": "A100"}` | `202` started, `200 {"joined": true}`, `409 <refusal>` |
 | `POST /_gate/fetch` | Trigger on-demand download of optional workflows | `202`, `404`, `409` |
 | `POST /_gate/switch` | Cold switch to another profile (stop -> wake) | `202`, `404`, `409` |
 | `POST /_gate/stop` | Stop the Colab VM and release GPU immediately | `200 {"state": "stopping"}` |
@@ -69,6 +69,7 @@ All routes except `GET /_gate/healthz`, `GET /robots.txt`, and `GET /_gate/stati
 {
   "state": "downloading",
   "profile": "moss-image",
+  "accelerator": "L4",
   "reason": "",
   "since": 1761200000.0,
   "session_started": 1761199900.0,
