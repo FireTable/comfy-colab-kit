@@ -219,3 +219,93 @@ def test_prepare_controlnet_workflow_attaches_ref_image():
     for sg in (g.get("definitions") or {}).get("subgraphs") or []:
         all_nodes.extend(sg.get("nodes", []))
     assert all("widgets" not in n for n in all_nodes)
+
+
+def test_dl_script_partial_chunk_retry_preserves_exact_bytes_and_sha256(tmp_path, monkeypatch, capsys):
+    import hashlib
+    import random
+    import sys
+    import time
+    import urllib.request
+
+    # 36 MiB payload with 16 MiB chunks -> 3 chunks (16 MiB, 16 MiB, 4 MiB)
+    # Chunk 0: attempt 1 flushes 8 MiB then raises mid-buffer (tests 8 MiB pwrite on retry + trailing pwrite on retry)
+    # Chunk 1: attempt 1 closes early after 9 MiB (tests EOF resume via trailing pwrite then retry pwrite)
+    # Chunk 2: clean single-shot transfer
+    chunk_bytes = 16 * 1024 * 1024
+    payload = random.Random(42).randbytes(36 * 1024 * 1024 + 777)
+    expect_sha = hashlib.sha256(payload).hexdigest()
+    seen_chunks = {}
+
+    class _FakeResp:
+        def __init__(self, data, start, end, total, cut_at=None, fail_after=None):
+            self._data = data
+            self._pos = 0
+            self._cut_at = cut_at
+            self._fail_after = fail_after
+            self.status = 206
+            self.headers = {"Content-Range": f"bytes {start}-{end}/{total}", "ETag": '"test"'}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self, n=-1):
+            if self._fail_after is not None and self._pos >= self._fail_after:
+                raise ConnectionResetError("simulated mid-chunk reset")
+            limit = len(self._data) if self._cut_at is None else min(len(self._data), self._cut_at)
+            if self._pos >= limit:
+                return b""
+            step = limit - self._pos if n < 0 else min(n, limit - self._pos)
+            out = self._data[self._pos:self._pos + step]
+            self._pos += step
+            return out
+
+    class _FakeOpener:
+        def open(self, req, timeout=60):
+            rng = req.get_header("Range")
+            assert rng and rng.startswith("bytes=")
+            start, end = (int(x) for x in rng.split("=", 1)[1].split("-", 1))
+            if start == 0 and end == 0:
+                return _FakeResp(payload[:1], 0, 0, len(payload))
+            chunk_idx = start // chunk_bytes
+            seen_chunks[chunk_idx] = seen_chunks.get(chunk_idx, 0) + 1
+            attempt = seen_chunks[chunk_idx]
+            data = payload[start:end + 1]
+            if chunk_idx == 0 and attempt == 1:
+                # 8 MiB flushed + 2 MiB uncommitted in buf -> ConnectionResetError
+                return _FakeResp(data, start, end, len(payload), fail_after=10 * 1024 * 1024)
+            if chunk_idx == 1 and attempt == 1:
+                # 8 MiB flushed + 1 MiB flushed on premature EOF -> resume from start + 9 MiB
+                return _FakeResp(data, start, end, len(payload), cut_at=9 * 1024 * 1024)
+            return _FakeResp(data, start, end, len(payload))
+
+    monkeypatch.setattr(urllib.request, "build_opener", lambda *a, **kw: _FakeOpener())
+    monkeypatch.setattr(time, "sleep", lambda _: None)
+    monkeypatch.setenv("KIT_DL_CHUNK_MB", "16")
+    monkeypatch.setenv("KIT_DL_CONNS", "3")
+    monkeypatch.setenv("KIT_VERIFY_SHA", "1")
+    monkeypatch.setattr(sys, "argv", ["dl", "o/r", "weights.safetensors", "main", str(tmp_path), expect_sha])
+
+    ns = {}
+    exec(compile(setup.DL_SCRIPT, "DL_SCRIPT", "exec"), ns)
+
+    out_path = tmp_path / "weights.safetensors"
+    captured = capsys.readouterr().out
+    assert "range download failed" not in captured
+    assert seen_chunks[0] == 2 and seen_chunks[1] == 2 and seen_chunks[2] == 1
+    assert out_path.read_bytes() == payload
+    assert hashlib.sha256(out_path.read_bytes()).hexdigest() == expect_sha
+
+    # Verify incomplete chunk across all retries fails loudly rather than writing a zero-padded file
+    class _TruncatedOpener:
+        def open(self, req, timeout=60):
+            rng = req.get_header("Range")
+            start, end = (int(x) for x in rng.split("=", 1)[1].split("-", 1))
+            return _FakeResp(payload[start:start + 1024], start, end, len(payload), cut_at=1024)
+
+    monkeypatch.setattr(urllib.request, "build_opener", lambda *a, **kw: _TruncatedOpener())
+    with pytest.raises(RuntimeError, match="incomplete"):
+        ns["fetch_range"]("https://huggingface.co/o/r/resolve/main/trunc.bin", 1024 * 1024, str(tmp_path / "trunc.bin"))

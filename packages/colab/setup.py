@@ -155,11 +155,17 @@ def fetch_range(url, total, out_path):
     bitmap = out_path + ".chunks"
     done = set()
     if os.path.exists(bitmap):
-        with open(bitmap) as f:
-            for line in f:
-                line = line.strip()
-                if line.isdigit():
-                    done.add(int(line))
+        if os.path.exists(out_path) and os.path.getsize(out_path) == total:
+            with open(bitmap) as f:
+                for line in f:
+                    line = line.strip()
+                    if line.isdigit() and int(line) < nchunks:
+                        done.add(int(line))
+        else:
+            try:
+                os.remove(bitmap)
+            except OSError:
+                pass
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
     fd = os.open(out_path, os.O_RDWR | os.O_CREAT, 0o644)
     os.ftruncate(fd, total)
@@ -199,27 +205,37 @@ def fetch_range(url, total, out_path):
                                 break
                             buf += b
                             if len(buf) >= (8 << 20):
-                                os.pwrite(fd, buf, s + have)
+                                if have + len(buf) > need:
+                                    raise RuntimeError("chunk {} overflow ({} > {})".format(i, have + len(buf), need))
+                                os.pwrite(fd, buf, start_b + have)
                                 have += len(buf)
                                 with lock:
                                     state["inflight"] += len(buf)
                                 buf = b""
                         if buf:
-                            os.pwrite(fd, buf, s + have)
+                            if have + len(buf) > need:
+                                raise RuntimeError("chunk {} overflow ({} > {})".format(i, have + len(buf), need))
+                            os.pwrite(fd, buf, start_b + have)
                             have += len(buf)
                             with lock:
                                 state["inflight"] += len(buf)
                 except Exception as e:
                     if attempt >= 6:
-                        errors.append("chunk {}: {!r}".format(i, e))
+                        with lock:
+                            errors.append("chunk {}: {!r}".format(i, e))
                         break
                     time.sleep(min(20, 2 * attempt))
-            if have >= need:
+            if have == need:
                 with lock:
                     state["inflight"] -= need
                     state["done"] += need
-                with open(bitmap, "a") as f:
-                    f.write("{}\n".format(i))
+                    with open(bitmap, "a") as f:
+                        f.write("{}\n".format(i))
+            else:
+                with lock:
+                    state["inflight"] -= have
+                    if not any(err.startswith("chunk {}:".format(i)) for err in errors):
+                        errors.append("chunk {}: incomplete ({}/{})".format(i, have, need))
 
     threads = [threading.Thread(target=worker, daemon=True) for _ in range(min(CONNS, max(1, nchunks)))]
     for t in threads:
@@ -256,6 +272,8 @@ try:
     if EXPECT_SHA and os.environ.get("KIT_VERIFY_SHA") == "1":
         if sha256_of(out).lower() != EXPECT_SHA.lower():
             os.remove(out)
+            if os.path.exists(out + ".chunks"):
+                os.remove(out + ".chunks")
             raise Fatal("sha256 mismatch")  # corrupt transfer: retrying the same way will not help
 except Fatal:
     raise
