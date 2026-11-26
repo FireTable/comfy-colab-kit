@@ -9,6 +9,14 @@ from pathlib import Path
 from typing import Mapping
 
 ACTIONS = ("wake", "switch", "stop", "extend")
+DEFAULT_CU_RATES: dict[str, float] = {
+    "T4": 1.15,
+    "L4": 1.71,
+    "A100": 5.4,
+    "A100_HIGH_MEM": 7.2,
+    "G4": 9.4,
+    "H100": 18.0,
+}
 
 
 class ConfigError(ValueError):
@@ -119,7 +127,12 @@ class Settings:
     colab_bin: str = "colab"
     colab_token_dir: str = ""
     colab_accelerator: str = "L4"
+    colab_fallback_accelerators: tuple[str, ...] = ()
+    colab_alloc_retries: int = 2
+    colab_alloc_timeout_s: int = 150
+    colab_alloc_backoff_s: float = 15.0
     colab_session_name: str = "comfy"
+    cu_rates_by_gpu: dict[str, float] = field(default_factory=lambda: dict(DEFAULT_CU_RATES))
     profiles: tuple[str, ...] = (
         "profiles/examples/moss-image",
         "profiles/examples/flux-klein",
@@ -127,6 +140,7 @@ class Settings:
         "profiles/examples/sd-latest",
         "profiles/examples/qwen-image",
         "profiles/examples/minimax-h3-image",
+        "profiles/examples/minimax-h3-video",
     )
     default_profile: str = "moss-image"
     default_view: str = "app"
@@ -150,6 +164,15 @@ class Settings:
         if self.colab_tunnel_host.startswith("http://") or self.colab_tunnel_host.startswith("https://"):
             return self.colab_tunnel_host
         return f"https://{self.colab_tunnel_host}"
+
+    def cu_rate_for(self, accelerator: str | None, high_mem: bool = False) -> float:
+        key = (accelerator or "").strip().upper()
+        if key:
+            if high_mem and f"{key}_HIGH_MEM" in self.cu_rates_by_gpu:
+                return float(self.cu_rates_by_gpu[f"{key}_HIGH_MEM"])
+            if key in self.cu_rates_by_gpu:
+                return float(self.cu_rates_by_gpu[key])
+        return self.auto_stop.cu_per_hour
 
     @staticmethod
     def from_env(env: Mapping[str, str] | None = None) -> "Settings":
@@ -208,7 +231,12 @@ class Settings:
             colab_bin=(env.get("COLAB_BIN") or "colab").strip(),
             colab_token_dir=(env.get("COLAB_TOKEN_DIR") or ("/data/colab-cli" if os.path.isdir("/data") and os.access("/data", os.W_OK) else "./data/colab-cli")).strip(),
             colab_accelerator=(env.get("COLAB_ACCELERATOR") or "L4").strip(),
+            colab_fallback_accelerators=tuple(x.upper() for x in _csv(env.get("COLAB_FALLBACK_ACCELERATORS"))),
+            colab_alloc_retries=_int(env, "COLAB_ALLOC_RETRIES", 2, 1),
+            colab_alloc_timeout_s=_int(env, "COLAB_ALLOC_TIMEOUT_S", 150, 1),
+            colab_alloc_backoff_s=_float(env, "COLAB_ALLOC_BACKOFF_S", 15.0, 0.0),
             colab_session_name=(env.get("COLAB_SESSION_NAME") or "comfy").strip(),
+            cu_rates_by_gpu={**DEFAULT_CU_RATES, "L4": auto.cu_per_hour},
             profiles=tuple(_csv(env.get("PROFILES"))) or Settings.profiles,
             default_profile=(env.get("DEFAULT_PROFILE") or "moss-image").strip(),
             default_view=view,

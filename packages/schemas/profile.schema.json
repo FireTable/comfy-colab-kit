@@ -28,6 +28,22 @@
         "integer",
         "string"
       ]
+    },
+    "acceleratorTier": {
+      "type": "string",
+      "enum": [
+        "L4",
+        "A100",
+        "T4",
+        "H100",
+        "G4"
+      ]
+    },
+    "modelAliasMap": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/id"
+      }
     }
   },
   "properties": {
@@ -41,6 +57,28 @@
         "$ref": "#/$defs/id"
       }
     },
+    "model_aliases_by_gpu": {
+      "type": "object",
+      "description": "Per-GPU override map of upstream loader filename (or default model basename) -> model id. Merged over model_aliases once the actual GPU tier is allocated.",
+      "additionalProperties": false,
+      "properties": {
+        "L4": {
+          "$ref": "#/$defs/modelAliasMap"
+        },
+        "A100": {
+          "$ref": "#/$defs/modelAliasMap"
+        },
+        "T4": {
+          "$ref": "#/$defs/modelAliasMap"
+        },
+        "H100": {
+          "$ref": "#/$defs/modelAliasMap"
+        },
+        "G4": {
+          "$ref": "#/$defs/modelAliasMap"
+        }
+      }
+    },
     "id": {
       "$ref": "#/$defs/id"
     },
@@ -48,14 +86,19 @@
       "type": "string"
     },
     "accelerator": {
-      "type": "string",
-      "enum": [
-        "L4",
-        "A100",
-        "T4",
-        "H100",
-        "G4"
-      ]
+      "$ref": "#/$defs/acceleratorTier"
+    },
+    "fallback_accelerators": {
+      "type": "array",
+      "description": "Ordered fallback GPU tiers to try when the primary accelerator is unavailable.",
+      "items": {
+        "$ref": "#/$defs/acceleratorTier"
+      }
+    },
+    "high_mem": {
+      "type": "boolean",
+      "description": "Request --high-mem system RAM when supported by the allocated accelerator (A100, T4, CPU).",
+      "default": false
     },
     "comfyui": {
       "type": "object",
@@ -135,7 +178,7 @@
           },
           "dest": {
             "type": "string",
-            "pattern": "^(checkpoints|diffusion_models|text_encoders|clip|vae|loras|upscale_models|controlnet|embeddings|clip_vision|unet|rapid_moss|model_patches)/[^.][^\\s]*$"
+            "pattern": "^(checkpoints|diffusion_models|text_encoders|clip|vae|loras|upscale_models|latent_upscale_models|controlnet|embeddings|clip_vision|unet|rapid_moss|model_patches)/[^.][^\\s]*$"
           },
           "url": {
             "$ref": "#/$defs/url"

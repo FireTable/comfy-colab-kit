@@ -9,8 +9,10 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 import logging
+import random
 import re
 import shutil
 import tarfile
@@ -23,10 +25,10 @@ from typing import Any, Callable
 
 from . import stopper
 from .budget import Ledger
-from .colab import ColabError, ColabRunner
+from .colab import ColabError, ColabRunner, is_retryable_alloc_error
 from .config import Settings, read_secret_file
 from .plan import build_fetch_plan, build_plan
-from .profiles import Profile
+from .profiles import VALID_ACCELERATORS, Profile
 from .state import BOOT_STATES, Event, Machine, State
 
 log = logging.getLogger("gate.session")
@@ -141,6 +143,8 @@ class Session:
         self.parallel: dict[str, dict[str, Any]] = {}
         self.stage_durations: dict[str, dict[str, Any]] = {}
         self.workflows: list[str] | None = None
+        self.active_accelerator: str = ""
+        self.active_high_mem: bool = False
         self._task: asyncio.Task | None = None
         self._fetch_task: asyncio.Task | None = None
         self.on_demand: list[str] = []      # installed workflows whose models are not on the VM yet
@@ -194,6 +198,8 @@ class Session:
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.state_file.with_suffix(".tmp")
         tmp.write_text(json.dumps({**self.machine.snapshot(), "workflows": self.workflows,
+                                   "active_accelerator": self.active_accelerator,
+                                   "active_high_mem": self.active_high_mem,
                                    "woken_by": self.woken_by,
                                    "woken_by_ip": self.woken_by_ip,
                                    "last_activity": self.last_activity,
@@ -217,6 +223,8 @@ class Session:
             m.since, m.session_started = d.get("since", self.clock()), d.get("session_started")
             m.extends_used = int(d.get("extends_used", 0))
             self.workflows = d.get("workflows")
+            self.active_accelerator = str(d.get("active_accelerator") or "")
+            self.active_high_mem = bool(d.get("active_high_mem", False))
             self.woken_by = str(d.get("woken_by") or "")
             self.woken_by_ip = str(d.get("woken_by_ip") or "")
             self.last_activity = d.get("last_activity", self.clock())
@@ -252,6 +260,12 @@ class Session:
             async with self.lock:
                 self._force(State.SLEEPING, "VM gone (released outside the gate)")
         else:
+            if not self.active_accelerator:
+                detected, detected_hm = await self._detect_session_specs(self.settings.colab_session_name)
+                if detected:
+                    self.active_accelerator = detected
+                    self.active_high_mem = detected_hm
+                    self.persist()
             try:
                 await self.colab.touch_heartbeat(self.settings.colab_session_name)
             except Exception as e:
@@ -265,10 +279,15 @@ class Session:
         m.state, m.reason, m.since = st, reason, self.clock()
         if st == State.SLEEPING:
             m.session_started = None
+            self.active_accelerator = ""
+            self.active_high_mem = False
             self.woken_by = ""
             self.woken_by_ip = ""
         self.persist()
         self.bus.publish("state", self.status())
+
+    def _cu_per_hour(self) -> float:
+        return self.settings.cu_rate_for(self.active_accelerator, high_mem=self.active_high_mem)
 
     # ── public API ────────────────────────────────────────────────────────
     def status(self) -> dict:
@@ -287,6 +306,7 @@ class Session:
             }
         return {
             **m.snapshot(),
+            "accelerator": self.active_accelerator,
             "woken_by": self.woken_by,
             "server_time": now,
             "busy": m.state not in (State.SLEEPING, State.READY, State.FAILED),
@@ -298,7 +318,7 @@ class Session:
             "warn": d.warn,
             "can_extend": stopper.can_extend(self.settings.auto_stop, m.extends_used),
             "cu": {"today": self.ledger.today(), "month": self.ledger.month(), "balance": self.ledger.balance,
-                   "per_hour": self.settings.auto_stop.cu_per_hour},
+                   "per_hour": self._cu_per_hour()},
             "backend_url": self.settings.backend_url,
             "clients": self.open_clients,
             "default_view": self.settings.default_view,
@@ -317,7 +337,15 @@ class Session:
         self.profiles.update(fresh)
         return errors
 
-    async def wake(self, profile_id: str | None, by: str = "", ip: str = "", workflows: list[str] | None = None) -> WakeResult:
+    async def wake(self, profile_id: str | None, by: str = "", ip: str = "",
+                   workflows: list[str] | None = None, accelerator: str | None = None) -> WakeResult:
+        req_accel: str | None = None
+        if accelerator is not None:
+            cand = accelerator.strip().upper()
+            if cand and cand != "AUTO":
+                if cand not in VALID_ACCELERATORS:
+                    raise ValueError(f"accelerator must be one of {list(VALID_ACCELERATORS)}, got {accelerator!r}")
+                req_accel = cand
         async with self.lock:
             if self.machine.state in (State.SLEEPING, State.FAILED):
                 self.reload_profiles()
@@ -340,12 +368,14 @@ class Session:
             self.stage_durations = {"allocating": {"start": self.clock(), "duration": None}}
             self.woken_by = by or ""
             self.woken_by_ip = ip or ""
+            self.active_accelerator = ""
+            self.active_high_mem = False
             m.profile, self.workflows, self.progress = pid, workflows, {}
             self.parallel = {}
             m.to(State.ALLOCATING, f"wake by {by or ip or 'unknown'}")
             self.last_activity = self.clock()
             self.persist()
-            self._task = asyncio.create_task(self._boot(pid))
+            self._task = asyncio.create_task(self._boot(pid, requested_accelerator=req_accel))
             return WakeResult(False, m.state.value, pid)
 
     def can_stop(self, email: str = "", ip: str = "", is_owner: bool = False) -> bool:
@@ -419,7 +449,12 @@ class Session:
         if self._fetch_task and not self._fetch_task.done():
             return "fetch_in_progress"
         try:
-            plan = build_fetch_plan(self.profiles[m.profile], self.settings, list(workflow_ids))
+            plan = build_fetch_plan(
+                self.profiles[m.profile],
+                self.settings,
+                list(workflow_ids),
+                actual_accelerator=self.active_accelerator or None,
+            )
         except ValueError:
             return "unknown_workflow"
         self.fetching, self.fetch_error = list(workflow_ids), ""
@@ -493,6 +528,8 @@ class Session:
                 self.persist()
                 return
         m.to(State.SLEEPING, reason)
+        self.active_accelerator = ""
+        self.active_high_mem = False
         self.woken_by = ""
         self.woken_by_ip = ""
         self.progress = {}
@@ -506,7 +543,7 @@ class Session:
     def _accrue(self) -> None:
         now = self.clock()
         if self.machine.is_billing:
-            self.ledger.add((now - self._last_accrual) / 3600 * self.settings.auto_stop.cu_per_hour, now)
+            self.ledger.add((now - self._last_accrual) / 3600 * self._cu_per_hour(), now)
         self._last_accrual = now
 
     def _snapshot(self) -> stopper.Snapshot:
@@ -626,18 +663,112 @@ class Session:
                 self.machine.to(State.FAILED, clean[len("KIT_FAILED"):].strip() or "setup failed")
         self.persist()
 
-    async def _boot(self, pid: str) -> None:
+    async def _detect_session_specs(self, name: str) -> tuple[str, bool]:
+        if not hasattr(self.colab, "session_details"):
+            return "", False
+        try:
+            details = await self.colab.session_details()
+        except Exception:  # noqa: BLE001
+            return "", False
+        info = details.get(name) or {}
+        accel = str(info.get("accelerator") or "").strip().upper()
+        hw = str(info.get("hardware") or "").upper()
+        shape = str(info.get("shape") or "").lower()
+        if accel not in VALID_ACCELERATORS:
+            accel = ""
+            for tier in VALID_ACCELERATORS:
+                if tier in hw:
+                    accel = tier
+                    break
+        is_high_mem = "high" in shape or "80gb" in hw.lower()
+        return accel, is_high_mem
+
+    async def _colab_new(self, name: str, gpu: str, high_mem: bool, timeout: float) -> None:
+        fn = self.colab.new
+        try:
+            sig = inspect.signature(fn)
+            params = sig.parameters
+            accepts_var_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+            kw: dict[str, Any] = {}
+            if accepts_var_kw or "high_mem" in params:
+                kw["high_mem"] = high_mem
+            if accepts_var_kw or "timeout" in params:
+                kw["timeout"] = timeout
+            await fn(name, gpu, **kw)
+        except (ValueError, TypeError):
+            await fn(name, gpu)
+
+    async def _allocate_vm(self, name: str, profile: Profile, requested_accelerator: str | None) -> tuple[str, bool]:
+        primary = requested_accelerator or profile.accelerator or self.settings.colab_accelerator
+        candidates: list[str] = []
+        for g in [primary, *profile.fallback_accelerators, *self.settings.colab_fallback_accelerators]:
+            g_up = (g or "").strip().upper()
+            if g_up and g_up not in candidates:
+                candidates.append(g_up)
+
+        existing = await self.colab.sessions()
+        if name in existing:
+            detected, detected_hm = await self._detect_session_specs(name)
+            gpu = detected or candidates[0]
+            high_mem = detected_hm or (profile.high_mem and gpu in ("A100", "T4", "CPU"))
+            self.bus.publish("log", f"reusing existing Colab {gpu} VM '{name}' …")
+            return gpu, high_mem
+
+        retries = max(1, self.settings.colab_alloc_retries)
+        alloc_timeout = self.settings.colab_alloc_timeout_s
+        backoff_base = self.settings.colab_alloc_backoff_s
+        last_err: Exception | None = None
+
+        for idx, gpu in enumerate(candidates):
+            use_high_mem = bool(profile.high_mem and gpu in ("A100", "T4", "CPU"))
+            for attempt in range(1, retries + 1):
+                self.bus.publish("log", f"allocating Colab {gpu} VM (attempt {attempt}/{retries}) …")
+                try:
+                    await self._colab_new(name, gpu, high_mem=use_high_mem, timeout=alloc_timeout)
+                    return gpu, use_high_mem
+                except asyncio.CancelledError:
+                    raise
+                except Exception as exc:  # noqa: BLE001
+                    last_err = exc
+                    try:
+                        after_names = await self.colab.sessions()
+                    except Exception:  # noqa: BLE001
+                        after_names = []
+                    if name in after_names:
+                        detected, detected_hm = await self._detect_session_specs(name)
+                        actual = detected or gpu
+                        actual_hm = detected_hm or (profile.high_mem and actual in ("A100", "T4", "CPU"))
+                        self.bus.publish("log", f"Colab {actual} VM '{name}' confirmed active after error; adopting it")
+                        return actual, actual_hm
+                    if not is_retryable_alloc_error(exc):
+                        raise
+                    if attempt < retries:
+                        delay = backoff_base * attempt * random.uniform(0.75, 1.25)
+                        self.bus.publish("log", f"{gpu} allocation failed ({exc}); retrying in {delay:.1f}s …")
+                        if delay > 0:
+                            await asyncio.sleep(delay)
+            if idx + 1 < len(candidates):
+                next_gpu = candidates[idx + 1]
+                self.bus.publish("log", f"{gpu} unavailable (503/capacity); falling back to {next_gpu} …")
+
+        assert last_err is not None
+        raise last_err
+
+    async def _boot(self, pid: str, requested_accelerator: str | None = None) -> None:
         name = self.settings.colab_session_name
         try:
-            plan = build_plan(self.profiles[pid], self.settings, self.workflows)
-            self.on_demand, self.fetching, self.fetch_error = sorted(plan.get("on_demand") or {}), [], ""
+            profile = self.profiles[pid]
             # a fresh boot must not inherit the previous session's download telemetry
             # (stale bytes/ETA would be shown next to "allocating")
             self.progress = {}
             self.parallel = {}
-            if name not in await self.colab.sessions():
-                self.bus.publish("log", f"allocating Colab {self.settings.colab_accelerator} VM …")
-                await self.colab.new(name, self.settings.colab_accelerator)
+            allocated_gpu, allocated_high_mem = await self._allocate_vm(name, profile, requested_accelerator)
+            self.active_accelerator = allocated_gpu
+            self.active_high_mem = allocated_high_mem
+            self.persist()
+            self.bus.publish("state", self.status())
+            plan = build_plan(profile, self.settings, self.workflows, actual_accelerator=allocated_gpu)
+            self.on_demand, self.fetching, self.fetch_error = sorted(plan.get("on_demand") or {}), [], ""
             tgz = self._kit_tarball(plan)
             try:
                 await self.colab.upload(name, tgz, "/content/kit.tgz")

@@ -5,7 +5,8 @@ from .config import Settings
 from .profiles import Profile, hf_to_https
 
 
-def build_plan(profile: Profile, settings: Settings, workflow_ids: list[str] | None = None) -> dict:
+def build_plan(profile: Profile, settings: Settings, workflow_ids: list[str] | None = None,
+               actual_accelerator: str | None = None) -> dict:
     wf_ids = workflow_ids or [w.id for w in profile.workflows.values() if not w.optional]
     if profile.app_default and profile.app_default not in wf_ids:
         wf_ids = [profile.app_default, *wf_ids]
@@ -17,9 +18,9 @@ def build_plan(profile: Profile, settings: Settings, workflow_ids: list[str] | N
     # background; everything else is fetched on demand (POST /_gate/fetch -> build_fetch_plan).
     requested = set(workflow_ids or [])
     eager = [w for w in wf_ids if w in requested or profile.workflows[w].prefetch]
-    default_models = profile.models_for([profile.app_default]) if profile.app_default else []
+    default_models = profile.models_for([profile.app_default], accelerator=actual_accelerator) if profile.app_default else []
     models = {m.id: m for m in default_models}
-    for m in profile.models_for(eager) if eager else []:
+    for m in profile.models_for(eager, accelerator=actual_accelerator) if eager else []:
         models.setdefault(m.id, m)
     node_ids: list[str] = []
     for wid in wf_ids:
@@ -27,12 +28,14 @@ def build_plan(profile: Profile, settings: Settings, workflow_ids: list[str] | N
             if n not in node_ids:
                 node_ids.append(n)
     if settings.enable_smoke_test and profile.smoke:
-        for mid in profile.smoke.models:
+        for raw_mid in profile.smoke.models:
+            mid = profile.resolve_model_id(raw_mid, actual_accelerator) if actual_accelerator else raw_mid
             models.setdefault(mid, profile.models[mid])
         for n in profile.smoke.custom_nodes:
             if n not in node_ids:
                 node_ids.append(n)
-    default_core = set(m.id for m in profile.models_for([profile.app_default])) if profile.app_default else set()
+    default_core = {m.id for m in default_models}
+    effective_aliases = profile.effective_model_aliases(actual_accelerator)
     return {
         "profile": profile.id,
         "comfyui": {
@@ -62,12 +65,13 @@ def build_plan(profile: Profile, settings: Settings, workflow_ids: list[str] | N
              "overrides": list(w.overrides), "default": w.id == profile.app_default}
             for w in (profile.workflows[i] for i in wf_ids)
         ],
-        "on_demand": {w: [m.id for m in profile.models_for([w]) if m.id not in models]
-                      for w in wf_ids if any(m.id not in models for m in profile.models_for([w]))},
+        "on_demand": {w: [m.id for m in profile.models_for([w], accelerator=actual_accelerator) if m.id not in models]
+                      for w in wf_ids
+                      if any(m.id not in models for m in profile.models_for([w], accelerator=actual_accelerator))},
         "smoke": ({"api_url": hf_to_https(profile.smoke.api_url), "timeout_s": profile.smoke.timeout_s}
                   if settings.enable_smoke_test and profile.smoke else None),
         "model_aliases": {f: profile.models[mid].dest.rsplit("/", 1)[-1]
-                          for f, mid in profile.model_aliases.items()},
+                          for f, mid in effective_aliases.items()},
         "default_view": settings.default_view,
         "fast_start": settings.fast_start,
         "download_concurrency": settings.download_concurrency,
@@ -81,14 +85,15 @@ def build_plan(profile: Profile, settings: Settings, workflow_ids: list[str] | N
     }
 
 
-def build_fetch_plan(profile: Profile, settings: Settings, workflow_ids: list[str]) -> dict:
+def build_fetch_plan(profile: Profile, settings: Settings, workflow_ids: list[str],
+                     actual_accelerator: str | None = None) -> dict:
     """Plan for an on-demand download on a running VM: the listed workflows' models (+ their JSON/nodes).
     setup.py skips files that already exist, so asking twice is cheap."""
     unknown = [w for w in workflow_ids if w not in profile.workflows]
     if unknown or not workflow_ids:
         raise ValueError(f"unknown workflows {unknown}")
-    full = build_plan(profile, settings, list(workflow_ids))
-    wanted = {m.id for m in profile.models_for(list(workflow_ids))}
+    full = build_plan(profile, settings, list(workflow_ids), actual_accelerator=actual_accelerator)
+    wanted = {m.id for m in profile.models_for(list(workflow_ids), accelerator=actual_accelerator)}
     full["models"] = [{**m, "core": False} for m in full["models"] if m["id"] in wanted]
     full["workflows"] = [w for w in full["workflows"] if w["id"] in workflow_ids]
     full["fetch_only"] = True

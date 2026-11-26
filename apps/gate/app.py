@@ -223,13 +223,19 @@ async def wake(request: web.Request) -> web.Response:
     body = await _body(request)
     s = request.app[SESSION]
     profile = body.get("profile")
+    accel = body.get("accelerator")
+    if accel is not None and not isinstance(accel, str):
+        return err(400, "bad_request", "accelerator must be a string")
     client_ip = get_client_ip(request)
     # if a session is already starting/running, the caller joins it (its profile wins);
     # changing profile is the separate, owner-only /_gate/switch action
     try:
-        res = await s.wake(profile, by=ident.email, ip=client_ip, workflows=body.get("workflows"))
+        res = await s.wake(profile, by=ident.email, ip=client_ip,
+                           workflows=body.get("workflows"), accelerator=accel)
     except KeyError:
         return err(404, "unknown_profile", f"unknown profile {profile!r}")
+    except ValueError as e:
+        return err(400, "invalid_accelerator", str(e))
     if res.refused:
         return err(409, res.refused, f"wake refused: {res.refused}")
     return web.json_response({"joined": res.joined, "state": res.state, "profile": res.profile},
@@ -329,11 +335,12 @@ async def mcp_endpoint(request: web.Request) -> web.Response:
                     },
                     {
                         "name": "gate_wake",
-                        "description": "Wake or join the shared Google Colab L4 GPU instance with a model profile (e.g. 'moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image', 'minimax-h3-image').",
+                        "description": "Wake or join the shared Google Colab GPU instance with a model profile (e.g. 'moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image', 'minimax-h3-image', 'minimax-h3-video').",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "profile": {"type": "string", "description": "Profile ID, e.g. 'moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image', 'minimax-h3-image'."}
+                                "profile": {"type": "string", "description": "Profile ID, e.g. 'moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image', 'minimax-h3-image', 'minimax-h3-video'."},
+                                "accelerator": {"type": "string", "description": "Optional preferred GPU tier: 'G4', 'A100', 'L4', 'T4', or 'H100'."}
                             }
                         }
                     },
@@ -400,7 +407,14 @@ async def mcp_endpoint(request: web.Request) -> web.Response:
         elif tool_name == "gate_wake":
             args = params.get("arguments", {})
             prof = args.get("profile") or request.app[SETTINGS].default_profile
-            res = await s.wake(prof, by=ident.email, ip=get_client_ip(request))
+            try:
+                res = await s.wake(prof, by=ident.email, ip=get_client_ip(request), accelerator=args.get("accelerator"))
+            except (KeyError, ValueError) as e:
+                return web.json_response({
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "result": {"isError": True, "content": [{"type": "text", "text": f"Wake error: {e}"}]}
+                })
             if res.refused:
                 return web.json_response({
                     "jsonrpc": "2.0",

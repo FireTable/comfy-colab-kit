@@ -18,12 +18,13 @@ FORBIDDEN_KEY = re.compile(r"(token|secret|password|passwd|api[_-]?key|authoriza
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 URL_RE = re.compile(r"^(https://[^\s?#]+|hf://[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(@[A-Za-z0-9_.-]+)?/[^\s?#]+)$")
 MODEL_DIRS = {"checkpoints", "diffusion_models", "text_encoders", "clip", "vae", "loras", "upscale_models",
-              "controlnet", "embeddings", "clip_vision", "unet", "rapid_moss", "model_patches"}
+              "latent_upscale_models", "controlnet", "embeddings", "clip_vision", "unet", "rapid_moss", "model_patches"}
 
 
 #: flags the kit sets itself (the tunnel and gate depend on them)
 RESERVED_ARGS = {"--listen", "--port", "--output-directory", "--disable-auto-launch", "--extra-model-paths-config"}
 RESERVED_ENV = {"CF_TUNNEL_TOKEN", "HF_TOKEN", "KIT_GATE_URL", "KIT_PROFILE_JSON"}
+VALID_ACCELERATORS = ("L4", "A100", "T4", "H100", "G4")
 
 
 class ProfileError(ValueError):
@@ -99,23 +100,58 @@ class Profile:
     raw: dict = field(repr=False, default_factory=dict)
     #: loader filename (as written in an upstream workflow) -> model id it is remapped to at install time
     model_aliases: dict = field(default_factory=dict)
+    fallback_accelerators: tuple[str, ...] = ()
+    high_mem: bool = False
+    model_aliases_by_gpu: dict[str, dict[str, str]] = field(default_factory=dict)
 
-    def models_for(self, workflow_ids: list[str] | None = None) -> list[Model]:
+    def effective_model_aliases(self, accelerator: str | None = None) -> dict[str, str]:
+        aliases = dict(self.model_aliases)
+        if accelerator and accelerator in self.model_aliases_by_gpu:
+            aliases.update(self.model_aliases_by_gpu[accelerator])
+        return aliases
+
+    def resolve_model_id(self, model_id: str, accelerator: str | None = None) -> str:
+        """Resolve a model id after applying GPU-specific alias substitutions."""
+        if not accelerator or accelerator not in self.model_aliases_by_gpu:
+            return model_id
+        aliases = self.effective_model_aliases(accelerator)
+        gpu_aliases = self.model_aliases_by_gpu[accelerator]
+        override_by_id: dict[str, str] = {}
+        for fname, base_mid in self.model_aliases.items():
+            if fname in gpu_aliases and gpu_aliases[fname] != base_mid:
+                override_by_id.setdefault(base_mid, gpu_aliases[fname])
+        seen: set[str] = set()
+        cur = model_id
+        while cur not in seen:
+            seen.add(cur)
+            m = self.models.get(cur)
+            if not m:
+                break
+            fname = m.dest.rsplit("/", 1)[-1]
+            nxt = aliases.get(fname) or override_by_id.get(cur)
+            if not nxt or nxt == cur or nxt not in self.models:
+                break
+            cur = nxt
+        return cur
+
+    def models_for(self, workflow_ids: list[str] | None = None, accelerator: str | None = None) -> list[Model]:
         wf_ids = workflow_ids or [w.id for w in self.workflows.values() if not w.optional]
         need: list[str] = []
         for wid in wf_ids:
             for mid in self.workflows[wid].models:
-                if mid not in need:
-                    need.append(mid)
+                rmid = self.resolve_model_id(mid, accelerator) if accelerator else mid
+                if rmid not in need:
+                    need.append(rmid)
         return [self.models[m] for m in need]
 
-    def total_size_gb(self, workflow_ids: list[str] | None = None) -> float:
-        return round(sum(m.size_gb or 0 for m in self.models_for(workflow_ids)), 2)
+    def total_size_gb(self, workflow_ids: list[str] | None = None, accelerator: str | None = None) -> float:
+        return round(sum(m.size_gb or 0 for m in self.models_for(workflow_ids, accelerator=accelerator)), 2)
 
-    def wake_size_gb(self) -> float:
+    def wake_size_gb(self, accelerator: str | None = None) -> float:
         """What a plain wake downloads: the default workflow's models + the smoke test's (others are on demand)."""
-        ids = {m.id for m in (self.models_for([self.app_default]) if self.app_default else [])}
-        ids |= set(self.smoke.models if self.smoke else ())
+        ids = {m.id for m in (self.models_for([self.app_default], accelerator=accelerator) if self.app_default else [])}
+        if self.smoke:
+            ids |= {self.resolve_model_id(i, accelerator) if accelerator else i for i in self.smoke.models}
         return round(sum(self.models[i].size_gb or 0 for i in ids), 2)
 
     def summary(self) -> dict:
@@ -123,6 +159,8 @@ class Profile:
             "id": self.id,
             "title": self.title,
             "accelerator": self.accelerator,
+            "fallback_accelerators": list(self.fallback_accelerators),
+            "high_mem": self.high_mem,
             "comfyui_commit": self.comfyui_commit,
             "app_default": self.app_default,
             "size_gb_default": self.wake_size_gb(),
@@ -264,10 +302,37 @@ def parse_profile(data: dict, path: Path) -> Profile:
     for fname, mid in aliases.items():
         if mid not in models:
             raise ProfileError(f"{pid}.model_aliases: unknown model '{mid}' for '{fname}'")
+    accel = str(data.get("accelerator", "L4"))
+    if accel not in VALID_ACCELERATORS:
+        raise ProfileError(f"{pid}.accelerator must be one of {list(VALID_ACCELERATORS)}, got {accel!r}")
+    raw_fallbacks = data.get("fallback_accelerators") or []
+    if not isinstance(raw_fallbacks, list) or not all(isinstance(x, str) and x in VALID_ACCELERATORS for x in raw_fallbacks):
+        raise ProfileError(f"{pid}.fallback_accelerators must be a list of {list(VALID_ACCELERATORS)}")
+    raw_high_mem = data.get("high_mem", False)
+    if not isinstance(raw_high_mem, bool):
+        raise ProfileError(f"{pid}.high_mem must be a boolean")
+    raw_gpu_aliases = data.get("model_aliases_by_gpu") or {}
+    if not isinstance(raw_gpu_aliases, dict):
+        raise ProfileError(f"{pid}.model_aliases_by_gpu must map GPU tier to filename->model id")
+    gpu_aliases: dict[str, dict[str, str]] = {}
+    for gpu, amap in raw_gpu_aliases.items():
+        if gpu not in VALID_ACCELERATORS:
+            raise ProfileError(f"{pid}.model_aliases_by_gpu: unknown accelerator {gpu!r}; allowed: {list(VALID_ACCELERATORS)}")
+        if not isinstance(amap, dict):
+            raise ProfileError(f"{pid}.model_aliases_by_gpu.{gpu} must map a filename to a model id")
+        cleaned: dict[str, str] = {}
+        for fname, mid in amap.items():
+            if str(mid) not in models:
+                raise ProfileError(f"{pid}.model_aliases_by_gpu.{gpu}: unknown model '{mid}' for '{fname}'")
+            cleaned[str(fname)] = str(mid)
+        gpu_aliases[str(gpu)] = cleaned
     return Profile(
         model_aliases={str(k): str(v) for k, v in aliases.items()},
+        fallback_accelerators=tuple(raw_fallbacks),
+        high_mem=raw_high_mem,
+        model_aliases_by_gpu=gpu_aliases,
         id=pid, title=str(data.get("title", pid)), path=path,
-        accelerator=str(data.get("accelerator", "L4")),
+        accelerator=accel,
         comfyui_commit=str(_req(comfy, "commit", f"{pid}.comfyui")),
         comfyui_args=tuple(args), comfyui_settings=dict(settings),
         comfyui_env={str(k): str(v) for k, v in cenv.items()}, extra_model_paths=emp,

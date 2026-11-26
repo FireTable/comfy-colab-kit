@@ -32,6 +32,7 @@ components:
       properties:
         state: {$ref: "#/components/schemas/State"}
         profile: {type: [string, "null"]}
+        accelerator: {type: [string, "null"], description: "Currently allocated GPU tier (e.g. G4, A100, L4), or empty when sleeping."}
         reason: {type: string}
         since: {type: number}
         session_started: {type: [number, "null"]}
@@ -61,7 +62,7 @@ components:
           type: string
           description: |
             no_access_token | invalid_token | bad_alg | unknown_kid | no_email | not_allowed | bad_agent_token |
-            owner_only | unknown_profile | quiet_hours | daily_budget | monthly_budget | low_balance |
+            owner_only | unknown_profile | invalid_accelerator | quiet_hours | daily_budget | monthly_budget | low_balance |
             extend_limit | asleep | backend_unreachable
         message: {type: string}
   responses:
@@ -101,6 +102,7 @@ paths:
               properties:
                 profile: {type: string, description: ignored when joining a running session}
                 workflows: {type: array, items: {type: string}, description: workflow ids to install (default = non-optional ones)}
+                accelerator: {type: string, enum: [L4, A100, T4, H100, G4], description: optional preferred GPU tier (overrides profile default)}
       responses:
         "202": {description: this call started a new session}
         "200": {description: joined the session already starting or running}

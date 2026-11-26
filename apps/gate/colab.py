@@ -22,7 +22,8 @@ class ColabError(RuntimeError):
 
 class ColabRunner(Protocol):
     async def sessions(self) -> list[str]: ...
-    async def new(self, name: str, accelerator: str) -> None: ...
+    async def session_details(self) -> dict[str, dict[str, str]]: ...
+    async def new(self, name: str, accelerator: str, high_mem: bool = False, timeout: float = 180) -> None: ...
     async def upload(self, name: str, src: str, dst: str) -> None: ...
     def exec_stream(self, name: str, code: str, timeout_s: int) -> AsyncIterator[str]: ...
     async def stop(self, name: str) -> None: ...
@@ -58,6 +59,8 @@ class ColabCLI:
         # the CLI is Python: without this its stdout is block-buffered on a pipe and `exec` output
         # (setup progress) would only arrive in 4-8 KB chunks or at the very end
         self.env["PYTHONUNBUFFERED"] = "1"
+        # Mitigate google-colab-cli #285 / #279: default 10s HTTP/WS timeout causes false failures on cold kernels
+        self.env.setdefault("REQUEST_TIMEOUT", "60")
 
     async def _run(self, *args: str, stdin: str | None = None, timeout: float = 600) -> str:
         proc = await asyncio.create_subprocess_exec(
@@ -84,8 +87,21 @@ class ColabCLI:
             raise
         return parse_sessions(out)
 
-    async def new(self, name: str, accelerator: str) -> None:
-        await self._run("new", "-s", name, "--gpu", accelerator, timeout=600)
+    async def session_details(self) -> dict[str, dict[str, str]]:
+        try:
+            out = await self._run("sessions", timeout=60)
+        except ColabError as e:
+            msg = str(e).lower()
+            if "no active session" in msg or "no session" in msg:
+                return {}
+            raise
+        return parse_session_details(out)
+
+    async def new(self, name: str, accelerator: str, high_mem: bool = False, timeout: float = 180) -> None:
+        args = ["new", "-s", name, "--gpu", accelerator]
+        if high_mem and accelerator in ("A100", "T4", "CPU"):
+            args.append("--high-mem")
+        await self._run(*args, timeout=timeout)
 
     async def upload(self, name: str, src: str, dst: str) -> None:
         await self._run("upload", "-s", name, src, dst, timeout=600)
@@ -179,11 +195,82 @@ class ColabCLI:
             return False
 
 
+_FATAL_AUTH_MARKERS = (
+    "401",
+    "403",
+    "re-authenticate",
+    "reauthenticate",
+    "oauth",
+    "unauthorized",
+    "invalid_grant",
+)
+_RETRYABLE_ALLOC_MARKERS = (
+    "503",
+    "service unavailable",
+    "no gpu",
+    "capacity",
+    "unavailable",
+    "timed out",
+    "timeout",
+    "assignment",
+    "quota",
+)
+
+
+def is_retryable_alloc_error(err: Exception | str) -> bool:
+    """Return True for transient Colab allocation failures; False for fatal auth or usage errors."""
+    msg = str(err).lower()
+    if any(m in msg for m in _FATAL_AUTH_MARKERS):
+        return False
+    if isinstance(err, (TimeoutError, asyncio.TimeoutError)):
+        return True
+    return any(m in msg for m in _RETRYABLE_ALLOC_MARKERS)
+
+
+def _detect_gpu_tier(hardware: str, endpoint: str = "") -> str:
+    hw = (hardware or "").upper()
+    for tier in ("G4", "A100", "H100", "L4", "T4"):
+        if re.search(rf"\b{tier}\b", hw):
+            return tier
+    if "RTX PRO" in hw or "BLACKWELL" in hw:
+        return "G4"
+    ep = (endpoint or "").lower()
+    for tier in ("g4", "a100", "h100", "l4", "t4"):
+        if re.search(rf"(?:^|[-_]){tier}(?:[-_]|$)", ep):
+            return tier.upper()
+    return ""
+
+
 def parse_sessions(text: str) -> list[str]:
     """`colab sessions` (0.7.x) prints one line per server-side assignment:
     `[name] endpoint | Hardware: L4 | Shape: ... | Variant: GPU`; `[?]` = assignment with no local name."""
     return [m.group(1) for line in text.splitlines()
             if " | " in line and (m := re.match(r"^\s*\[([^\]]+)\]\s", line))]
+
+
+def parse_session_details(text: str) -> dict[str, dict[str, str]]:
+    """Parse `colab sessions` output into `{name: {endpoint, hardware, shape, variant, accelerator}}`."""
+    details: dict[str, dict[str, str]] = {}
+    for line in text.splitlines():
+        if " | " not in line:
+            continue
+        m = re.match(r"^\s*\[([^\]]+)\]\s+(.+)$", line)
+        if not m:
+            continue
+        name = m.group(1).strip()
+        parts = [p.strip() for p in m.group(2).split("|")]
+        if not parts:
+            continue
+        entry: dict[str, str] = {"endpoint": parts[0]}
+        for seg in parts[1:]:
+            if ":" in seg:
+                k, v = seg.split(":", 1)
+                entry[k.strip().lower()] = v.strip()
+        accel = _detect_gpu_tier(entry.get("hardware", ""), entry.get("endpoint", ""))
+        if accel:
+            entry["accelerator"] = accel
+        details[name] = entry
+    return details
 
 
 def parse_ccu_balance(text: str) -> float | None:

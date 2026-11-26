@@ -6,7 +6,9 @@ class FakeColab:
 
     def __init__(self, lines=None, new_delay=0.05, exec_gate: asyncio.Event | None = None):
         self.calls: list[str] = []
+        self.new_kwargs: list[dict] = []
         self.live: set[str] = set()
+        self.live_details: dict[str, dict[str, str]] = {}
         self.lines = lines if lines is not None else [
             "KIT_STAGE bootstrap start", "KIT_STAGE bootstrap done 1.0",
             "KIT_STAGE download start", 'KIT_PROGRESS download {"done_gb": 1, "total_gb": 2}',
@@ -19,10 +21,20 @@ class FakeColab:
         self.calls.append("sessions")
         return sorted(self.live)
 
-    async def new(self, name, accelerator):
+    async def session_details(self):
+        self.calls.append("session_details")
+        return {k: dict(v) for k, v in self.live_details.items() if k in self.live}
+
+    async def new(self, name, accelerator, high_mem=False, timeout=180):
         self.calls.append(f"new:{name}:{accelerator}")
+        self.new_kwargs.append({"name": name, "accelerator": accelerator, "high_mem": high_mem, "timeout": timeout})
         await asyncio.sleep(self.new_delay)
         self.live.add(name)
+        self.live_details[name] = {
+            "endpoint": f"gpu-{accelerator.lower()}-s-fake",
+            "hardware": accelerator,
+            "accelerator": accelerator,
+        }
 
     async def upload(self, name, src, dst):
         self.calls.append("upload")
