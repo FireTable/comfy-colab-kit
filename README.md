@@ -44,8 +44,8 @@ A tiny gateway, **comfy-gate** (Python / aiohttp), runs either **100% locally on
 
 | Pillar | What you see | How |
 |---|---|---|
-| **1 · Wake on demand** | Sleep card → Wake → stages + logs → ComfyUI Web App | 10-state machine, `colab new` (L4) + setup via `colab exec`, streaming reverse proxy (HTTP + `/ws`) |
-| **2 · Switchable profiles** | Pick MOSS-Image, FLUX.2 Klein, Wan 2.2 Video, SD3.5, Qwen before waking | `profile.yaml` + JSON Schema; zero secrets, models by public URL |
+| **1 · Wake on demand** | Sleep card → Wake → stages + logs → ComfyUI Web App | 10-state machine, `colab new` (`A100 80G` / `G4 96G` / `L4 24G` auto-fallback) + `colab exec`, streaming proxy (HTTP + `/ws`) |
+| **2 · Switchable profiles** | Pick MOSS-Image, FLUX.2 Klein, Wan 2.2, MiniMax-H3 Video/Image, SD3.5, Qwen before waking | `profile.yaml` + JSON Schema; zero secrets, models by public URL, per-GPU alias substitution |
 | **3 · Auto-stop** | Overlay shows time left; sleeps on idle / max session / quiet hours / CU budget | every rule configured in `.env` |
 | **4 · Run Anywhere** | **Local Standalone** (`http://localhost:8080`) or **Cloud VPS** (`comfy.domain.com`) | 1-command Docker / Python launch; no VPS or domain needed for local users |
 
@@ -229,6 +229,7 @@ Autonomous coding agents (Claude Code, Cursor, OpenClaw, Codex, LangGraph) can w
 | [`sd-latest`](profiles/examples/sd-latest/) | Stable Diffusion 3.5: Large fp8 default, TurboX 8-step, Medium turbo (gated, optional) | ~15 GB core / ~22 GB |
 | [`qwen-image`](profiles/examples/qwen-image/) | Qwen-Image 2.1: Turbo T2I default, full T2I, Turbo / full Edit | ~27 GB core / ~43 GB |
 | [`minimax-h3-image`](profiles/examples/minimax-h3-image/) | MiniMax-H3-Image: 33.1B DiT W4A8 fast L4 default, Qwen3-VL 32B INT8, 6-step native 4K T2I & Multi-Ref Edit | ~44.9 GB core / ~79 GB |
+| [`minimax-h3-video`](profiles/examples/minimax-h3-video/) | MiniMax-H3-Video (TriPRISM): 8-step Ref2V/I2V/T2V w/ native stereo audio, Continuation/Extend (`ComfyUI_MiniMax_H3_Extender` + RelayVSR/Latent upscaler), Fun ControlNet-Union V2V; `A100 (80G) → G4 (96G) → L4 (24G)` auto-fallback | ~37.40 GB core (~33.79 GB L4) / ~47.02 GB full |
 
 Workflows are **only** community-published ones, fetched from the author with source and license recorded.
 Format and passthrough options: [docs/PROFILES.md](docs/PROFILES.md).
@@ -276,7 +277,7 @@ comfy-colab-kit/
 │   ├── cli/                  # [Package] Host & developer CLI tool (ckit)
 │   └── schemas/              # [Package] JSON Schema definitions (profile.schema.json)
 ├── profiles/                 # Profiles & Model Configurations
-│   ├── examples/             # Built-in community profiles (moss-image, flux-klein, wan-ltx-video, sd-latest, qwen-image, minimax-h3-image)
+│   ├── examples/             # Built-in community profiles (moss-image, flux-klein, wan-ltx-video, sd-latest, qwen-image, minimax-h3-image, minimax-h3-video)
 │   └── custom/               # Mount point for user custom profiles
 ├── deploy/                   # Infrastructure & deployment configuration
 │   ├── Dockerfile            # Container build recipe
@@ -311,7 +312,7 @@ AUTH_DISABLED=true STATE_DIR=/tmp/kit COLAB_BIN=/bin/false python -m gate.app   
 Comfy Colab Kit stands on the shoulders of giants. We express our deepest gratitude to the creators and open-source communities who make this project possible:
 
 - **[ComfyUI](https://github.com/comfyanonymous/ComfyUI)** — The revolutionary node-based diffusion execution engine and modern Web App interface created by @comfyanonymous and the Comfy Org.
-- **[Google Colab](https://colab.research.google.com/)** — For democratizing high-performance GPU compute (NVIDIA L4 24GB).
+- **[Google Colab](https://colab.research.google.com/)** — For democratizing high-performance GPU compute (NVIDIA L4 24GB, A100 80GB high-mem, and G4 96GB).
 - **[Cloudflare](https://www.cloudflare.com/)** — For the rock-solid Zero Trust Access network, Named Tunnels (`cloudflared`), and global Pages hosting.
 - **[React Bits](https://reactbits.dev)** — The visual design foundation for the Aurora WebGL shaders, SpotlightCard cursor glow, and ShinyText animations created by **David Haz**.
 - **[Hugging Face](https://huggingface.co/)** — High-speed model hosting and parallel weight streaming (`hf_xet`).
@@ -320,6 +321,7 @@ Comfy Colab Kit stands on the shoulders of giants. We express our deepest gratit
 - **[Black Forest Labs](https://blackforestlabs.ai/)** — Creators of the FLUX.2 Klein 4B (Distilled Apache-2.0 & Base) and FLUX.1 Schnell image generation & editing models.
 - **[Alibaba Wan Team (Tongyi Lab)](https://github.com/Wan-Video/Wan2.2) & [Lightricks](https://github.com/Lightricks/LTX-Video)** — Creators of the Apache-2.0 Wan 2.2 5B TI2V / Wan 2.1 1.3B and LTX-Video 2B open video generation models.
 - **[Stability AI](https://stability.ai/) & [Qwen Team](https://github.com/QwenLM)** — For open-weights research (SD 3.5 Large & Qwen-Image 2.1).
+- **[MiniMax](https://github.com/MiniMax-AI) & [Comfy-Org](https://huggingface.co/Comfy-Org/MiniMax-H3)** — For MiniMax-H3-Image, MiniMax-H3-Video, and MIT `workflow_templates`, alongside **OliviaRossi**, **TenStrip**, **SulphurAI**, and **WarmBloodAban** (TriPRISM TurboFusion), **Alibaba PAI VideoX-Fun** (`MiniMax-H3-Fun-Controlnet-Union`), and **tritant** ([ComfyUI_MiniMax_H3_Extender](https://github.com/tritant/ComfyUI_MiniMax_H3_Extender)).
 
 ## 📄 License
 

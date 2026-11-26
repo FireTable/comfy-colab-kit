@@ -16,6 +16,7 @@ JSON Schema validation specification: [`packages/schemas/profile.schema.json`](.
 | [`sd-latest`](../profiles/examples/sd-latest/) | `sd35-large` | ~15 GB core / ~22 GB | SD 3.5 Large fp8, TurboX 8-step acceleration, SD 3.5 Medium turbo (gated, optional) |
 | [`qwen-image`](../profiles/examples/qwen-image/) | `qwen21-turbo-t2i` | ~27 GB core / ~43 GB | Qwen-Image 2.1 Turbo T2I, full text-to-image, and Turbo / full image editing |
 | [`minimax-h3-image`](../profiles/examples/minimax-h3-image/) | `h3-t2i` | ~44.9 GB core / ~79 GB | MiniMax-H3-Image 33.1B DiT W4A8 (L4-optimized zero-OOM), Qwen3-VL 32B INT8, 6-step native 4K T2I & Multi-Ref Edit |
+| [`minimax-h3-video`](../profiles/examples/minimax-h3-video/) | `h3-r2v` | ~37.40 GB core (~33.79 GB L4) / ~47.02 GB full | MiniMax-H3 TriPRISM 8-step TurboFusion (`A100` 80G `--high-mem` → `G4` 96G → `L4` 24G auto-fallback via `h3tiny17b`); 5 workflows: Ref2V/I2V/T2V w/ native stereo audio, `h3-extend` continuation + `ComfyUI_MiniMax_H3_Extender` + RelayVSR ×2 / Latent Upscaler, `h3-controlnet` Fun ControlNet-Union depth/pose/canny V2V |
 
 ---
 
@@ -52,6 +53,23 @@ Community Workflow JSON ──► setup.py parses all loader nodes ──► Mat
 - Upstream workflow files remain completely unmodified in git.
 - During Colab bootstrap (`packages/colab/setup.py`), the loader widget values in node graphs and subgraph definitions are dynamically rewritten to reference the shared local model file.
 - Result: You download the high-precision base weights once, and all compatible community workflows share them seamlessly.
+
+### Multi-GPU Fallback & Per-GPU Aliases (`fallback_accelerators`, `high_mem`, `model_aliases_by_gpu`)
+
+Profiles can declare resilient multi-GPU allocation and tier-specific weight substitution:
+
+```yaml
+accelerator: A100
+high_mem: true
+fallback_accelerators: [G4, L4]
+model_aliases_by_gpu:
+  L4:
+    Sulphur3_10ErosMax_SingularityV2_TriPRISM_TurboFusion_realism_int8_convrot.safetensors: dit-triprism-tiny
+```
+
+- **`fallback_accelerators`**: Ordered fallback GPU tiers (`L4`, `A100`, `G4`, `T4`, `H100`). When Colab returns `503` or capacity errors, `comfy-gate` reconciles active sessions, retries with jittered backoff, and falls back down the chain (overridable per wake via `POST /_gate/wake` `accelerator`).
+- **`high_mem`**: Boolean (default `false`); passes `--high-mem` to `colab new` for `A100` (80 GB VRAM, `2,039 GB/s`, `~7.2 CU/h`), `T4`, or `CPU` and enables `high_mem`-aware CU accounting.
+- **`model_aliases_by_gpu`**: Maps GPU tier → `{upstream_filename: model_id}` (merged over `model_aliases` inside `build_plan(..., actual_accelerator=...)` once allocation succeeds), so a 24 GB `L4` fallback downloads only its compatible smaller checkpoint (`core: true`) instead of an 80 GB/96 GB tier model.
 
 ---
 
@@ -133,4 +151,5 @@ We celebrate the creators and open-source communities behind the profiles suppor
 - **Stable Diffusion 3.5**: Created by [Stability AI](https://stability.ai/). High-performance FP8 and TurboX community acceleration graphs.
 - **Qwen-Image**: Developed by the [Qwen Team](https://github.com/QwenLM) at Alibaba Cloud. Fast visual synthesis and multimodal generation.
 - **MiniMax-H3-Image**: Created by [MiniMax](https://github.com/MiniMax-AI/MiniMax-H3-Image) and repackaged by [Comfy-Org](https://huggingface.co/Comfy-Org/MiniMax-H3-Image). 33.1B single-stream DiT architecture delivering native 16 MP image generation and multi-reference editing in 6 distilled sampling steps.
+- **MiniMax-H3-Video (TriPRISM)**: Built on [MiniMax-H3](https://huggingface.co/Comfy-Org/MiniMax-H3) and [Comfy-Org/workflow_templates](https://github.com/Comfy-Org/workflow_templates), powered by the TriPRISM TurboFusion 8-step realism merges (`Sulphur-3` + `10Eros-Max` + `Singularity V2`) by **OliviaRossi**, **TenStrip**, **SulphurAI**, and **WarmBloodAban**, **Alibaba PAI VideoX-Fun** (`MiniMax-H3-Fun-Controlnet-Union` depth/pose/canny video-to-video), and **tritant** ([ComfyUI_MiniMax_H3_Extender](https://github.com/tritant/ComfyUI_MiniMax_H3_Extender), Apache-2.0 continuation extender).
 - **Community Custom Nodes**: We thank **Kijai** and the broad ComfyUI node contributor ecosystem for publishing optimized sampling nodes and adapters.

@@ -16,7 +16,7 @@
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
 <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet">
 <title>Comfy Colab Gate — GPU Session Manager</title>
-<meta name="description" content="Autonomous GPU session manager & ComfyUI gateway. Remote wake-on-demand compute on Google Colab L4 GPUs with real-time CU budget tracking.">
+<meta name="description" content="Autonomous GPU session manager & ComfyUI gateway. Remote wake-on-demand compute on Google Colab GPUs (A100, G4, L4) with real-time CU budget tracking.">
 <link rel="icon" href="/_gate/static/logo.svg">
 <meta name="theme-color" content="#0E0A12">
 
@@ -24,7 +24,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Comfy Colab Gate">
 <meta property="og:title" content="Comfy Colab Gate — GPU Session Manager">
-<meta property="og:description" content="Autonomous GPU session manager & ComfyUI gateway. Remote wake-on-demand compute on Google Colab L4 GPUs with real-time CU budget tracking.">
+<meta property="og:description" content="Autonomous GPU session manager & ComfyUI gateway. Remote wake-on-demand compute on Google Colab GPUs (A100, G4, L4) with real-time CU budget tracking.">
 <meta property="og:image" content="/_gate/static/og.png">
 <meta property="og:image:secure_url" content="/_gate/static/og.png">
 <meta property="og:image:type" content="image/png">
@@ -38,7 +38,7 @@
 <meta name="twitter:site" content="@FireTable">
 <meta name="twitter:creator" content="@FireTable">
 <meta name="twitter:title" content="Comfy Colab Gate — GPU Session Manager">
-<meta name="twitter:description" content="Autonomous GPU session manager & ComfyUI gateway. Remote wake-on-demand compute on Google Colab L4 GPUs with real-time CU budget tracking.">
+<meta name="twitter:description" content="Autonomous GPU session manager & ComfyUI gateway. Remote wake-on-demand compute on Google Colab GPUs (A100, G4, L4) with real-time CU budget tracking.">
 <meta name="twitter:image" content="/_gate/static/og.png">
 <meta name="twitter:image:alt" content="Comfy Colab Gate — GPU Session Manager & ComfyUI Gateway">
 
@@ -270,6 +270,22 @@ label{display:block;margin:0 0 6px;font:600 11px var(--mono);letter-spacing:.06e
 .sel-item.active{background:rgba(249,171,0,.15);color:var(--fg)}
 .sel-item-check{width:14px;height:14px;color:var(--y);opacity:0;flex-shrink:0}
 .sel-item.active .sel-item-check{opacity:1}
+/* GPU preference selector & active GPU readout */
+.visually-hidden{position:absolute;clip-path:inset(50%);overflow:hidden;width:1px;height:1px;margin:-1px;padding:0;border:0;white-space:nowrap}
+.gpu-pref-fieldset{border:0;margin:10px 0 0;padding:0}
+.gpu-pref-fieldset legend{display:block;margin:0 0 6px;padding:0;font:600 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.gpu-pref-group{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:6px}
+.gpu-pref-lbl{display:flex;align-items:center;justify-content:center;min-height:36px;padding:4px 8px;margin:0;border-radius:10px;border:1px solid var(--line2);background:rgba(127,127,127,.06);color:var(--muted);font:500 12px var(--mono);letter-spacing:0;text-transform:none;cursor:pointer;text-align:center;transition:border-color .15s,background-color .15s,color .15s}
+.gpu-pref-lbl:hover{border-color:var(--y);color:var(--fg)}
+input[name="gpu-pref"]:checked + .gpu-pref-lbl{border-color:var(--y);background:rgba(249,171,0,.14);color:var(--fg);font-weight:600}
+input[name="gpu-pref"]:focus-visible + .gpu-pref-lbl{outline:2px solid var(--y);outline-offset:2px}
+:root[data-theme=light] .gpu-pref-lbl{background:rgba(15,23,42,.03);border-color:rgba(15,23,42,.12)}
+:root[data-theme=light] input[name="gpu-pref"]:checked + .gpu-pref-lbl{background:rgba(217,119,6,.1);border-color:var(--y);color:#0F172A}
+.gpu-stat{display:inline-flex;align-items:center;font:600 11.5px var(--mono);color:var(--muted);height:26px;padding:0 10px;border-radius:9999px;border:1px solid var(--line2);background:rgba(127,127,127,.06);white-space:nowrap}
+.top-left{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.panel-gpu-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 10px;border-radius:8px;border:1px solid var(--line2);background:rgba(127,127,127,.06);font:600 11.5px var(--mono);color:var(--fg)}
+:root[data-theme=light] .panel-gpu-row{background:rgba(0,0,0,.03);border-color:rgba(15,23,42,.08)}
+@media (max-width:360px){.gpu-pref-group{grid-template-columns:1fr 1fr}}
 /* StarBorder button */
 .star{position:relative;display:block;width:100%;margin-top:12px;padding:1.5px;border-radius:14px;overflow:hidden;border:0;background:transparent;cursor:pointer}
 .star::before,.star::after{content:"";position:absolute;width:300%;height:50%;border-radius:50%;opacity:.8;background:radial-gradient(circle,var(--n),transparent 12%);z-index:0}
@@ -380,6 +396,7 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
         <span class="brand-text">Comfy Colab Kit</span>
       </a>
       <span class="badge" id="h-badge" style="display:none"><span class="dot"></span><span id="h-btext">…</span></span>
+      <span class="gpu-stat" id="h-gpu" style="display:none"></span>
     </div>
 
     <div class="header-right">
@@ -416,6 +433,10 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
             <div class="section-title-row">
               <span class="section-title" id="owner-sec-title">算力指标与控制</span>
               <span class="badge-role badge-owner">Owner</span>
+            </div>
+            <div class="panel-gpu-row" id="panel-gpu-row" style="display:none">
+              <span id="panel-gpu-lbl">GPU</span>
+              <span id="panel-gpu-val"></span>
             </div>
             <div class="panel-metrics-grid">
               <div class="panel-metric-item">
@@ -506,7 +527,10 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
 <section class="card" id="card" aria-live="polite">
   <div class="card-glow"></div>
   <div class="top">
-    <span class="badge" id="badge"><span class="dot"></span><span id="btext">…</span></span>
+    <div class="top-left">
+      <span class="badge" id="badge"><span class="dot"></span><span id="btext">…</span></span>
+      <span class="gpu-stat" id="card-gpu" style="display:none"></span>
+    </div>
     <span class="viewers" id="card-viewers">
       <svg class="user-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       <span id="card-vcount">1 online</span>
@@ -537,6 +561,19 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
       </div>
       <select id="profile" hidden></select>
     </div>
+    <fieldset class="gpu-pref-fieldset" id="gpu-pref-fieldset">
+      <legend id="gpu-pref-legend">GPU Preference</legend>
+      <div class="gpu-pref-group">
+        <input type="radio" name="gpu-pref" id="gpu-pref-auto" value="" class="visually-hidden" checked>
+        <label for="gpu-pref-auto" class="gpu-pref-lbl" id="gpu-pref-auto-lbl">Auto (Profile)</label>
+        <input type="radio" name="gpu-pref" id="gpu-pref-a100" value="A100" class="visually-hidden">
+        <label for="gpu-pref-a100" class="gpu-pref-lbl">A100</label>
+        <input type="radio" name="gpu-pref" id="gpu-pref-g4" value="G4" class="visually-hidden">
+        <label for="gpu-pref-g4" class="gpu-pref-lbl">G4</label>
+        <input type="radio" name="gpu-pref" id="gpu-pref-l4" value="L4" class="visually-hidden">
+        <label for="gpu-pref-l4" class="gpu-pref-lbl">L4</label>
+      </div>
+    </fieldset>
   </div>
   <button class="star" id="wake">
     <span>
@@ -638,6 +675,9 @@ const I18N={
   info_allocating:"Allocating Colab GPU instance…",info_installing:"Setting up runtime & Python dependencies…",info_booting:"Starting ComfyUI engine & loading models…",info_smoke:"Running smoke test generation…",
   profile_label:"Profile",
   select_profile:"Select Profile",
+  gpu_pref_label:"GPU Preference",
+  gpu_pref_auto:"Auto (Profile)",
+  gpu_active_lbl:"Allocated GPU",
   wake_btn:"Wake",retry_btn:"Retry",starting_btn:"Starting…",
   wake_disabled_hint:"Only owners can wake the GPU",
   stop_btn:"Stop · release GPU",stop_confirm:"Stop and release the GPU?",
@@ -668,6 +708,9 @@ const I18N={
   info_allocating:"正在分配 Colab GPU 算力实例…",info_installing:"正在安装 ComfyUI 运行环境与核心依赖…",info_booting:"正在启动 ComfyUI 引擎与载入模型组件…",info_smoke:"正在执行冒烟出图验证…",
   profile_label:"运行预设 (Profile)",
   select_profile:"选择运行预设",
+  gpu_pref_label:"GPU 偏好 (Accelerator)",
+  gpu_pref_auto:"自动 (随预设)",
+  gpu_active_lbl:"当前分配 GPU",
   wake_btn:"唤醒",retry_btn:"重试",starting_btn:"启动中…",
   wake_disabled_hint:"仅管理员可开机唤醒 GPU",
   stop_btn:"关机 · 释放 GPU",stop_confirm:"确定要停机并释放 GPU 吗？",
@@ -854,8 +897,8 @@ function generateAIPrompt(token,clientName){
  const isZh=lang==="zh";
  return `# 接入 Comfy Colab Kit GPU 绘图网关 (Comfy Colab Kit Agent Access)
 
-你好！用户已向你授权使用其私有 Google Colab L4 GPU ComfyUI 绘图网关。
-本网关由 Comfy Colab Kit (https://github.com/FireTable/comfy-colab-kit) 驱动，内置经过抗条纹 (DeBand) 优化的高清 MOSS-Image 生产管线。
+你好！用户已向你授权使用其私有 Google Colab 多卡按需算力 ComfyUI 网关（支持 A100 80G / G4 96G / L4 24G 与自动回退）。
+本网关由 Comfy Colab Kit (https://github.com/FireTable/comfy-colab-kit) 驱动，内置 MOSS-Image、FLUX.2 Klein、Wan 2.2、MiniMax-H3-Image 与 MiniMax-H3-Video (TriPRISM) 等 7 套精选预设。
 
 ---
 
@@ -889,10 +932,10 @@ curl -sSL "https://raw.githubusercontent.com/FireTable/comfy-colab-kit/main/pack
 \`\`\`
 
 ### 常用命令速查
-- \`ckit status [--json]\`: 检查 GPU 实例状态、当前模型 Profile、排队情况与 CU 余额
-- \`ckit profiles [--json]\`: 查询网关支持的所有模型 Profiles 及 Workflows 工作流列表
-- \`ckit wake [--profile ID] [--wait]\`: 唤醒或加入 GPU 实例（可选 \`moss-image\`, \`flux-klein\`, \`wan-ltx-video\`, \`sd-latest\`, \`qwen-image\`, \`minimax-h3-image\`）
-- \`ckit switch <profile-id>\`: 在线切换模型 Profile（如从生图切换到 \`wan-ltx-video\` 视频生成）
+- \`ckit status [--json]\`: 检查 GPU 实例状态、当前模型 Profile、实际分配的 \`accelerator\`、实时 \`cu.per_hour\` 费率与 CU 余额
+- \`ckit profiles [--json]\`: 查询网关支持的所有模型 Profiles（含 \`accelerator\` 与 \`fallback_accelerators\`）及 Workflows 工作流列表
+- \`ckit wake [--profile ID] [--wait]\`: 唤醒或加入 GPU 实例（可选 \`moss-image\`, \`flux-klein\`, \`wan-ltx-video\`, \`minimax-h3-video\`, \`sd-latest\`, \`qwen-image\`, \`minimax-h3-image\`；若需指定显卡档位，可通过 \`POST /_gate/wake\` 传入可选 \`"accelerator": "A100" | "G4" | "L4"\`）
+- \`ckit switch <profile-id>\`: 在线切换模型 Profile（如从生图切换到 \`wan-ltx-video\` 或 \`minimax-h3-video\` 视频生成）
 - \`ckit generate --prompt "..." [--preset "..."] [--width N] [--height N] [--timeout 300]\`: 执行快速文生图或文生视频（自动适配当前 Profile）
 - \`ckit generate --prompt "..." --image <PATH_OR_URL> [--denoise 0.75] [--timeout 300]\`: 执行图生图重绘、FLUX.2 Klein 指令改图或 Wan 2.2 首帧图生视频
 - \`ckit stop\`: 立即关闭 GPU 实例，释放算力停止计费
@@ -909,9 +952,9 @@ curl -sSL "https://raw.githubusercontent.com/FireTable/comfy-colab-kit/main/pack
 ckit profiles --json
 \`\`\`
 2. **HTTP API 查询 (相对路径)**:
-向 \`GET /_gate/profiles\` 发送请求，返回包含当前可用 Profile 列表（如 \`moss-image\`, \`flux-klein\`, \`wan-ltx-video\`, \`sd-latest\`, \`qwen-image\`, \`minimax-h3-image\`）以及每个 Profile 下全部已注册工作流的完整定义与许可。
+向 \`GET /_gate/profiles\` 发送请求，返回包含当前可用 Profile 列表（如 \`moss-image\`, \`flux-klein\`, \`wan-ltx-video\`, \`minimax-h3-video\`, \`sd-latest\`, \`qwen-image\`, \`minimax-h3-image\`）以及每个 Profile 下全部已注册工作流的完整定义与许可。
 3. **查询当前 GPU 运行状态**:
-向 \`GET /_gate/status\` 发送请求，返回当前 GPU 运行的 Profile、会话阶段以及默认视图。
+向 \`GET /_gate/status\` 发送请求，返回当前 GPU 运行的 Profile、实际分配显卡 \`accelerator\`、实时费率 \`cu.per_hour\`、会话阶段以及默认视图。
 
 ---
 
@@ -925,8 +968,9 @@ ckit profiles --json
   - 推荐调用 MCP 工具: \`gate_img2img(image="<本地路径或图片URL>", prompt="...", denoise=0.75)\`（自动完成 \`/upload/image\` 上传与重绘）。
   - **\`flux-klein\` 指令改图**: 基于 \`ReferenceLatent\` 像素级保持原图背景与构图，直接输入英文修改指令（如 \`"Add cool neon cyan sunglasses and change the hat to gold"\`）。
   - **\`moss-image\` 重绘幅度 \`denoise\`**: \`0.2~0.35\` 微调修复；\`0.4~0.65\` 换装/换风格；\`0.7~1.0\` 大幅重绘。
-- **文生视频 (T2V) / 首帧图生视频 (I2V) -> 唤醒或切换到 \`wan-ltx-video\`**:
-  - 唤醒命令: \`ckit wake --profile wan-ltx-video --wait\`（或在线切换 \`ckit switch wan-ltx-video\`）。
+- **文生视频 (T2V) / 图生视频 (I2V) / 音画同出 -> 唤醒或切换到 \`minimax-h3-video\` 或 \`wan-ltx-video\`**:
+  - **\`minimax-h3-video\` (TriPRISM 音画同出视频管线)**: 默认按 \`A100 (80G) → G4 (96G) → L4 (24G)\` 自动回退分配，支持 8 步 TurboFusion Ref2V / I2V / T2V 原生立体声音频、视频续写 (Continuation/Extend)、Fun ControlNet-Union (depth/pose/canny) 与高清超分。
+  - **\`wan-ltx-video\` (轻量 L4 视频管线)**: \`ckit wake --profile wan-ltx-video --wait\`（或在线切换 \`ckit switch wan-ltx-video\`）。
   - **文生视频**: \`ckit generate --prompt "主体 + 连续动态动作 + 镜头运动" --width 832 --height 480 --timeout 300\`（或 \`gate_txt2img\`）。
   - **首帧图生视频**: \`ckit generate --image /path/to/start.png --prompt "The character steps and leaps forward toward the viewer, waving cheerfully to say hi..." --width 832 --height 544 --timeout 300\`（或 \`gate_img2img\`，宽高需为 32 的倍数并匹配原图长宽比）。
 
@@ -981,11 +1025,12 @@ def upload_image(gateway_url, token, image_path):
 1. **权限确认**:
    - 调用 \`gate_status\` (相对路径 \`GET /_gate/status\`)，读取返回中的 \`you\` 节点：
    - 若 \`you.owner === true\`：你是系统管理员，拥有唤醒 (\`wake\`)、关机 (\`stop\`)、切换模型 (\`switch\`) 的完全权限。
-2. **CU 算力核查**:
-   - 返回中的 \`cu\` 节点包含今日消耗、当月消耗及剩余余额 (\`balance\`)：
-   - 每次绘画完成后，可在回复中向用户汇报当前 CU 余额；若 \`balance < 2.0\` 时提醒算力偏低。
+2. **多卡 CU 算力核查与实时费率感知**:
+   - 从 \`GET /_gate/status\` 读取 \`accelerator\`（实际分配的 GPU 档位）以及 \`cu\` 节点（今日消耗、当月消耗、剩余余额 \`balance\` 与当前实时费率 \`per_hour\`）：
+   - 不同 Colab GPU 算力消耗差异极大：**L4 (24G)** 约 \`1.71 CU/h\`，**A100 (40G)** 约 \`5.4 CU/h\`，**A100 (80G high-mem)** 约 \`7.2 CU/h\`，**G4 (RTX PRO 6000 96G)** 约 \`9.4 CU/h\`。
+   - 每次任务完成后，向用户汇报实际运行的 \`accelerator\`、实时 \`cu.per_hour\` 与当前 \`cu.balance\`；若高算力卡（A100/G4）在跑且 \`balance < 10.0\`（或 L4 下 \`balance < 2.0\`），应及时提醒算力余量。
 3. **Owner 关机释放策略**:
-   - Colab L4 GPU 按 CU 持续计费（约 1.71 CU/小时）。当生图任务完成且用户表示“已完成/暂时不需要绘图”时，Agent 应**主动询问或执行关机**（调用 \`gate_stop\` 或相对路径 \`POST /_gate/stop\`），释放计算单元，避免闲置浪费！
+   - 按实际分配 GPU 的 \`cu.per_hour\` 持续计费（A100 80G / G4 消耗约为 L4 的 4–5.5 倍）。当生成任务完成且用户表示“已完成/暂时不需要绘图”时，Agent 应**主动询问或立即执行关机**（调用 \`gate_stop\` 或相对路径 \`POST /_gate/stop\`），释放计算单元，避免高费率 GPU 闲置浪费！
 
 ---
 
@@ -1310,15 +1355,27 @@ window.addEventListener("keydown",e=>{
  if(e.key==="Escape")closeAllMenus();
 });
 
+function formatGpuLabel(accel,highMem){
+ if(!accel)return"";
+ return(accel==="A100"&&highMem)?"A100 (80G)":accel;
+}
+function formatGpuChain(p){
+ if(!p||!p.accelerator)return"";
+ const primary=formatGpuLabel(p.accelerator,!!p.high_mem);
+ const fb=Array.isArray(p.fallback_accelerators)?p.fallback_accelerators.filter(x=>x&&x!==p.accelerator):[];
+ return fb.length?[primary,...fb].join(" → "):primary;
+}
 function renderCustomSelect(){
  if(!profiles.length)return;
  const cur=profiles.find(x=>x.id===selectedProfileId)||profiles[0];
  selectedProfileId=cur.id;
  $("profile").value=cur.id;
  $("sel-title").textContent=cur.title;
- $("sel-desc").textContent=`${t("workflows_count",{count:cur.workflows.filter(w=>!w.optional).length})} · ~${cur.size_gb_default} GB · ${cur.accelerator}`;
+ $("sel-desc").textContent=`${t("workflows_count",{count:cur.workflows.filter(w=>!w.optional).length})} · ~${cur.size_gb_default} GB · ${formatGpuChain(cur)}`;
  $("plabel-txt").textContent=t("profile_label");
  $("pop-title").textContent=t("select_profile");
+ if($("gpu-pref-legend"))$("gpu-pref-legend").textContent=t("gpu_pref_label");
+ if($("gpu-pref-auto-lbl"))$("gpu-pref-auto-lbl").textContent=t("gpu_pref_auto");
  if($("hprof"))$("hprof").textContent=cur.id;
 
  profItems.innerHTML="";
@@ -1329,8 +1386,8 @@ function renderCustomSelect(){
   item.setAttribute("aria-selected",p.id===cur.id);
   item.innerHTML=`
    <div class="sel-info">
-     <span class="sel-title">${p.title}</span>
-     <span class="sel-desc">${t("workflows_count",{count:p.workflows.filter(w=>!w.optional).length})} · ~${p.size_gb_default} GB · ${p.accelerator}</span>
+     <span class="sel-title">${escapeHtml(p.title)}</span>
+     <span class="sel-desc">${t("workflows_count",{count:p.workflows.filter(w=>!w.optional).length})} · ~${p.size_gb_default} GB · ${escapeHtml(formatGpuChain(p))}</span>
    </div>
    <svg class="sel-item-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
   `;
@@ -1550,6 +1607,36 @@ function render(){
  }
  stopBtn.textContent=t("stop_btn");
 
+ function fmtRate(r){if(r==null||isNaN(r))return"";return Number(r).toFixed(2).replace(/\.?0+$/,"");}
+ function renderGpuStatus(){
+  const activeGpu=(S&&S.accelerator&&S.state!=="sleeping")?S.accelerator:"";
+  const rate=(S&&S.cu&&S.cu.per_hour!=null)?fmtRate(S.cu.per_hour):"";
+  const label=activeGpu?(rate?`${activeGpu} · ${rate} CU/h`:activeGpu):"";
+  const cardGpu=$("card-gpu");
+  if(cardGpu){
+   if(label){cardGpu.textContent=label;cardGpu.style.display="inline-flex";}
+   else{cardGpu.style.display="none";cardGpu.textContent="";}
+  }
+  const hGpu=$("h-gpu");
+  if(hGpu){
+   if(S&&S.state==="ready"&&label){hGpu.textContent=label;hGpu.style.display="inline-flex";}
+   else{hGpu.style.display="none";hGpu.textContent="";}
+  }
+  const pGpuRow=$("panel-gpu-row");
+  if(pGpuRow){
+   if(label){
+    pGpuRow.style.display="flex";
+    if($("panel-gpu-lbl"))$("panel-gpu-lbl").textContent=t("gpu_active_lbl");
+    if($("panel-gpu-val"))$("panel-gpu-val").textContent=label;
+   }else{
+    pGpuRow.style.display="none";
+   }
+  }
+ }
+ renderGpuStatus();
+ if($("gpu-pref-legend"))$("gpu-pref-legend").textContent=t("gpu_pref_label");
+ if($("gpu-pref-auto-lbl"))$("gpu-pref-auto-lbl").textContent=t("gpu_pref_auto");
+
  const isOwner=!!(S&&S.you&&S.you.owner);
  const metaEl=$("meta");
  if(metaEl){
@@ -1656,7 +1743,11 @@ $("wake").onclick=async()=>{
  if($("wake").disabled)return;
  $("err").textContent="";$("wake").disabled=true;
  $("wicon").innerHTML=SVG_SPIN;$("wtext").textContent=t("starting_btn");
- try{await api("/_gate/wake",{method:"POST",body:JSON.stringify({profile:selectedProfileId})})}
+ const accelEl=document.querySelector('input[name="gpu-pref"]:checked');
+ const accel=accelEl?accelEl.value:"";
+ const body={profile:selectedProfileId};
+ if(accel)body.accelerator=accel;
+ try{await api("/_gate/wake",{method:"POST",body:JSON.stringify(body)})}
  catch(e){$("err").textContent=e.message;$("wake").disabled=false;$("wicon").innerHTML=SVG_ZAP;$("wtext").textContent=t("wake_btn")}
 };
 
