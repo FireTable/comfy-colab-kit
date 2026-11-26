@@ -19,9 +19,33 @@
   const q = (id) => document.getElementById(id);
   const comfy = () => window.app || window.comfyAPI?.app?.app;
   const linear = () => !!document.querySelector('[data-testid="linear-mode"], .linear-mode, [class*="linear"]');
+  function findNativeModeButton(wantApp) {
+    const targets = wantApp ? ["app", "应用", "linear"] : ["graph", "图形"];
+    for (const el of document.querySelectorAll("button, [role='tab'], [role='button']")) {
+      if (el.closest("#kit-pill")) continue;
+      const text = (el.textContent || "").trim().toLowerCase();
+      const label = (el.getAttribute("aria-label") || el.getAttribute("title") || "").trim().toLowerCase();
+      if (targets.includes(text) || targets.includes(label)) return el;
+    }
+    return null;
+  }
   async function toggle(wantApp) {
-    const a = comfy(); if (!a?.extensionManager?.command) return;
-    try { if (wantApp !== linear()) await a.extensionManager.command.execute("Comfy.ToggleLinear"); } catch (e) { console.warn("[kit] toggle", e); }
+    const a = comfy();
+    try {
+      if (wantApp !== linear()) {
+        const cmd = a?.extensionManager?.command;
+        const cmds = cmd?.commands;
+        const hasToggle = !!(cmd && (
+          (typeof cmd.getCommand === "function" && cmd.getCommand("Comfy.ToggleLinear")) ||
+          (cmds instanceof Map ? cmds.has("Comfy.ToggleLinear") : cmds && "Comfy.ToggleLinear" in cmds)
+        ));
+        if (hasToggle) {
+          await cmd.execute("Comfy.ToggleLinear");
+        } else {
+          findNativeModeButton(wantApp)?.click();
+        }
+      }
+    } catch (e) { console.warn("[kit] toggle", e); }
     paint();
   }
   function paint() { q("kit-app").classList.toggle("on", linear()); q("kit-graph").classList.toggle("on", !linear()); }
@@ -62,7 +86,7 @@
     } catch (e) { /* transient */ }
   }
   async function openDefault() {
-    const a = comfy(); if (!a?.loadGraphData) return setTimeout(openDefault, 500);
+    const a = comfy(); if (!a?.loadGraphData || !a?.graph || !a?.canvas) return setTimeout(openDefault, 500);
     try {
       const info = await (await fetch("/kit/info")).json();
       if (!info.default_workflow) return;
