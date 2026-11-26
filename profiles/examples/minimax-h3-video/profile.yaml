@@ -28,12 +28,16 @@ frontend:
 model_aliases:
   minimax_h3_ref2va_pruned_int8_convrot.safetensors: dit-triprism-int8
   minimax_h3_fl2va_pruned_int8_convrot.safetensors: dit-triprism-int8
+  minimax_h3_video_vae_int8_convrot.safetensors: video-vae-fp16
+  qwen3vl_32b_minimax_h3_int4_convrot.safetensors: q3vl-nvfp4
   minimax_h3_fun_controlnet_union_pruned_int8_convrot.safetensors: fun-controlnet-union
 model_aliases_by_gpu:
   L4:
     Sulphur3_10ErosMax_SingularityV2_TriPRISM_TurboFusion_realism_int8_convrot.safetensors: dit-triprism-w6a8
     minimax_h3_ref2va_pruned_int8_convrot.safetensors: dit-triprism-w6a8
     minimax_h3_fl2va_pruned_int8_convrot.safetensors: dit-triprism-w6a8
+    minimax_h3_video_vae_int8_convrot.safetensors: video-vae-int8
+    minimax_h3_video_vae_fp16.safetensors: video-vae-int8
 custom_nodes:
 - id: minimax-h3-extender
   url: https://github.com/tritant/ComfyUI_MiniMax_H3_Extender
@@ -84,13 +88,19 @@ models:
   sha256: 35a88d51044231fe332301d7a62aa81e3f2cba62febeb446e2c1e3e0ef76f2c6
   size_gb: 14.61
   core: true
+- id: video-vae-fp16
+  dest: vae/minimax_h3_video_vae_fp16.safetensors
+  url: hf://Comfy-Org/MiniMax-H3/vae/minimax_h3_video_vae_fp16.safetensors
+  license: minimax-h3-community-license-agreement
+  sha256: 7c1f131492e7eddacaac9069a61b81bdd39de5cc96561e677c5eab1cdce5e522
+  size_gb: 4.85
+  core: true
 - id: video-vae-int8
   dest: vae/minimax_h3_video_vae_int8_convrot.safetensors
   url: hf://Comfy-Org/MiniMax-H3/vae/minimax_h3_video_vae_int8_convrot.safetensors
   license: minimax-h3-community-license-agreement
   sha256: 52a2c8c73583c86e4f41cdcce3a6ad0ea562987bc0bf3d60a0cef5f5c8e60c0e
   size_gb: 2.62
-  core: true
 - id: audio-vae
   dest: vae/minimax_h3_audio_vae_fp32.safetensors
   url: hf://Comfy-Org/MiniMax-H3/vae/minimax_h3_audio_vae_fp32.safetensors
@@ -145,7 +155,7 @@ workflows:
   models:
   - dit-triprism-int8
   - q3vl-nvfp4
-  - video-vae-int8
+  - video-vae-fp16
   - audio-vae
   overrides:
   - node: 143
@@ -157,6 +167,23 @@ workflows:
   - node: 123
     widget_index: 0
     value: euler
+  overrides_by_gpu:
+    L4:
+    - node: 115
+      widget_index: 1
+      value: 0.4
+    A100:
+    - node: 115
+      widget_index: 1
+      value: 0.8
+    G4:
+    - node: 115
+      widget_index: 1
+      value: 0.9
+    H100:
+    - node: 115
+      widget_index: 1
+      value: 0.9
   app:
     inputs:
     - - 138
@@ -192,7 +219,7 @@ workflows:
   models:
   - dit-triprism-int8
   - q3vl-nvfp4
-  - video-vae-int8
+  - video-vae-fp16
   - audio-vae
   overrides:
   - node: 105
@@ -201,6 +228,23 @@ workflows:
   - node: 105
     widget_index: 11
     value: 0
+  overrides_by_gpu:
+    L4:
+    - node: 115
+      widget_index: 1
+      value: 0.4
+    A100:
+    - node: 115
+      widget_index: 1
+      value: 0.8
+    G4:
+    - node: 115
+      widget_index: 1
+      value: 0.9
+    H100:
+    - node: 115
+      widget_index: 1
+      value: 0.9
   app:
     inputs:
     - - 114
@@ -235,7 +279,7 @@ workflows:
   models:
   - dit-triprism-int8
   - q3vl-nvfp4
-  - video-vae-int8
+  - video-vae-fp16
   - audio-vae
   - relayvsr-x2
   - relayvsr-vae
@@ -247,6 +291,23 @@ workflows:
   - node: 105
     widget_index: 11
     value: 0
+  overrides_by_gpu:
+    L4:
+    - node: 115
+      widget_index: 1
+      value: 0.4
+    A100:
+    - node: 115
+      widget_index: 1
+      value: 0.8
+    G4:
+    - node: 115
+      widget_index: 1
+      value: 0.9
+    H100:
+    - node: 115
+      widget_index: 1
+      value: 0.9
   app:
     inputs:
     - - 114
@@ -269,6 +330,60 @@ workflows:
       - 随机种子 (Seed)
     outputs:
     - 92
+- id: h3-extender-latent
+  title: Long · MiniMax-H3 Latent Motion-Context Extender (zero MP4 drift · Apache-2.0)
+  source: https://github.com/tritant/ComfyUI_MiniMax_H3_Extender
+  license: Apache-2.0 template & custom node; weights MiniMax H3 community license
+  file: workflows/minimax_h3_extender_latent.json
+  upstream_url: https://raw.githubusercontent.com/tritant/ComfyUI_MiniMax_H3_Extender/b1ddb527eaabfbb315b0e1196f8227222a549e6f/Workflow/MiniMax_Extender_video_refs.json
+  upstream_sha256: 3b43b7142cb8953260f5798c536f18f2e5d1e5a134624dbbb36bdf45afef1fd7
+  custom_nodes:
+  - minimax-h3-extender
+  models:
+  - dit-triprism-int8
+  - q3vl-nvfp4
+  - video-vae-fp16
+  - audio-vae
+  overrides:
+  - node: 1
+    widget_index: 4
+    value: 8
+  overrides_by_gpu:
+    L4:
+    - node: 30
+      widget_index: 1
+      value: 0.4
+    A100:
+    - node: 30
+      widget_index: 1
+      value: 0.8
+    G4:
+    - node: 30
+      widget_index: 1
+      value: 0.9
+    H100:
+    - node: 30
+      widget_index: 1
+      value: 0.9
+  app:
+    inputs:
+    - - 27
+      - file
+      - 参考驱动视频 (Reference Video)
+    - - 30
+      - megapixels
+      - 分辨率百万像素 (Megapixels)
+    - - 1
+      - run_mode
+      - 续写运行模式 (Run Mode)
+    - - 1
+      - context_length
+      - Latent 动作上下文帧数 (Motion Context)
+    - - 2
+      - filename_prefix
+      - 输出文件名前缀 (Output Prefix)
+    outputs:
+    - 2
 - id: h3-controlnet
   title: V2V · MiniMax-H3 Fun ControlNet-Union Pose/Depth/Canny (official)
   source: https://github.com/Comfy-Org/workflow_templates
@@ -279,7 +394,7 @@ workflows:
   models:
   - dit-triprism-int8
   - q3vl-nvfp4
-  - video-vae-int8
+  - video-vae-fp16
   - audio-vae
   - fun-controlnet-union
   - sdpose-wholebody
@@ -294,6 +409,23 @@ workflows:
   - node: 123
     widget_index: 0
     value: euler
+  overrides_by_gpu:
+    L4:
+    - node: 115
+      widget_index: 1
+      value: 0.4
+    A100:
+    - node: 115
+      widget_index: 1
+      value: 0.8
+    G4:
+    - node: 115
+      widget_index: 1
+      value: 0.9
+    H100:
+    - node: 115
+      widget_index: 1
+      value: 0.9
   app:
     inputs:
     - - 174
@@ -330,7 +462,7 @@ workflows:
   models:
   - dit-triprism-int8
   - q3vl-nvfp4
-  - video-vae-int8
+  - video-vae-fp16
   - audio-vae
   overrides:
   - node: 140
@@ -339,6 +471,23 @@ workflows:
   - node: 140
     widget_index: 11
     value: 0
+  overrides_by_gpu:
+    L4:
+    - node: 115
+      widget_index: 1
+      value: 0.4
+    A100:
+    - node: 115
+      widget_index: 1
+      value: 0.8
+    G4:
+    - node: 115
+      widget_index: 1
+      value: 0.9
+    H100:
+    - node: 115
+      widget_index: 1
+      value: 0.9
   app:
     inputs:
     - - 140

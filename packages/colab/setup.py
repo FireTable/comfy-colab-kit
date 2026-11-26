@@ -914,6 +914,100 @@ def _attach_controlnet_ref_image(g, wf):
     return {**wf, "app_inputs": app_inputs}
 
 
+def _attach_continuation_color_transfer(g, wf):
+    """Anchor decoded continuation segments to first_frame inside the subgraph via ComfyUI's built-in ColorTransfer."""
+    wid = str(wf.get("id", "")).lower()
+    if "extend" not in wid and "continuation" not in wid:
+        return wf
+
+    subgraphs = (g.get("definitions") or {}).get("subgraphs") or []
+    all_nodes = list(g.get("nodes") or [])
+    for sg in subgraphs:
+        all_nodes.extend(sg.get("nodes") or [])
+    if any(n.get("type") == "ColorTransfer" for n in all_nodes):
+        return wf
+
+    for sg in subgraphs:
+        nodes = sg.get("nodes") or []
+        links = sg.get("links") or []
+        if not nodes or not all(isinstance(l, dict) for l in links):
+            continue
+        by_id = {n.get("id"): n for n in nodes}
+        h3_i2v = next((n for n in nodes if n.get("type") == "MiniMaxH3ImageToVideo"), None)
+        create_vid = next((n for n in nodes if n.get("type") == "CreateVideo"), None)
+        if not h3_i2v or not create_vid:
+            continue
+
+        ff_slot = next((s for s in h3_i2v.get("inputs") or [] if s.get("name") == "first_frame"), None)
+        if not ff_slot or ff_slot.get("link") is None:
+            continue
+        links_by_id = {l.get("id"): l for l in links}
+        ff_link = links_by_id.get(ff_slot["link"])
+        if not ff_link or ff_link.get("origin_id") != -10:
+            continue
+        ff_origin_slot = ff_link.get("origin_slot")
+
+        img_idx, img_slot = next(
+            ((i, s) for i, s in enumerate(create_vid.get("inputs") or []) if s.get("name") == "images"),
+            (None, None),
+        )
+        if img_slot is None or img_slot.get("link") is None:
+            continue
+        old_lid = img_slot["link"]
+        old_link = links_by_id.get(old_lid)
+        if not old_link:
+            continue
+        vae_dec = by_id.get(old_link.get("origin_id"))
+        if not vae_dec or vae_dec.get("type") != "VAEDecode":
+            continue
+
+        state = sg.setdefault("state", {})
+        new_nid = max([int(n.get("id", 0)) for n in nodes] + [int(state.get("lastNodeId", 0))]) + 1
+        max_lid = max([int(l.get("id", 0)) for l in links] + [int(state.get("lastLinkId", 0))])
+        lid_ref = max_lid + 1
+        lid_out = max_lid + 2
+
+        v_pos = vae_dec.get("pos") or [760, 4850]
+        c_pos = create_vid.get("pos") or [1090, 4890]
+        mid_pos = [int((v_pos[0] + c_pos[0]) / 2), int((v_pos[1] + c_pos[1]) / 2)]
+
+        nodes.append({
+            "id": new_nid,
+            "type": "ColorTransfer",
+            "title": "段间色彩锁定 (Color Transfer Anchor)",
+            "pos": mid_pos,
+            "size": [270, 150],
+            "flags": {},
+            "mode": 0,
+            "inputs": [
+                {"name": "image_target", "type": "IMAGE", "link": old_lid},
+                {"name": "image_ref", "type": "IMAGE", "link": lid_ref},
+            ],
+            "outputs": [
+                {"name": "image", "type": "IMAGE", "links": [lid_out]},
+            ],
+            "properties": {"Node name for S&R": "ColorTransfer"},
+            "widgets_values": ["reinhard_lab", "uniform", 0.85],
+        })
+
+        old_link["target_id"] = new_nid
+        old_link["target_slot"] = 0
+        img_slot["link"] = lid_out
+        links.extend([
+            {"id": lid_ref, "origin_id": -10, "origin_slot": ff_origin_slot, "target_id": new_nid, "target_slot": 1, "type": "IMAGE"},
+            {"id": lid_out, "origin_id": new_nid, "origin_slot": 0, "target_id": create_vid["id"], "target_slot": img_idx, "type": "IMAGE"},
+        ])
+        for sg_inp in sg.get("inputs") or []:
+            if ff_slot["link"] in (sg_inp.get("linkIds") or []) or sg_inp.get("name") == "first_frame":
+                sg_inp.setdefault("linkIds", []).append(lid_ref)
+                break
+        state["lastNodeId"] = new_nid
+        state["lastLinkId"] = lid_out
+        break
+
+    return wf
+
+
 def prepare_workflow(wf, data, default_view):
     """Apply declared filename overrides and ComfyUI App-mode metadata; graph otherwise untouched."""
     g = png_workflow(data) if wf["format"] == "png" else json.loads(data)
@@ -926,6 +1020,7 @@ def prepare_workflow(wf, data, default_view):
     remap_models(g, PLAN.get("model_aliases") or {})
     _bypass_uninstalled_loras(g, wf)
     wf = _attach_controlnet_ref_image(g, wf)
+    wf = _attach_continuation_color_transfer(g, wf)
     decorate_app_nodes(g, wf)
     extra = g.setdefault("extra", {})
     if wf.get("app_outputs") or wf.get("app_inputs"):

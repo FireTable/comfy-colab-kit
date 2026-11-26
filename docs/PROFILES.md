@@ -16,7 +16,7 @@ JSON Schema validation specification: [`packages/schemas/profile.schema.json`](.
 | [`sd-latest`](../profiles/examples/sd-latest/) | `sd35-large` | ~15 GB core / ~22 GB | SD 3.5 Large fp8, TurboX 8-step acceleration, SD 3.5 Medium turbo (gated, optional) |
 | [`qwen-image`](../profiles/examples/qwen-image/) | `qwen21-turbo-t2i` | ~27 GB core / ~43 GB | Qwen-Image 2.1 Turbo T2I, full text-to-image, and Turbo / full image editing |
 | [`minimax-h3-image`](../profiles/examples/minimax-h3-image/) | `h3-t2i` | ~44.9 GB core / ~79 GB | MiniMax-H3-Image 33.1B DiT W4A8 (L4-optimized zero-OOM), Qwen3-VL 32B INT8, 6-step native 4K T2I & Multi-Ref Edit |
-| [`minimax-h3-video`](../profiles/examples/minimax-h3-video/) | `h3-r2v` | ~37.40 GB core (~33.79 GB L4) / ~47.02 GB full | MiniMax-H3 TriPRISM 8-step TurboFusion (`A100` 80G `--high-mem` → `G4` 96G → `L4` 24G auto-fallback via `h3tiny17b`); 5 workflows: Ref2V/I2V/T2V w/ native stereo audio, `h3-extend` continuation + `ComfyUI_MiniMax_H3_Extender` + RelayVSR ×2 / Latent Upscaler, `h3-controlnet` Fun ControlNet-Union depth/pose/canny V2V |
+| [`minimax-h3-video`](../profiles/examples/minimax-h3-video/) | `h3-r2v` | ~39.63 GB core (~32.76 GB L4) / ~49.25 GB full | MiniMax-H3 TriPRISM 8-step TurboFusion (`A100` 80G `--high-mem` → `G4` 96G → `L4` 24G auto-fallback via `dit-triprism-w6a8`; per-GPU `megapixels` via `overrides_by_gpu`; `video-vae-fp16` on A100/G4); 6 workflows: Ref2V/I2V/T2V w/ native stereo audio, `h3-extend` (`ColorTransfer` anchor + RelayVSR ×2), `h3-extender-latent` (zero-MP4 latent chaining), `h3-controlnet` Fun ControlNet-Union 2.0 depth/pose/canny V2V |
 
 ---
 
@@ -54,9 +54,9 @@ Community Workflow JSON ──► setup.py parses all loader nodes ──► Mat
 - During Colab bootstrap (`packages/colab/setup.py`), the loader widget values in node graphs and subgraph definitions are dynamically rewritten to reference the shared local model file.
 - Result: You download the high-precision base weights once, and all compatible community workflows share them seamlessly.
 
-### Multi-GPU Fallback & Per-GPU Aliases (`fallback_accelerators`, `high_mem`, `model_aliases_by_gpu`)
+### Multi-GPU Fallback & Per-GPU Overrides (`fallback_accelerators`, `high_mem`, `model_aliases_by_gpu`, `overrides_by_gpu`)
 
-Profiles can declare resilient multi-GPU allocation and tier-specific weight substitution:
+Profiles can declare resilient multi-GPU allocation, tier-specific weight substitution, and per-GPU workflow widget overrides:
 
 ```yaml
 accelerator: A100
@@ -65,11 +65,19 @@ fallback_accelerators: [G4, L4]
 model_aliases_by_gpu:
   L4:
     Sulphur3_10ErosMax_SingularityV2_TriPRISM_TurboFusion_realism_int8_convrot.safetensors: dit-triprism-tiny
+    minimax_h3_video_vae_fp16.safetensors: video-vae-int8
+workflows:
+  - id: h3-r2v
+    overrides_by_gpu:
+      L4: [{node: 115, widget_index: 1, value: 0.4}]
+      A100: [{node: 115, widget_index: 1, value: 0.8}]
+      G4: [{node: 115, widget_index: 1, value: 0.9}]
 ```
 
 - **`fallback_accelerators`**: Ordered fallback GPU tiers (`L4`, `A100`, `G4`, `T4`, `H100`). When Colab returns `503` or capacity errors, `comfy-gate` reconciles active sessions, retries with jittered backoff, and falls back down the chain (overridable per wake via `POST /_gate/wake` `accelerator`).
 - **`high_mem`**: Boolean (default `false`); passes `--high-mem` to `colab new` for `A100` (80 GB VRAM, `2,039 GB/s`, `~7.2 CU/h`), `T4`, or `CPU` and enables `high_mem`-aware CU accounting.
 - **`model_aliases_by_gpu`**: Maps GPU tier → `{upstream_filename: model_id}` (merged over `model_aliases` inside `build_plan(..., actual_accelerator=...)` once allocation succeeds), so a 24 GB `L4` fallback downloads only its compatible smaller checkpoint (`core: true`) instead of an 80 GB/96 GB tier model.
+- **Workflow `overrides_by_gpu`**: Optional per-workflow map of GPU tier → `[{node, widget_index, value}]`, merged over `overrides` inside `build_plan(..., actual_accelerator=...)` (matching keys `(node, widget_index)` overwrite base overrides). Ideal for scaling default `megapixels` or step counts automatically based on the GPU actually allocated.
 
 ---
 

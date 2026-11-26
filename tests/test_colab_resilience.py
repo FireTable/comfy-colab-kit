@@ -354,3 +354,82 @@ async def test_wake_endpoint_accepts_and_validates_accelerator(tmp_path):
         assert sess.status()["cu"]["per_hour"] == 9.4
     finally:
         await c.close()
+
+
+def test_overrides_by_gpu_merging_and_validation():
+    d = _triprism_like_profile_dict()
+    d["workflows"][0]["overrides"] = [
+        {"node": 3, "widget_index": 0, "value": 8},
+        {"node": 4, "widget_index": 1, "value": "euler"},
+    ]
+    d["workflows"][0]["overrides_by_gpu"] = {
+        "L4": [{"node": 3, "widget_index": 0, "value": 4}, {"node": 115, "widget_index": 1, "value": 0.4}],
+        "A100": [{"node": 115, "widget_index": 1, "value": 0.8}],
+    }
+    jsonschema.validate(d, SCHEMA)
+    p = parse_profile(d, ROOT)
+    s = Settings.from_env({"AUTH_DISABLED": "true"})
+
+    # No actual_accelerator -> keeps base overrides untouched (backward compatibility)
+    plan_default = build_plan(p, s)
+    assert plan_default["workflows"][0]["overrides"] == [
+        {"node": 3, "widget_index": 0, "value": 8},
+        {"node": 4, "widget_index": 1, "value": "euler"},
+    ]
+
+    # L4 overrides duplicate (3, 0) in place and appends (115, 1)
+    plan_l4 = build_plan(p, s, actual_accelerator="L4")
+    assert plan_l4["workflows"][0]["overrides"] == [
+        {"node": 3, "widget_index": 0, "value": 4},
+        {"node": 4, "widget_index": 1, "value": "euler"},
+        {"node": 115, "widget_index": 1, "value": 0.4},
+    ]
+
+    # A100 keeps base overrides and appends (115, 1)=0.8
+    plan_a100 = build_plan(p, s, actual_accelerator="A100")
+    assert plan_a100["workflows"][0]["overrides"] == [
+        {"node": 3, "widget_index": 0, "value": 8},
+        {"node": 4, "widget_index": 1, "value": "euler"},
+        {"node": 115, "widget_index": 1, "value": 0.8},
+    ]
+
+    bad_gpu = copy.deepcopy(d)
+    bad_gpu["workflows"][0]["overrides_by_gpu"]["B200"] = []
+    with pytest.raises(ProfileError, match="unknown accelerator"):
+        parse_profile(bad_gpu, ROOT)
+
+    bad_item = copy.deepcopy(d)
+    bad_item["workflows"][0]["overrides_by_gpu"]["L4"] = [{"node": True, "widget_index": 0, "value": 1}]
+    with pytest.raises(ProfileError, match="node must be an integer or string"):
+        parse_profile(bad_item, ROOT)
+
+
+def test_minimax_h3_video_per_gpu_vae_and_megapixels():
+    p = load_profile(ROOT / "profiles/examples/minimax-h3-video")
+    s = Settings.from_env({"AUTH_DISABLED": "true"})
+
+    def _wf_mp(plan, wid):
+        w = next(x for x in plan["workflows"] if x["id"] == wid)
+        nid = 30 if wid == "h3-extender-latent" else 115
+        return next(o["value"] for o in w["overrides"] if o["node"] == nid and o["widget_index"] == 1)
+
+    plan_a100 = build_plan(p, s, actual_accelerator="A100")
+    a100_models = {m["id"] for m in plan_a100["models"]}
+    assert "video-vae-fp16" in a100_models and "video-vae-int8" not in a100_models
+    assert plan_a100["model_aliases"]["minimax_h3_video_vae_int8_convrot.safetensors"] == "minimax_h3_video_vae_fp16.safetensors"
+    assert plan_a100["model_aliases"]["qwen3vl_32b_minimax_h3_int4_convrot.safetensors"] == "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"
+    for wid in ("h3-r2v", "h3-i2v", "h3-extend", "h3-extender-latent", "h3-controlnet"):
+        assert _wf_mp(plan_a100, wid) == 0.8
+
+    plan_g4 = build_plan(p, s, actual_accelerator="G4")
+    assert "video-vae-fp16" in {m["id"] for m in plan_g4["models"]}
+    for wid in ("h3-r2v", "h3-i2v", "h3-extend", "h3-extender-latent", "h3-controlnet"):
+        assert _wf_mp(plan_g4, wid) == 0.9
+
+    plan_l4 = build_plan(p, s, actual_accelerator="L4")
+    l4_models = {m["id"] for m in plan_l4["models"]}
+    assert "video-vae-int8" in l4_models and "video-vae-fp16" not in l4_models
+    assert "dit-triprism-w6a8" in l4_models and "dit-triprism-int8" not in l4_models
+    assert plan_l4["model_aliases"]["minimax_h3_video_vae_fp16.safetensors"] == "minimax_h3_video_vae_int8_convrot.safetensors"
+    for wid in ("h3-r2v", "h3-i2v", "h3-extend", "h3-extender-latent", "h3-controlnet"):
+        assert _wf_mp(plan_l4, wid) == 0.4

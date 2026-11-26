@@ -44,6 +44,31 @@
       "additionalProperties": {
         "$ref": "#/$defs/id"
       }
+    },
+    "overrideItem": {
+      "type": "object",
+      "required": [
+        "node",
+        "widget_index",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "node": {
+          "$ref": "#/$defs/nodeRef"
+        },
+        "widget_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "value": {}
+      }
+    },
+    "overrideList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/overrideItem"
+      }
     }
   },
   "properties": {
@@ -286,24 +311,27 @@
             }
           },
           "overrides": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "node",
-                "widget_index",
-                "value"
-              ],
-              "additionalProperties": false,
-              "properties": {
-                "node": {
-                  "$ref": "#/$defs/nodeRef"
-                },
-                "widget_index": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "value": {}
+            "$ref": "#/$defs/overrideList"
+          },
+          "overrides_by_gpu": {
+            "type": "object",
+            "description": "Per-GPU widget overrides merged over overrides once the actual GPU tier is allocated.",
+            "additionalProperties": false,
+            "properties": {
+              "L4": {
+                "$ref": "#/$defs/overrideList"
+              },
+              "A100": {
+                "$ref": "#/$defs/overrideList"
+              },
+              "T4": {
+                "$ref": "#/$defs/overrideList"
+              },
+              "H100": {
+                "$ref": "#/$defs/overrideList"
+              },
+              "G4": {
+                "$ref": "#/$defs/overrideList"
               }
             }
           },

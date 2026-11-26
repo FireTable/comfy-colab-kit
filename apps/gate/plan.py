@@ -62,7 +62,7 @@ def build_plan(profile: Profile, settings: Settings, workflow_ids: list[str] | N
              "inline": (profile.path / w.file).read_text() if w.file else None, "format": w.format,
              "loras": [hf_to_https(u) for u in w.loras],
              "app_inputs": [list(x) for x in w.app_inputs], "app_outputs": list(w.app_outputs),
-             "overrides": list(w.overrides), "default": w.id == profile.app_default}
+             "overrides": w.effective_overrides(actual_accelerator), "default": w.id == profile.app_default}
             for w in (profile.workflows[i] for i in wf_ids)
         ],
         "on_demand": {w: [m.id for m in profile.models_for([w], accelerator=actual_accelerator) if m.id not in models]

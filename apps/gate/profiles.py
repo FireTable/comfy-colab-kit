@@ -68,6 +68,22 @@ class Workflow:
     source: str = ""
     loras: tuple[str, ...] = ()  # extra LoRA URLs (hf://…) downloaded into models/loras/
     prefetch: bool = False  # download this workflow's models in the background on every wake (else on demand)
+    overrides_by_gpu: dict[str, tuple[dict, ...]] = field(default_factory=dict)
+
+    def effective_overrides(self, accelerator: str | None = None) -> list[dict]:
+        """Return widget overrides merged with GPU-specific overrides (matched by (node, widget_index))."""
+        merged = [dict(o) for o in self.overrides]
+        if not accelerator or accelerator not in self.overrides_by_gpu:
+            return merged
+        idx_by_key = {(o["node"], o["widget_index"]): i for i, o in enumerate(merged)}
+        for o in self.overrides_by_gpu[accelerator]:
+            key = (o["node"], o["widget_index"])
+            if key in idx_by_key:
+                merged[idx_by_key[key]] = dict(o)
+            else:
+                idx_by_key[key] = len(merged)
+                merged.append(dict(o))
+        return merged
 
 
 @dataclass(frozen=True)
@@ -196,6 +212,28 @@ def _url(u: str, ctx: str) -> str:
     return u
 
 
+def _parse_overrides(raw: Any, ctx: str) -> tuple[dict, ...]:
+    if not raw:
+        return ()
+    if not isinstance(raw, list):
+        raise ProfileError(f"{ctx} must be a list of {{node, widget_index, value}}")
+    out: list[dict] = []
+    for j, item in enumerate(raw):
+        ictx = f"{ctx}[{j}]"
+        if not isinstance(item, dict):
+            raise ProfileError(f"{ictx} must be a mapping")
+        node = item.get("node")
+        if isinstance(node, bool) or not isinstance(node, (int, str)):
+            raise ProfileError(f"{ictx}.node must be an integer or string")
+        widx = item.get("widget_index")
+        if isinstance(widx, bool) or not isinstance(widx, int) or widx < 0:
+            raise ProfileError(f"{ictx}.widget_index must be a non-negative integer")
+        if "value" not in item:
+            raise ProfileError(f"{ictx} missing 'value'")
+        out.append({"node": node, "widget_index": widx, "value": item["value"]})
+    return tuple(out)
+
+
 def parse_profile(data: dict, path: Path) -> Profile:
     if not isinstance(data, dict):
         raise ProfileError("profile must be a mapping")
@@ -256,11 +294,21 @@ def parse_profile(data: dict, path: Path) -> Profile:
         app = w.get("app") or {}
         inputs = tuple(tuple(x) for x in app.get("inputs") or [])
         outputs = tuple(app.get("outputs") or [])
+        overrides = _parse_overrides(w.get("overrides"), f"{ctx}.overrides")
+        raw_gpu_overrides = w.get("overrides_by_gpu") or {}
+        if not isinstance(raw_gpu_overrides, dict):
+            raise ProfileError(f"{ctx}.overrides_by_gpu must map GPU tier to override list")
+        gpu_overrides: dict[str, tuple[dict, ...]] = {}
+        for gpu, olist in raw_gpu_overrides.items():
+            if gpu not in VALID_ACCELERATORS:
+                raise ProfileError(f"{ctx}.overrides_by_gpu: unknown accelerator {gpu!r}; allowed: {list(VALID_ACCELERATORS)}")
+            gpu_overrides[str(gpu)] = _parse_overrides(olist, f"{ctx}.overrides_by_gpu.{gpu}")
         # outputs may be empty: some official templates keep SaveImage inside a subgraph,
         # in which case App mode shows the subgraph's own outputs.
         workflows[wid] = Workflow(wid, str(w.get("title", wid)), url, str(lic), fmt, wm, wn, inputs, outputs,
-                                  tuple(w.get("overrides") or []), bool(w.get("optional", False)),
-                                  file, str(w.get("source", "")), loras, bool(w.get("prefetch", False)))
+                                  overrides, bool(w.get("optional", False)),
+                                  file, str(w.get("source", "")), loras, bool(w.get("prefetch", False)),
+                                  overrides_by_gpu=gpu_overrides)
     # a scaffold profile may have no workflows yet; then app_default is optional
     app_default = data.get("app_default") or (None if not workflows else _req(data, "app_default", pid))
     if workflows and app_default not in workflows:

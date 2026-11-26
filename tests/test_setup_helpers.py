@@ -309,3 +309,66 @@ def test_dl_script_partial_chunk_retry_preserves_exact_bytes_and_sha256(tmp_path
     monkeypatch.setattr(urllib.request, "build_opener", lambda *a, **kw: _TruncatedOpener())
     with pytest.raises(RuntimeError, match="incomplete"):
         ns["fetch_range"]("https://huggingface.co/o/r/resolve/main/trunc.bin", 1024 * 1024, str(tmp_path / "trunc.bin"))
+
+
+def test_prepare_continuation_workflow_attaches_color_transfer(monkeypatch):
+    from gate.config import Settings
+    from gate.plan import build_plan
+    from gate.profiles import load_profile
+
+    profile = load_profile(ROOT / "profiles/examples/minimax-h3-video")
+    plan = build_plan(profile, Settings.from_env({"AUTH_DISABLED": "true"}), ["h3-extend"], actual_accelerator="A100")
+    monkeypatch.setattr(setup, "PLAN", plan)
+    wf = next(w for w in plan["workflows"] if w["id"] == "h3-extend")
+
+    g = setup.prepare_workflow(wf, wf["inline"].encode(), "app")
+
+    sg = g["definitions"]["subgraphs"][0]
+    nodes_by_id = {n["id"]: n for n in sg["nodes"]}
+    ct_nodes = [n for n in sg["nodes"] if n.get("type") == "ColorTransfer"]
+    assert len(ct_nodes) == 1
+    ct = ct_nodes[0]
+    assert ct["widgets_values"] == ["reinhard_lab", "uniform", 0.85]
+    assert ct["id"] == sg["state"]["lastNodeId"]
+
+    links_by_id = {l["id"]: l for l in sg["links"]}
+    target_link = links_by_id[ct["inputs"][0]["link"]]
+    ref_link = links_by_id[ct["inputs"][1]["link"]]
+    out_link = links_by_id[ct["outputs"][0]["links"][0]]
+    assert nodes_by_id[target_link["origin_id"]]["type"] == "VAEDecode"
+    assert ref_link["origin_id"] == -10 and ref_link["origin_slot"] == 0
+    assert ref_link["id"] in sg["inputs"][0]["linkIds"]
+    assert nodes_by_id[out_link["target_id"]]["type"] == "CreateVideo"
+    assert nodes_by_id[out_link["target_id"]]["inputs"][0]["link"] == out_link["id"]
+
+    node_ids = [n["id"] for n in sg["nodes"]]
+    link_ids = [l["id"] for l in sg["links"]]
+    assert len(node_ids) == len(set(node_ids)) and max(node_ids) <= sg["state"]["lastNodeId"]
+    assert len(link_ids) == len(set(link_ids)) and max(link_ids) <= sg["state"]["lastLinkId"]
+
+    all_nodes = list(g.get("nodes", []))
+    for s in (g.get("definitions") or {}).get("subgraphs") or []:
+        all_nodes.extend(s.get("nodes", []))
+    assert all("widgets" not in n for n in all_nodes)
+
+
+def test_prepare_extender_latent_workflow(monkeypatch):
+    from gate.config import Settings
+    from gate.plan import build_plan
+    from gate.profiles import load_profile
+
+    profile = load_profile(ROOT / "profiles/examples/minimax-h3-video")
+    plan = build_plan(profile, Settings.from_env({"AUTH_DISABLED": "true"}), ["h3-extender-latent"], actual_accelerator="A100")
+    monkeypatch.setattr(setup, "PLAN", plan)
+    wf = next(w for w in plan["workflows"] if w["id"] == "h3-extender-latent")
+
+    g = setup.prepare_workflow(wf, wf["inline"].encode(), "app")
+    by_id = {n["id"]: n for n in g["nodes"]}
+
+    assert by_id[1]["widgets_values"][4] == 8
+    assert by_id[30]["widgets_values"][1] == 0.8
+    assert by_id[4]["widgets_values"][0] == "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"
+    assert by_id[5]["widgets_values"][0] == "minimax_h3_video_vae_fp16.safetensors"
+    assert by_id[3]["widgets_values"][0] == "Sulphur3_10ErosMax_SingularityV2_TriPRISM_TurboFusion_realism_int8_convrot.safetensors"
+    assert by_id[13]["mode"] == 4
+    assert all("widgets" not in n for n in g["nodes"])
