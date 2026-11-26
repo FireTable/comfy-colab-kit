@@ -1,6 +1,6 @@
 # Comfy Colab Kit
 
-> Wake-on-demand ComfyUI on Google Colab. A lightweight aiohttp gateway (comfy-gate) that runs either 100% locally on your Mac/PC (zero VPS, zero domain, zero Cloudflare setup) or on a cloud Linux VPS behind Cloudflare Access. Shows a Hugging-Face-Space-style wake page, starts one shared Colab L4 session via the colab CLI, streams progress to every viewer over SSE, reverse-proxies ComfyUI (incl. /ws), and auto-stops on idle, max session, quiet hours or compute-unit budget. Built-in profiles for MOSS-Image, MiniMax-H3-Image, FLUX.2 Klein 4B, Wan 2.2 & LTX-Video (T2V/I2V), SD 3.5, and Qwen-Image.
+> Wake-on-demand ComfyUI on Google Colab. A lightweight aiohttp gateway (comfy-gate) that runs either 100% locally on your Mac/PC (zero VPS, zero domain, zero Cloudflare setup) or on a cloud Linux VPS behind Cloudflare Access. Shows a Hugging-Face-Space-style wake page, starts one shared Colab GPU session via the colab CLI with resilient multi-GPU allocation (A100 80G --high-mem → G4 96G → L4 24G auto-fallback, retry backoff, session reconciliation, and high_mem-aware CU accounting), streams progress to every viewer over SSE, reverse-proxies ComfyUI (incl. /ws), and auto-stops on idle, max session, quiet hours or compute-unit budget. 7 built-in profiles: MOSS-Image, MiniMax-H3-Image, MiniMax-H3-Video (TriPRISM), FLUX.2 Klein 4B, Wan 2.2 & LTX-Video (T2V/I2V), SD 3.5, and Qwen-Image.
 
 ## Docs
 - [README](README.md): overview, quick start, dual-mode deployment, showcase gallery
@@ -24,9 +24,9 @@
 
 ## For Autonomous AI Agents (Local Execution)
 1. **Bootstrap**: Run `docker compose -f deploy/docker-compose.local.yml up -d` or `python3 -m gate` (requires `AUTH_DISABLED=true` in `.env`).
-2. **Inspect**: Call `GET http://localhost:8080/_gate/healthz` and `GET http://localhost:8080/_gate/profiles`.
+2. **Inspect**: Call `GET http://localhost:8080/_gate/healthz`, `GET http://localhost:8080/_gate/profiles` (includes `accelerator`, `fallback_accelerators`, `high_mem`), and `GET http://localhost:8080/_gate/status` (includes live `accelerator` and `cu.per_hour`).
 3. **Connect via MCP**: Spawn `ckit mcp --gate-url http://localhost:8080` via stdio. Zero tokens or Cloudflare headers required.
-4. **Generate**: Call `gate_wake` with a profile (e.g. `flux-klein` or `wan-ltx-video`), queue prompts with `gate_txt2img` / `gate_img2img`, and call `gate_stop` upon completion.
+4. **Generate**: Call `gate_wake` (or `POST /_gate/wake` with optional `"accelerator": "A100" | "G4" | "L4"`) with a profile (e.g. `flux-klein`, `wan-ltx-video`, or `minimax-h3-video`), queue prompts with `gate_txt2img` / `gate_img2img`, and call `gate_stop` upon completion.
 
 ## API
 - [apps/gate/openapi.yaml](apps/gate/openapi.yaml): OpenAPI 3.1 for /_gate/*
@@ -40,3 +40,4 @@
 - [profiles/examples/sd-latest/README.md](profiles/examples/sd-latest/README.md): Stable Diffusion 3.5 Large fp8 & TurboX profile
 - [profiles/examples/qwen-image/README.md](profiles/examples/qwen-image/README.md): Qwen-Image 2.1 Turbo T2I & Edit profile
 - [profiles/examples/minimax-h3-image/README.md](profiles/examples/minimax-h3-image/README.md): MiniMax-H3-Image 33.1B DiT (W4A8 fast L4 · Qwen3-VL 32B · T2I & Multi-Ref Edit) profile
+- [profiles/examples/minimax-h3-video/README.md](profiles/examples/minimax-h3-video/README.md): MiniMax-H3-Video (TriPRISM 8-step Ref2V/I2V/T2V + stereo audio, Continuation/Extend, Fun ControlNet-Union V2V, RelayVSR/Latent upscaling; A100 80G → G4 96G → L4 24G auto-fallback, ~37.40 GB core / ~33.79 GB L4 / ~47.02 GB full) profile

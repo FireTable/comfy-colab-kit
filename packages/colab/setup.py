@@ -685,9 +685,9 @@ def _slot_type_for(wname):
         return "IMAGE"
     if wname == "switch":
         return "BOOLEAN"
-    if wname in ("denoise", "fps", "frame_rate", "cfg"):
+    if wname in ("denoise", "fps", "frame_rate", "cfg", "megapixels", "strength"):
         return "FLOAT"
-    if wname == "choice":
+    if wname in ("choice", "aspect_ratio", "file"):
         return "COMBO"
     return "*"
 
@@ -766,8 +766,12 @@ def decorate_app_nodes(g, wf):
                 default_label = "正向提示词 (Positive Prompt)"
                 new_title = "正向提示词 (Positive Prompt)"
 
+        elif wname in ("aspect_ratio", "megapixels"):
+            default_label = "画幅比例 (Aspect Ratio)" if wname == "aspect_ratio" else "分辨率百万像素 (Megapixels)"
+            new_title = "分辨率选择 (Resolution)"
+
         label = custom_label or default_label
-        if custom_label and wname not in ("width", "height", "batch_size", "length"):
+        if custom_label and wname not in ("width", "height", "batch_size", "length", "aspect_ratio", "megapixels"):
             new_title = custom_label
 
         generic_titles = {"", "none", "prompt", "cliptextencode", "clip text encode (positive prompt)",
@@ -811,6 +815,31 @@ def decorate_app_nodes(g, wf):
                 })
 
 
+def _bypass_uninstalled_loras(g, wf):
+    """Bypass LoraLoaderModelOnly nodes whose LoRA is absent from the active plan (e.g. baked turbo weights)."""
+    if not PLAN.get("models"):
+        return
+    planned_loras = {
+        m["dest"].rsplit("/", 1)[-1]
+        for m in PLAN.get("models", [])
+        if str(m.get("dest", "")).startswith("loras/")
+    }
+    planned_loras |= {u.rsplit("/", 1)[-1] for u in (wf.get("loras") or [])}
+    planned_loras |= set((PLAN.get("model_aliases") or {}).values())
+
+    def _scan(nodes_list):
+        for n in nodes_list:
+            if n.get("type") == "LoraLoaderModelOnly":
+                wvals = n.get("widgets_values") or []
+                lname = wvals[0] if wvals and isinstance(wvals[0], str) else ""
+                if lname and lname not in planned_loras:
+                    n["mode"] = 4  # LiteGraph BYPASS: passes MODEL through and skips LoRA validation
+
+    _scan(g.get("nodes", []))
+    for sg in (g.get("definitions") or {}).get("subgraphs") or []:
+        _scan(sg.get("nodes", []))
+
+
 def prepare_workflow(wf, data, default_view):
     """Apply declared filename overrides and ComfyUI App-mode metadata; graph otherwise untouched."""
     g = png_workflow(data) if wf["format"] == "png" else json.loads(data)
@@ -821,6 +850,7 @@ def prepare_workflow(wf, data, default_view):
             raise RuntimeError(f"{wf['id']}: override target {o} not found (upstream workflow changed?)")
         n["widgets_values"][o["widget_index"]] = o["value"]
     remap_models(g, PLAN.get("model_aliases") or {})
+    _bypass_uninstalled_loras(g, wf)
     decorate_app_nodes(g, wf)
     extra = g.setdefault("extra", {})
     if wf.get("app_outputs") or wf.get("app_inputs"):
@@ -831,12 +861,12 @@ def prepare_workflow(wf, data, default_view):
 
 
 def _ensure_input_assets(g):
-    """Ensure any default LoadImage asset referenced by an official template exists in ComfyUI/input/."""
+    """Ensure any default LoadImage/LoadVideo/LoadAudio asset referenced by an official template exists in ComfyUI/input/."""
     inp_dir = f"{COMFY}/input"
     os.makedirs(inp_dir, exist_ok=True)
     example_png = f"{inp_dir}/example.png"
     for n in g.get("nodes", []):
-        if n.get("type") == "LoadImage":
+        if n.get("type") in ("LoadImage", "LoadVideo", "LoadAudio"):
             wvals = n.get("widgets_values") or []
             fname = wvals[0] if wvals and isinstance(wvals[0], str) else ""
             if not fname or "/" in fname or ".." in fname:
@@ -845,13 +875,13 @@ def _ensure_input_assets(g):
             if os.path.exists(dst):
                 continue
             try:
-                raw = fetch(f"https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/input/{fname}", timeout=15)
+                raw = fetch(f"https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/input/{fname}", timeout=30)
                 with open(dst, "wb") as f:
                     f.write(raw)
                 continue
             except Exception:
                 pass
-            if os.path.exists(example_png):
+            if fname.lower().endswith((".png", ".jpg", ".jpeg", ".webp")) and os.path.exists(example_png):
                 try:
                     shutil.copyfile(example_png, dst)
                 except Exception:

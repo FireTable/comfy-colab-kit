@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Comfy Colab Kit — Remote, Wake-on-Demand ComfyUI on Google Colab</title>
-<meta name="description" content="Wake ComfyUI on Google Colab L4 GPUs on-demand from your Mac, PC, or autonomous AI agent. Run 100% locally on localhost (zero VPS, zero domain, no Cloudflare) or deploy to a VPS behind Cloudflare Access. Built-in profiles for MiniMax-H3-Image, FLUX.2 Klein 4B, Wan 2.2 Video, MOSS-Image, SD 3.5, and Qwen-Image with auto-shutdown.">
-<meta name="keywords" content="ComfyUI, Google Colab, Local ComfyUI, ComfyUI Mac, Run ComfyUI without VPS, Zero VPS GPU gateway, MiniMax-H3-Image, MiniMax H3, Qwen3-VL, FLUX.2 Klein, Wan 2.2 Video, LTX-Video, Text-to-Video, Image-to-Video, AI Agents, Model Context Protocol, MCP, Cloudflare Access, MOSS-Image, SD 3.5, Qwen-Image, Localhost ComfyUI">
+<meta name="description" content="Wake ComfyUI on Google Colab GPUs (A100 80G → G4 96G → L4 24G auto-fallback) on-demand from your Mac, PC, or autonomous AI agent. Run 100% locally on localhost (zero VPS, zero Cloudflare) or deploy behind Cloudflare Access. 7 built-in profiles including MiniMax-H3 Video (TriPRISM), MiniMax-H3-Image, FLUX.2 Klein 4B, Wan 2.2, MOSS-Image, SD 3.5, and Qwen-Image.">
+<meta name="keywords" content="ComfyUI, Google Colab, Local ComfyUI, ComfyUI Mac, Run ComfyUI without VPS, Zero VPS GPU gateway, MiniMax-H3 Video, MiniMax-H3 TriPRISM, Fun ControlNet Union, RelayVSR, Colab A100 80G, Colab G4 RTX PRO 6000, Multi-GPU Fallback, MiniMax-H3-Image, Qwen3-VL, FLUX.2 Klein, Wan 2.2 Video, LTX-Video, Text-to-Video, Image-to-Video, Ref2V, Stereo Audio Video, AI Agents, Model Context Protocol, MCP, Cloudflare Access, MOSS-Image, SD 3.5, Qwen-Image, Localhost ComfyUI">
 <meta name="author" content="FireTable">
 <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
 
@@ -20,13 +20,13 @@
 <meta property="og:url" content="https://comfy-colab-kit.firetable.tech/">
 <meta property="og:site_name" content="Comfy Colab Kit">
 <meta property="og:title" content="Comfy Colab Kit — Remote, Wake-on-Demand ComfyUI on Google Colab">
-<meta property="og:description" content="ComfyUI on Colab L4 GPUs, awake only when you need it. Image & video generation (MiniMax-H3-Image, MOSS-Image, FLUX.2 Klein, Wan 2.2 TI2V, SD 3.5, Qwen-Image) with native AI Agent & MCP dispatch.">
+<meta property="og:description" content="ComfyUI on Google Colab (A100 80G → G4 96G → L4 24G auto-fallback), awake only when you need it. 7 built-in profiles incl. MiniMax-H3 Video (TriPRISM 8-step Ref2V/I2V/T2V + stereo audio + ControlNet-Union), MiniMax-H3-Image, MOSS-Image, FLUX.2 Klein, Wan 2.2, SD 3.5, and Qwen-Image.">
 <meta property="og:image" content="https://comfy-colab-kit.firetable.tech/assets/og.png">
 <meta property="og:image:secure_url" content="https://comfy-colab-kit.firetable.tech/assets/og.png">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Comfy Colab Kit — Remote, Wake-on-Demand ComfyUI on Google Colab L4 GPUs">
+<meta property="og:image:alt" content="Comfy Colab Kit — Remote, Wake-on-Demand ComfyUI on Google Colab GPUs (A100, G4, L4)">
 <meta property="og:locale" content="en_US">
 <meta property="og:locale:alternate" content="zh_CN">
 
@@ -35,9 +35,9 @@
 <meta name="twitter:site" content="@FireTable">
 <meta name="twitter:creator" content="@FireTable">
 <meta name="twitter:title" content="Comfy Colab Kit — Remote, Wake-on-Demand ComfyUI on Google Colab">
-<meta name="twitter:description" content="ComfyUI on Colab L4 GPUs, awake only when you need it. Image & video generation (MiniMax-H3-Image, MOSS-Image, FLUX.2 Klein, Wan 2.2 TI2V, SD 3.5, Qwen-Image) with native AI Agent & MCP dispatch.">
+<meta name="twitter:description" content="ComfyUI on Google Colab (A100 80G → G4 96G → L4 24G auto-fallback), awake only when you need it. 7 built-in profiles incl. MiniMax-H3 Video (TriPRISM 8-step Ref2V/I2V/T2V + stereo audio + ControlNet-Union), MiniMax-H3-Image, MOSS-Image, FLUX.2 Klein, Wan 2.2, SD 3.5, and Qwen-Image.">
 <meta name="twitter:image" content="https://comfy-colab-kit.firetable.tech/assets/og.png">
-<meta name="twitter:image:alt" content="Comfy Colab Kit — Remote, Wake-on-Demand ComfyUI on Google Colab L4 GPUs">
+<meta name="twitter:image:alt" content="Comfy Colab Kit — Remote, Wake-on-Demand ComfyUI on Google Colab GPUs (A100, G4, L4)">
 
 <!-- Geographic & SEO Meta Tags -->
 <meta name="geo.region" content="US-CA">
@@ -59,7 +59,7 @@
       "@id": "https://comfy-colab-kit.firetable.tech/#website",
       "url": "https://comfy-colab-kit.firetable.tech/",
       "name": "Comfy Colab Kit",
-      "description": "Wake-on-demand ComfyUI on Google Colab GPU instances. Runs 100% locally on Mac/PC with zero VPS, or on a Linux VPS behind Cloudflare Zero Trust.",
+      "description": "Wake-on-demand ComfyUI on Google Colab GPU instances (A100 80G → G4 96G → L4 24G auto-fallback). Runs 100% locally on Mac/PC with zero VPS, or on a Linux VPS behind Cloudflare Zero Trust.",
       "image": "https://comfy-colab-kit.firetable.tech/assets/og.png",
       "inLanguage": ["en", "zh-CN"]
     },
@@ -69,6 +69,14 @@
       "name": "Comfy Colab Kit",
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "macOS, Linux, Windows WSL2, Google Colab",
+      "description": "Autonomous wake-on-demand gateway for ComfyUI on Google Colab with 7 built-in profiles (including MiniMax-H3 Video TriPRISM), resilient multi-GPU allocation (A100 80G → G4 96G → L4 24G auto-fallback), dynamic per-GPU CU accounting, and native MCP/REST dispatch.",
+      "featureList": [
+        "7 built-in model profiles including MiniMax-H3 Video (TriPRISM 8-step Ref2V/I2V/T2V with native stereo audio, continuation/Extend, Fun ControlNet-Union depth/pose/canny V2V, and RelayVSR/Latent upscaling)",
+        "Resilient multi-GPU Colab allocation with automatic fallback (A100 80G → G4 96G → L4 24G), retry backoff, and session reconciliation",
+        "High-mem-aware dynamic CU accounting and auto-shutdown guardrails",
+        "100% local standalone mode (localhost:8080) or Cloudflare Access Zero-Trust VPS deployment",
+        "Native Model Context Protocol (MCP) stdio & HTTP tools for AI agents"
+      ],
       "image": "https://comfy-colab-kit.firetable.tech/assets/og.png",
       "screenshot": "https://comfy-colab-kit.firetable.tech/assets/og.png",
       "offers": {
@@ -92,7 +100,7 @@
           "name": "Can I run Comfy Colab Kit locally without a VPS or Cloudflare?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes! You can run comfy-gate 100% locally on your Mac, Linux, or Windows machine via Docker or Python with AUTH_DISABLED=true. Your computer commands an on-demand Google Colab L4 GPU (24GB VRAM) and streams ComfyUI directly to http://localhost:8080. Zero VPS fees, zero domain required, and zero Cloudflare setup."
+            "text": "Yes! You can run comfy-gate 100% locally on your Mac, Linux, or Windows machine via Docker or Python with AUTH_DISABLED=true. Your computer commands on-demand Google Colab GPUs (L4 24GB, A100 80GB high-mem, or G4 96GB with auto-fallback) and streams ComfyUI directly to http://localhost:8080. Zero VPS fees, zero domain required, and zero Cloudflare setup."
           }
         },
         {
@@ -108,7 +116,15 @@
           "name": "What AI models and profiles are supported?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Comfy Colab Kit includes 6 built-in profiles: MiniMax-H3-Image (33.1B DiT W4A8 + Qwen3-VL 32B), MOSS-Image (DeBand T2I/I2I), FLUX.2 Klein 4B (Distilled & Base + ReferenceLatent edit), Wan 2.2 5B TI2V & Lightricks LTX-Video 2B (Text/Image-to-Video), Stable Diffusion 3.5 Large fp8, and Qwen-Image 2.1. Custom profiles can be added dynamically."
+            "text": "Comfy Colab Kit includes 7 built-in profiles: MiniMax-H3-Video (TriPRISM 8-step Ref2V/I2V/T2V with native stereo audio, seamless video continuation/Extend, Fun ControlNet-Union depth/pose/canny video-to-video, and RelayVSR/Latent upscaling with A100 80G → G4 96G → L4 24G auto-fallback), MiniMax-H3-Image (33.1B DiT W4A8 + Qwen3-VL 32B), MOSS-Image (DeBand T2I/I2I), FLUX.2 Klein 4B (Distilled & Base + ReferenceLatent edit), Wan 2.2 5B TI2V & Lightricks LTX-Video 2B, Stable Diffusion 3.5 Large fp8, and Qwen-Image 2.1. Custom profiles can be added dynamically."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does multi-GPU fallback (A100 → G4 → L4) work when Colab GPUs are scarce?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Profiles can declare a primary accelerator, high_mem flag, fallback_accelerators chain, and model_aliases_by_gpu. When Colab returns 503 or capacity errors, the gate reconciles active sessions, retries with jittered backoff, and automatically falls back (for example A100 80G at ~7.2 CU/h → G4 96G at ~9.4 CU/h → L4 24G at ~1.71 CU/h, swapping to the 16 GB h3tiny17b checkpoint on L4) while tracking the actual GPU CU rate."
           }
         }
       ]
@@ -207,7 +223,7 @@
     <p class="state-line"><span class="states"><i data-i18n="hero.stateSleep">Sleeping</i> → <i data-i18n="hero.stateWake">Waking</i> → <b data-i18n="hero.stateReady">Ready</b></span></p>
     <img class="hero-logo" src="assets/logo-e-fusion-dark.svg" alt="Comfy Colab Kit logo" width="96" height="96">
     <h1 class="shiny" data-i18n="hero.title">ComfyUI on Colab GPUs, awake only when you need it</h1>
-    <p class="sub" data-i18n="hero.sub">Break free from baby-sitting Colab browser tabs. Comfy Colab Kit lets you wake ComfyUI on demand on Google Colab L4 GPUs from your phone, laptop, or autonomous AI agent. Run 100% locally on your Mac/PC (zero VPS, zero domain, zero Cloudflare) or deploy to a VPS behind Cloudflare Access.</p>
+    <p class="sub" data-i18n="hero.sub">Break free from baby-sitting Colab browser tabs. Comfy Colab Kit lets you wake ComfyUI on demand on Google Colab GPUs (A100 80G, G4 96G, or L4 24G with auto-fallback) from your phone, laptop, or autonomous AI agent. Run 100% locally on your Mac/PC (zero VPS, zero domain, zero Cloudflare) or deploy to a VPS behind Cloudflare Access.</p>
     <div class="hero-actions">
       <a class="btn btn-primary" href="#quickstart" data-i18n="hero.btnPrimary">Quick Start</a>
       <a class="btn btn-secondary" href="https://github.com/FireTable/comfy-colab-kit" target="_blank" rel="noopener">
@@ -217,7 +233,7 @@
         <span data-i18n="hero.btnGitHub">GitHub</span>
       </a>
     </div>
-    <p class="hero-stat" data-i18n="hero.stat">L4 · ~1.54 CU/h · 28.4 s per 1024² image</p>
+    <p class="hero-stat" data-i18n="hero.stat">L4 / A100 80G / G4 96G · auto-fallback · 7 built-in profiles</p>
   </div>
 </section>
 
@@ -243,7 +259,7 @@
       <div class="card qs-card">
         <div class="qs-badge">Step 3</div>
         <h3 data-i18n="quickstart.s3Title">Wake &amp; Generate</h3>
-        <p data-i18n="quickstart.s3Desc">Open localhost:8080 or your custom domain. One click wakes the Colab L4 GPU, syncs models, and proxies ComfyUI.</p>
+        <p data-i18n="quickstart.s3Desc">Open localhost:8080 or your custom domain. One click wakes the Colab GPU (A100 80G / G4 96G / L4 24G), syncs models, and proxies ComfyUI.</p>
       </div>
     </div>
     <div class="terminal-frame card">
@@ -360,10 +376,10 @@ docker compose -f deploy/docker-compose.yml up -d</code></pre>
               <polygon class="farrow-head" points="754,84 768,90 754,96"/>
             </g>
 
-            <!-- Node 3: Google Colab L4 -->
+            <!-- Node 3: Google Colab GPU -->
             <g class="fnode" id="fnode-3" data-step="3" role="button" tabindex="0">
               <rect class="fnode-rect" x="776" y="40" width="216" height="100" rx="22"/>
-              <text class="fnode-title" x="884" y="88" fill="var(--fg)" font-size="16" font-weight="700">Google Colab L4</text>
+              <text class="fnode-title" x="884" y="88" fill="var(--fg)" font-size="16" font-weight="700">Google Colab GPU</text>
               <text class="fnode-sub" x="884" y="112" fill="var(--muted)" font-size="12" font-family="ui-monospace,Menlo,monospace" data-i18n="flow.colabDesc">ComfyUI runtime</text>
             </g>
           </g>
@@ -376,13 +392,13 @@ docker compose -f deploy/docker-compose.yml up -d</code></pre>
         <div class="arrow-down farrow-v" data-arrow="1" aria-hidden="true">↓</div>
         <article class="card node-card fnode-v" data-step="2"><h3 data-i18n="flow.gateTitle">VPS Gate</h3><small data-i18n="flow.gateDesc">Caddy + comfy-gate</small></article>
         <div class="arrow-down farrow-v" data-arrow="2" aria-hidden="true">↓</div>
-        <article class="card node-card fnode-v" data-step="3"><h3>Google Colab L4</h3><small data-i18n="flow.colabDesc">ComfyUI runtime</small></article>
+        <article class="card node-card fnode-v" data-step="3"><h3>Google Colab GPU</h3><small data-i18n="flow.colabDesc">ComfyUI runtime</small></article>
       </div>
     </div>
     <ol class="steps" id="how-steps">
       <li data-step="0"><span data-i18n="how.s1">Open your URL or call the API. Cloudflare Access verifies identity before anything touches your infrastructure.</span></li>
       <li data-step="1"><span data-i18n="how.s2">If the GPU VM is asleep, the gate presents a sleek wake card (or handles agent API requests). Click "Wake" to begin.</span></li>
-      <li data-step="2"><span data-i18n="how.s3">The gate automatically allocates a Colab L4, sets up ComfyUI, and syncs models. Everyone sees identical live progress.</span></li>
+      <li data-step="2"><span data-i18n="how.s3">The gate automatically allocates your target Colab GPU (with A100 → G4 → L4 fallback), sets up ComfyUI, and syncs models. Everyone sees identical live progress.</span></li>
       <li data-step="3"><span data-i18n="how.s4">Once ready, the same URL seamlessly proxies the authentic ComfyUI web application. Idle timeouts or budget caps return it safely to sleep.</span></li>
     </ol>
     <div class="card wake-demo" id="wake-demo-card">
@@ -607,6 +623,14 @@ docker compose -f deploy/docker-compose.yml up -d</code></pre>
       </article>
       <article class="card profile-card">
         <div>
+          <div class="card-tag"><span>🎥</span> <span data-i18n="profiles.p8Tag">TriPRISM Video + Audio</span></div>
+          <h3>MiniMax-H3-Video</h3>
+          <p data-i18n="profiles.p8Desc">MiniMax-H3 TriPRISM (8-step Ref2V/I2V/T2V) with native stereo audio, video continuation/Extend, Fun ControlNet-Union (depth/pose/canny V2V), and RelayVSR upscaling — A100 (80G) → G4 (96G) → L4 (24G) auto-fallback.</p>
+        </div>
+        <div class="profile-path">profiles/examples/minimax-h3-video</div>
+      </article>
+      <article class="card profile-card">
+        <div>
           <div class="card-tag"><span>🛠️</span> <span data-i18n="profiles.p6Tag">Bring Your Own</span></div>
           <h3 data-i18n="profiles.p6Title">Custom Profiles</h3>
           <p data-i18n="profiles.p6Desc">Drop any Hugging Face model URL and community workflow JSON into profiles/custom/ — hot-reloaded on next wake without rebuilding containers.</p>
@@ -666,7 +690,7 @@ docker compose -f deploy/docker-compose.yml up -d</code></pre>
     </div>
     <p class="footnote" data-i18n="numbers.footnote">
       <svg class="info-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-      <span>Measured on Colab L4 with the MOSS-Image profile: 24.9 GB of weights streamed at up to 850 MB/s into a RAM-backed tmpfs, while ComfyUI boots in parallel. Cold start is dominated by Colab's own VM allocation, so actual figures vary with network and GPU quota.</span>
+      <span>Measured on Colab L4 (~1.54–1.94 CU/h, default 1.71 CU/h) with MOSS-Image: 24.9 GB streamed at up to 850 MB/s into RAM tmpfs while ComfyUI boots in parallel. Multi-GPU profiles scale to A100 80G (2,039 GB/s, ~6.8–7.5 CU/h, default 7.2 CU/h) and G4 96G Blackwell (1,597 GB/s, ~8.7–10.05 CU/h, default 9.4 CU/h).</span>
     </p>
   </div>
 </section>
@@ -727,7 +751,14 @@ docker compose -f deploy/docker-compose.yml up -d</code></pre>
           <span class="faq-q" data-i18n="faq.q7">Can I run it completely locally on my laptop without a VPS or Cloudflare?</span>
           <svg class="faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </summary>
-        <div class="answer" data-i18n="faq.a7">Yes, 100%! You can run comfy-gate directly on your Mac, Linux, or Windows machine via Docker or Python with AUTH_DISABLED=true. Your computer commands an on-demand Google Colab L4 GPU (24GB VRAM) and streams ComfyUI directly to http://localhost:8080. Zero VPS fees, zero domain required, and zero Cloudflare setup.</div>
+        <div class="answer" data-i18n="faq.a7">Yes, 100%! You can run comfy-gate directly on your Mac, Linux, or Windows machine via Docker or Python with AUTH_DISABLED=true. Your computer commands on-demand Google Colab GPUs (L4 24GB, A100 80GB high-mem, or G4 96GB with auto-fallback) and streams ComfyUI directly to http://localhost:8080. Zero VPS fees, zero domain required, and zero Cloudflare setup.</div>
+      </details>
+      <details class="card">
+        <summary>
+          <span class="faq-q" data-i18n="faq.q8">How does multi-GPU fallback (A100 → G4 → L4) handle scarce Colab capacity and CU billing?</span>
+          <svg class="faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="answer" data-i18n="faq.a8">Profiles can declare fallback_accelerators, high_mem, and model_aliases_by_gpu. When Colab returns 503 or capacity errors, comfy-gate reconciles sessions, retries with jittered backoff, and falls back through the chain (e.g. A100 80G ~7.2 CU/h → G4 96G ~9.4 CU/h → L4 24G ~1.71 CU/h using the 16 GB h3tiny17b checkpoint) while tracking the live CU/h rate of the actual GPU allocated.</div>
       </details>
     </div>
   </div>
@@ -802,6 +833,6 @@ docker compose -f deploy/docker-compose.yml up -d</code></pre>
 </footer>
 
 <script src="vendor/lenis.min.js" defer></script>
-<script src="main.js?v=e23e89a7" defer></script>
+<script src="main.js?v=8de85de7" defer></script>
 </body>
 </html>
