@@ -11,8 +11,10 @@ The default workflow is **`h3-r2v` (8-step Ref2V + native stereo audio)**; **`h3
   - **Fast Feedback Defaults**: Official templates default to `0.4 MP` (`864×480` at `16:9` or `640×640` at `1:1`) and `overrides` lock sampling to **8 steps** with template Lightning LoRAs bypassed (`strength = 0`, no double-acceleration).
 - **Long Clips & High-Consistency Upscaling (`h3-extend` + `ComfyUI_MiniMax_H3_Extender`)**:
   - `h3-extend` ships the official `video_minimax_h3_i2v_continuation.json` template in App Mode and installs [`tritant/ComfyUI_MiniMax_H3_Extender`](https://github.com/tritant/ComfyUI_MiniMax_H3_Extender) (Apache-2.0) for Graph Mode multi-clip Motion Context continuation, disk caching, built-in **Latent Refine/Upscale**, and **RelayVSR ×2** (`relayvsr-x2` + `relayvsr-vae`, fetched on demand).
+  - Both native ComfyUI `MiniMaxH3LatentUpscaleWithModel` (`h3-latent-upscaler` in `latent_upscale_models/`) and Extender's `RelayVSR ×2` post-process are pre-staged on `h3-extend` fetch and preserve synced audio.
 - **White-Model Video-to-Video (`h3-controlnet`)**:
   - Uses `MiniMax-H3-Fun-Controlnet-Union` (`2.14 GB`) with built-in ComfyUI `SDPose` (`1.79 GB`) + `RT-DETR v4` (`0.12 GB`) pose/skeleton extraction (supports Canny, Depth, Pose, HED, MLSD, and video inpainting in Graph Mode; fetched on demand).
+  - **Tip for monochrome/clay white-model videos**: `SDPose` tracks standard standing frames well but can miss extreme close-ups or splits on textureless clay renders; swap or add a built-in Depth or Canny preprocessor in Graph Mode for tighter structural lock.
 - **Workflows are never self-authored**: All templates are unmodified MIT templates from `Comfy-Org/workflow_templates`, vendored under [`workflows/`](workflows/).
 - **Models are never vendored**: Every checkpoint is streamed from Hugging Face at wake/fetch time and SHA-256 verified.
 
