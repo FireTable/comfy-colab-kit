@@ -306,7 +306,9 @@ def test_config_queue_and_gdrive_defaults(tmp_path: Path) -> None:
 
 
 def test_redact_secrets_strips_google_oauth_tokens() -> None:
-    line = "err token=ya29.a0AfH6SMBxYz_12345.abc and refresh=1//04xYzAbCdEf_987654-test"
+    access = "ya29." + "a" * 24
+    refresh = "1//04" + "b" * 30
+    line = f"err token={access} and refresh={refresh}"
     cleaned = redact_secrets(line)
     assert "ya29." not in cleaned
     assert "1//04" not in cleaned
