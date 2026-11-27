@@ -1,6 +1,6 @@
 ---
 name: comfy-colab-kit
-description: ComfyUI on Colab GPU gate operator (A100 80G / G4 96G / L4 24G auto-fallback). Wake, switch profiles (moss-image, flux-klein, wan-ltx-video, sd-latest, qwen-image, minimax-h3-image, minimax-h3-video), check CU budget, upload reference images, generate images (Txt2Img / Img2Img / ReferenceLatent edit) or videos (MiniMax-H3 TriPRISM / Wan 2.2 TI2V / LTX-Video), and release compute.
+description: ComfyUI on Colab GPU gate operator (A100 80G / G4 96G / L4 24G auto-fallback) with durable SQLite + Google Drive job queue & archive. Wake, switch profiles (moss-image, flux-klein, wan-ltx-video, sd-latest, qwen-image, minimax-h3-image, minimax-h3-video), check CU budget, queue offline jobs, upload reference images, generate images or videos, browse/manage archived outputs while sleeping, and release compute.
 ---
 
 # Comfy Colab Kit Operator Skill (`/comfy-colab-kit`)
@@ -69,8 +69,10 @@ Agent 操作网关时，网关地址与凭据按以下优先级解析：
 | `ckit stop` | 立即关闭 GPU 实例，停止扣费 |
 | `ckit switch <profile-id>` | 切换当前运行的模型 Profile（需 owner 权限） |
 | `ckit extend` | 延长当前会话的存活时间 |
+| `ckit jobs [--profile ID] [--status S] [--pinned] [--limit N] [--json]` | **查询持久化任务队列与归档**：即使 GPU 正在 `sleeping` 也可检索任务状态与输出链接 |
+| `ckit gdrive-auth [--out secrets/gdrive_oauth.json] [--no-browser]` | **授权 Google Drive OAuth**：为持久化队列与归档生成 `0600` 凭据文件（不打印密钥） |
 | `ckit auth <url>` | RFC 8628 设备流配对：浏览器点「批准」换取新令牌 |
-| `ckit mcp` | 启动标准输入输出 (stdio) MCP 服务（暴露 6 大工具：`gate_status`, `gate_wake`, `gate_txt2img`, `gate_img2img`, `gate_generate`, `gate_stop`） |
+| `ckit mcp` | 启动标准输入输出 (stdio) MCP 服务（暴露 11 大工具：6 个生命周期/生成工具 + 5 个离线队列/归档工具） |
 
 ---
 
@@ -315,7 +317,7 @@ def upload_reference_image(gateway_url: str, token: str, file_path: str) -> str:
   "14": {"class_type":"LoraLoaderModelOnly","inputs":{"lora_name":"moss_image_sft_banding_fix_L37-41_bf16.safetensors","model":["3",0],"strength_model":["9",0]}},
   "15": {"class_type":"LoraLoaderModelOnly","inputs":{"lora_name":"moss_image_sft_banding_fix_L32-36_extra_bf16.safetensors","model":["14",0],"strength_model":["10",0]}},
   "16": {"class_type":"LoraLoaderModelOnly","inputs":{"lora_name":"lodestones_moss_sft_8step_dmd_lora_latest.safetensors","model":["15",0],"strength_model":["11",0]}},
-  "17": {"class_type":"LoraLoaderModelOnly","inputs":{"lora_name":"darask0_moss_sft_4step_dmad_lora.safetensors","model":["16",0],"strength_model":["12",0]}},
+  "17": {"class_type":"LoraLoaderModelOnly","inputs":{"lora_name":"moss_image_sft_4step_v2.0.safetensors","model":["16",0],"strength_model":["12",0]}},
   "18": {"class_type":"TemporalScoreRescaling","inputs":{"tsr_k":0.95,"tsr_sigma":1.0,"model":["17",0]}},
   "19": {"class_type":"SkipLayerGuidanceDiTSimple","inputs":{"double_layers":"","single_layers":"22, 24","start_percent":0.1,"end_percent":0.7,"model":["18",0]}},
   "20": {"class_type":"BasicScheduler","inputs":{"scheduler":"simple","denoise":0.75,"model":["19",0],"steps":["13",1]}},
@@ -387,6 +389,29 @@ def upload_reference_image(gateway_url: str, token: str, file_path: str) -> str:
    - 向用户呈现生成的图片 Markdown 预览与链接；**同时把图片字节下载到本地留存**（`/view` 代理不保证长期有效）。
 5. **结束关机**：
    - 确认无后续绘画任务时，Owner Agent 调用 `gate_stop` 释放机器。
+
+---
+
+### 1-Click Browser & CLI Tools
+- Web UI 右上角点击 **Archive & Queue** 可随时浏览历史成图/视频（支持 Range 拖拽）、置顶、重试、取消、删除与触发数据库热备份（即使 GPU 正在 `sleeping`）。
+
+---
+
+## 9.5 持久化队列、Google Drive 归档与离线回看
+
+Comfy Colab Kit 内置基于本地 WAL SQLite（`gate.db`）与可插拔 `ArchiveStore`（本地磁盘或 Google Drive API v3）的持久化任务队列与产物归档层：
+
+- **零 Profile 侵入**：对所有 7 个内置 Profile 与自定义 Profile 透明生效，无需改动任何 `profile.yaml` 或工作流 JSON。
+- **支持关机离线排队与预上传**：
+  - GPU 处于 `sleeping` 状态时，依然可通过 `gate_queue_job`（或 `POST /_gate/jobs`）提交作业、通过 `/_gate/jobs/upload`（或 `upload_image_to_gate(..., allow_offline=True)`）预上传 SHA-256 去重的参考图。
+  - 下次唤醒到达 `ready` 时，串行调度器自动完成输入补传与排队执行。
+- **VM 崩溃自动续跑与防空转**：
+  - 若 Colab 实例在运行中意外断连/被抢占，未完成任务自动标记为 `interrupted`；下次重新唤醒后自动重新上传缺失输入并续跑（CUDA OOM 或节点报错标记 `failed`，绝不无限重试）。
+  - 产物通过 4 MiB 分块 Resumable Upload 流式归档至 Google Drive（或本地磁盘）并缓存 `<= 384px` 缩略图。
+- **关机回看、检索与管理（全程支持 `sleeping` 状态）**：
+  - MCP 工具：`gate_list_jobs`、`gate_get_job`、`gate_manage_job`（`retry` / `cancel` / `pin` / `unpin` / `delete`）、`gate_storage_status`（支持 `backup_now=true` 触发 `conn.backup()` 热快照）。
+  - CLI：`ckit jobs --profile moss-image --status completed --pinned --limit 20`；Google Drive OAuth 授权使用 `ckit gdrive-auth`。
+  - 详细配置与架构见 [`docs/STORAGE_GDRIVE.md`](../../docs/STORAGE_GDRIVE.md)。
 
 ---
 

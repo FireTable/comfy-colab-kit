@@ -68,11 +68,17 @@ ckit extend
 # Stop the session immediately to release GPU compute
 ckit stop
 
+# List durable queued/completed jobs (works even while GPU is sleeping)
+ckit jobs --limit 20 --json
+
+# Authorize personal Google Drive OAuth for durable archive storage (0600 credentials)
+ckit gdrive-auth --out secrets/gdrive_oauth.json
+
 # Start Model Context Protocol (MCP) JSON-RPC stdio server
 ckit mcp
 ```
 
-Raw HTTP equivalents: `GET /_gate/status`, `GET /_gate/profiles`, `POST /_gate/wake`, `POST /_gate/stop`, `POST /_gate/mcp`; live telemetry on `GET /_gate/events` (SSE). For complete MCP specifications, see [docs/MCP.md](MCP.md) and the agent skill [skills/comfy-colab-kit/SKILL.md](../skills/comfy-colab-kit/SKILL.md).
+Raw HTTP equivalents: `GET /_gate/status`, `GET /_gate/profiles`, `POST /_gate/wake`, `POST /_gate/stop`, `POST /_gate/mcp`, `GET/POST /_gate/jobs`, `GET /_gate/storage/status`, `GET /_gate/archive/assets/{id}`; live telemetry on `GET /_gate/events` (SSE). For complete MCP specifications, see [docs/MCP.md](MCP.md), [docs/STORAGE_GDRIVE.md](STORAGE_GDRIVE.md), and the agent skill [skills/comfy-colab-kit/SKILL.md](../skills/comfy-colab-kit/SKILL.md).
 
 ---
 
@@ -262,8 +268,8 @@ To connect Claude Desktop, Cursor, OpenClaw, or Cline to your deployed gate via 
 - **URL**: `https://comfy.yourdomain.com/mcp`
 - **Header**: `Authorization: Bearer <agent_token>`
 
-### Available MCP Tools:
-- `gate_status`: Query session state, active profile, progress, and CU balance.
+### Available MCP Tools (11 Tools):
+- `gate_status`: Query session state, active profile, queue counts, and CU balance.
 - `gate_wake`: Wake or join the shared Google Colab GPU instance (`profile: "moss-image"`, optional `accelerator: "A100" | "G4" | "L4"`).
 - `gate_txt2img`: **Recommended high-level text-to-image generator**! Automatically executes the anti-banding MOSS-Image DeBand pipeline with anti-banding LoRAs (L37-41 & L32-36) and fast sampling.
   - `prompt`: Positive text description (required).
@@ -271,9 +277,17 @@ To connect Claude Desktop, Cursor, OpenClaw, or Cline to your deployed gate via 
   - `preset`: Speed/quality preset: `'Fast alt'` (default, 10 steps), `'Fast'`, `'Balanced'`, `'Quality'`.
   - `seed`: Reproducibility seed (optional).
   - `width` / `height`: Resolution (default 1024x1024).
-  - Returns complete, directly accessible image URLs!
+  - Returns complete, directly accessible image/archive URLs!
+- `gate_img2img`: High-level image-to-image / edit / image-to-video generator (uploads local file or HTTP/HTTPS URL).
 - `gate_generate`: Submit a raw ComfyUI prompt graph JSON object.
 - `gate_stop`: Stop the GPU session immediately to save Colab Compute Units.
+- `gate_queue_job`: **Offline durable queue**: enqueue a ComfyUI prompt graph (and optional `image` pre-uploaded via `/_gate/jobs/upload`) even while the GPU is `sleeping`. Auto-dispatches on next wake and archives outputs.
+- `gate_list_jobs`: List queued, running, interrupted, failed, and completed jobs (`profile`, `status`, `query`, `pinned`, `limit`), returning archive `outputs[].url` links offline.
+- `gate_get_job`: Fetch full job status, metadata, error details, and output/archive URLs by `job_id` (works offline).
+- `gate_manage_job`: Run `retry`, `cancel`, `pin`, `unpin`, or `delete` (`delete_files`) on a durable job (works offline).
+- `gate_storage_status`: Inspect storage backend (`gdrive` | `local`), job counts, and optionally trigger an immediate `conn.backup()` hot snapshot (`backup_now: true`).
+
+For durable queue recovery semantics, Google Drive OAuth setup (`ckit gdrive-auth`), and archive streaming APIs, see [docs/STORAGE_GDRIVE.md](STORAGE_GDRIVE.md).
 
 ### 1-Click Browser "Copy Prompt for AI Agent" & Device Pairing:
 - **In Web UI**: Users can click the **🤖 复制 AI Agent 接入指令 / Copy Prompt for AI Agent** button in the top-right user menu. This instantly creates an Agent Bearer Token in the browser session and copies a structured prompt with MCP configs, tool definitions, and commands directly to the clipboard.

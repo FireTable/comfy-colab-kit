@@ -2,6 +2,8 @@
 """ckit — tiny client for comfy-gate (stdlib only; agent friendly).
 
   ckit auth [URL]                               (pair agent via RFC 8628 device flow)
+  ckit gdrive-auth [--client-id ...]            (authorize Google Drive OAuth for durable archive)
+  ckit jobs [--profile ID] [--status S]         (list queued and archived generation jobs)
   ckit doctor [URL]                             (diagnose connectivity, CF Access bypass, and auth)
   ckit validate [PATH]                          (validate custom or example profile directories)
   ckit status|profiles [--json]
@@ -12,11 +14,14 @@
   ckit mcp                                      (start stdio MCP server for Cursor / Claude Desktop)
 
 Env: CKIT_URL (e.g. https://comfy.example.com), CKIT_TOKEN_FILE (agent bearer token file),
+     GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (for gdrive-auth),
      optional CF_ACCESS_CLIENT_ID / CF_ACCESS_CLIENT_SECRET_FILE (Access service token for the public host).
 """
 import argparse
+import http.server
 import json
 import os
+import secrets
 import subprocess
 import sys
 import time
@@ -467,12 +472,282 @@ def do_validate(a):
         sys.exit(1)
 
 
+DEFAULT_GDRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file"
+DEFAULT_GDRIVE_AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
+DEFAULT_GDRIVE_TOKEN_URI = "https://oauth2.googleapis.com/token"
+
+
+def build_auth_url(
+    client_id: str,
+    redirect_uri: str,
+    scope: str = DEFAULT_GDRIVE_SCOPE,
+    state: str = "",
+    auth_uri: str = DEFAULT_GDRIVE_AUTH_URI,
+) -> str:
+    """Construct the Google OAuth 2.0 consent URL with offline refresh access."""
+    params = {
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": scope,
+        "access_type": "offline",
+        "prompt": "consent",
+    }
+    if state:
+        params["state"] = state
+    sep = "&" if "?" in auth_uri else "?"
+    return f"{auth_uri}{sep}{urllib.parse.urlencode(params)}"
+
+
+def exchange_auth_code(
+    code: str,
+    client_id: str,
+    client_secret: str,
+    redirect_uri: str,
+    token_uri: str = DEFAULT_GDRIVE_TOKEN_URI,
+    timeout: float = 30.0,
+) -> dict:
+    """Exchange an authorization code at the OAuth token endpoint for tokens."""
+    body = urllib.parse.urlencode(
+        {
+            "code": code,
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "redirect_uri": redirect_uri,
+            "grant_type": "authorization_code",
+        }
+    ).encode("utf-8")
+    req = urllib.request.Request(
+        token_uri,
+        data=body,
+        method="POST",
+        headers={
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json",
+            "User-Agent": DEFAULT_UA,
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            data = json.loads(r.read() or b"{}")
+    except urllib.error.HTTPError as e:
+        raw = e.read().decode("utf-8", errors="replace")
+        err_msg = f"HTTP {e.code}"
+        try:
+            err_json = json.loads(raw)
+            err_msg = err_json.get("error_description") or err_json.get("error") or err_msg
+        except Exception:
+            pass
+        raise RuntimeError(f"OAuth token exchange failed: {err_msg}") from None
+    except Exception as e:
+        raise RuntimeError(f"OAuth token exchange failed: {e}") from None
+
+    if not isinstance(data, dict) or not data.get("refresh_token"):
+        raise RuntimeError(
+            "OAuth token response missing refresh_token; ensure access_type=offline&prompt=consent."
+        )
+    return data
+
+
+def _write_oauth_json(out_path: str, payload: dict) -> str:
+    expanded = os.path.expanduser(out_path)
+    parent = os.path.dirname(os.path.abspath(expanded))
+    if parent:
+        os.makedirs(parent, mode=0o700, exist_ok=True)
+    fd = os.open(expanded, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        os.write(fd, (json.dumps(payload, indent=2) + "\n").encode("utf-8"))
+    finally:
+        os.close(fd)
+    os.chmod(expanded, 0o600)
+    return out_path
+
+
+def _extract_auth_code(raw_code: str) -> str:
+    val = (raw_code or "").strip()
+    if val.startswith("http://") or val.startswith("https://"):
+        parsed = urllib.parse.urlparse(val)
+        qs = urllib.parse.parse_qs(parsed.query)
+        return (qs.get("code") or [""])[0].strip()
+    return val
+
+
+def do_gdrive_auth(a):
+    """Run loopback OAuth flow and write 0600 credentials JSON without printing secrets."""
+    client_id = (getattr(a, "client_id", None) or os.environ.get("GOOGLE_CLIENT_ID") or "").strip()
+    client_secret = (getattr(a, "client_secret", None) or os.environ.get("GOOGLE_CLIENT_SECRET") or "").strip()
+    if not client_id or not client_secret:
+        print(
+            "[gdrive-auth] Error: --client-id / GOOGLE_CLIENT_ID and --client-secret / GOOGLE_CLIENT_SECRET are required.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    out_path = getattr(a, "out", None) or "secrets/gdrive_oauth.json"
+    scope = getattr(a, "scope", None) or DEFAULT_GDRIVE_SCOPE
+    token_uri = getattr(a, "token_uri", None) or DEFAULT_GDRIVE_TOKEN_URI
+    no_browser = bool(getattr(a, "no_browser", False))
+    manual_code = _extract_auth_code(getattr(a, "code", None) or "")
+    redirect_override = (getattr(a, "redirect_uri", None) or "").strip()
+
+    if manual_code:
+        redirect_uri = redirect_override or "http://127.0.0.1/callback"
+        code = manual_code
+    else:
+        state = secrets.token_urlsafe(16)
+        result = {"code": "", "error": ""}
+
+        class _CallbackHandler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                parsed = urllib.parse.urlparse(self.path)
+                if parsed.path != "/callback":
+                    self.send_response(404)
+                    self.end_headers()
+                    return
+                qs = urllib.parse.parse_qs(parsed.query)
+                got_state = (qs.get("state") or [""])[0]
+                if state and got_state and got_state != state:
+                    result["error"] = "state_mismatch"
+                    msg = "OAuth state mismatch. Please retry."
+                    status_code = 400
+                elif qs.get("error"):
+                    result["error"] = (qs.get("error") or ["access_denied"])[0]
+                    msg = f"Authorization error: {result['error']}"
+                    status_code = 400
+                elif qs.get("code"):
+                    result["code"] = (qs.get("code") or [""])[0].strip()
+                    msg = "Google Drive authorization received. You may close this window."
+                    status_code = 200
+                else:
+                    result["error"] = "missing_code"
+                    msg = "Missing authorization code."
+                    status_code = 400
+                body = f"<!doctype html><html><body><p>{msg}</p></body></html>".encode("utf-8")
+                self.send_response(status_code)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, format, *args):  # noqa: A002
+                return
+
+        srv = http.server.HTTPServer(("127.0.0.1", 0), _CallbackHandler)
+        srv.timeout = float(getattr(a, "timeout", None) or 180)
+        port = srv.server_address[1]
+        redirect_uri = redirect_override or f"http://127.0.0.1:{port}/callback"
+        auth_url = build_auth_url(client_id, redirect_uri, scope=scope, state=state)
+
+        print(f"[gdrive-auth] Authorize at:\n{auth_url}", file=sys.stderr, flush=True)
+        if not no_browser:
+            try:
+                import webbrowser
+                webbrowser.open(auth_url)
+            except Exception:
+                pass
+
+        deadline = time.time() + srv.timeout
+        try:
+            while not result["code"] and not result["error"] and time.time() < deadline:
+                srv.handle_request()
+        finally:
+            srv.server_close()
+
+        if result["error"] or not result["code"]:
+            err_detail = result["error"] or "timed_out"
+            print(f"[gdrive-auth] Error: authorization failed ({err_detail}).", file=sys.stderr)
+            sys.exit(1)
+        code = result["code"]
+
+    try:
+        tok_data = exchange_auth_code(
+            code=code,
+            client_id=client_id,
+            client_secret=client_secret,
+            redirect_uri=redirect_uri,
+            token_uri=token_uri,
+        )
+    except Exception as e:
+        print(f"[gdrive-auth] {e}", file=sys.stderr)
+        sys.exit(1)
+
+    creds = {
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "refresh_token": tok_data["refresh_token"],
+        "scope": tok_data.get("scope") or scope,
+    }
+    if token_uri != DEFAULT_GDRIVE_TOKEN_URI:
+        creds["token_uri"] = token_uri
+    written = _write_oauth_json(out_path, creds)
+    print(written)
+
+
+def do_jobs(a):
+    """List jobs from GET /_gate/jobs as a concise table or JSON."""
+    params = {}
+    if a.profile:
+        params["profile"] = a.profile
+    if a.status:
+        params["status"] = a.status
+    if getattr(a, "pinned", False):
+        params["pinned"] = "1"
+    limit = getattr(a, "limit", None)
+    params["limit"] = str(limit if limit is not None else 20)
+    if getattr(a, "query", None):
+        params["q"] = a.query
+    qs = urllib.parse.urlencode(params)
+    path = f"/_gate/jobs?{qs}" if qs else "/_gate/jobs"
+    code, out = call("GET", path)
+    if code >= 400:
+        if a.json:
+            print(json.dumps(out, indent=None, ensure_ascii=False))
+        else:
+            msg = out.get("message") if isinstance(out, dict) else str(out)
+            print(f"[jobs] Error ({code}): {msg}", file=sys.stderr)
+        sys.exit(1)
+    if a.json:
+        print(json.dumps(out, indent=None, ensure_ascii=False))
+        return
+    jobs = out.get("jobs", []) if isinstance(out, dict) else (out if isinstance(out, list) else [])
+    if not jobs:
+        print("No jobs found.")
+        return
+    print(f"{'ID':<20} {'STATUS':<12} {'PROFILE':<16} {'PIN':<4} {'ELAPSED':<8} PROMPT")
+    print("-" * 92)
+    for j in jobs:
+        jid = str(j.get("id") or "")[:20]
+        st = str(j.get("status") or "")[:12]
+        prof = str(j.get("profile_id") or j.get("profile") or "")[:16]
+        pin = "yes" if j.get("pinned") else "-"
+        el_val = j.get("elapsed_s")
+        el = f"{float(el_val):.1f}s" if el_val is not None else "-"
+        prompt = " ".join(str(j.get("prompt_text") or "").split())
+        if len(prompt) > 48:
+            prompt = prompt[:45] + "..."
+        print(f"{jid:<20} {st:<12} {prof:<16} {pin:<4} {el:<8} {prompt}")
+
+
 def main():
     ap = argparse.ArgumentParser(prog="ckit", description="Comfy Colab Kit Operator CLI")
     ap.add_argument("--version", "-v", action="version", version=f"%(prog)s {CLI_VERSION}")
     ap.add_argument(
         "cmd",
-        choices=["auth", "doctor", "validate", "status", "profiles", "wake", "switch", "stop", "extend", "generate", "mcp"],
+        choices=[
+            "auth",
+            "gdrive-auth",
+            "jobs",
+            "doctor",
+            "validate",
+            "status",
+            "profiles",
+            "wake",
+            "switch",
+            "stop",
+            "extend",
+            "generate",
+            "mcp",
+        ],
     )
     ap.add_argument("extra_arg", nargs="?", default=None, help="URL for auth/doctor, path for validate, profile ID for switch, prompt for generate")
     ap.add_argument("--gate-url", "--url", dest="gate_url", help="gate endpoint URL (default: CKIT_URL or http://127.0.0.1:8080)")
@@ -487,7 +762,19 @@ def main():
     ap.add_argument("--seed", type=int, default=None, help="seed for image generation")
     ap.add_argument("--width", type=int, default=1024, help="image width (default 1024)")
     ap.add_argument("--height", type=int, default=1024, help="image height (default 1024)")
-    ap.add_argument("--timeout", type=int, default=180, help="generation timeout seconds (default 180)")
+    ap.add_argument("--timeout", type=int, default=180, help="generation/auth timeout seconds (default 180)")
+    ap.add_argument("--client-id", dest="client_id", help="Google OAuth client_id (or GOOGLE_CLIENT_ID env)")
+    ap.add_argument("--client-secret", dest="client_secret", help="Google OAuth client_secret (or GOOGLE_CLIENT_SECRET env)")
+    ap.add_argument("--out", default="secrets/gdrive_oauth.json", help="output credentials JSON path for gdrive-auth")
+    ap.add_argument("--scope", default=DEFAULT_GDRIVE_SCOPE, help="OAuth scope for gdrive-auth")
+    ap.add_argument("--token-uri", dest="token_uri", default=DEFAULT_GDRIVE_TOKEN_URI, help="OAuth token endpoint URI")
+    ap.add_argument("--no-browser", dest="no_browser", action="store_true", help="do not open a browser window for gdrive-auth")
+    ap.add_argument("--code", help="authorization code (or redirect URL) for headless gdrive-auth")
+    ap.add_argument("--redirect-uri", dest="redirect_uri", help="override redirect_uri for gdrive-auth")
+    ap.add_argument("--status", help="filter jobs by status (ckit jobs)")
+    ap.add_argument("--pinned", action="store_true", help="filter pinned jobs only (ckit jobs)")
+    ap.add_argument("--limit", type=int, default=20, help="max jobs to show (default 20)")
+    ap.add_argument("-q", "--query", dest="query", help="search query for ckit jobs")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args()
     if a.gate_url:
@@ -495,6 +782,12 @@ def main():
 
     if a.cmd == "auth":
         do_auth(a.extra_arg)
+        return
+    if a.cmd == "gdrive-auth":
+        do_gdrive_auth(a)
+        return
+    if a.cmd == "jobs":
+        do_jobs(a)
         return
     if a.cmd == "doctor":
         do_doctor(a)

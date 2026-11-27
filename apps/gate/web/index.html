@@ -383,6 +383,97 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
 @media (max-width:420px){
  #h-badge{display:none}
 }
+/* Archive & Queue Trigger + Native Dialog Modals */
+.archive-trigger{position:relative;font:500 13px system-ui,-apple-system,sans-serif;padding:0 10px;white-space:nowrap}
+.archive-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:9999px;background:var(--y);color:#0E0A12;font:700 11px var(--mono);line-height:1}
+:root[data-theme=light] .archive-badge{color:#FFFFFF}
+@media (max-width:560px){.archive-btn-label{display:none}.archive-trigger{padding:0 8px;min-width:36px}}
+dialog.archive-dialog,dialog.lightbox-dialog{border:1px solid var(--line2);border-radius:18px;background:var(--popover);color:var(--fg);padding:0;margin:auto;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);box-shadow:0 24px 64px rgba(0,0,0,.65);backdrop-filter:blur(24px) saturate(140%);-webkit-backdrop-filter:blur(24px) saturate(140%)}
+dialog.archive-dialog[open]{display:flex;flex-direction:column;width:min(1040px,calc(100vw - 24px));height:min(820px,calc(100dvh - 24px))}
+dialog.lightbox-dialog[open]{display:flex;flex-direction:column;width:min(960px,calc(100vw - 24px));max-height:calc(100dvh - 24px)}
+dialog.archive-dialog:modal,dialog.lightbox-dialog:modal{overscroll-behavior:contain}
+dialog.archive-dialog::backdrop,dialog.lightbox-dialog::backdrop{background:rgba(8,6,12,.72);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);overflow:hidden;overscroll-behavior:contain}
+:root[data-theme=light] dialog.archive-dialog,:root[data-theme=light] dialog.lightbox-dialog{background:#FFFFFF;border-color:rgba(15,23,42,.14);box-shadow:0 24px 64px rgba(15,23,42,.18)}
+:root[data-theme=light] dialog.archive-dialog::backdrop,:root[data-theme=light] dialog.lightbox-dialog::backdrop{background:rgba(15,23,42,.45)}
+.arch-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);flex-shrink:0}
+.arch-title-wrap{display:flex;align-items:center;gap:10px;min-width:0}
+.arch-title{margin:0;font-size:16px;font-weight:700;color:var(--fg);letter-spacing:-.01em}
+.arch-backend-pill{font:600 11px var(--mono);padding:2px 8px;border-radius:9999px;border:1px solid var(--line2);background:rgba(127,127,127,.08);color:var(--muted);white-space:nowrap}
+.arch-backend-pill.gdrive{color:var(--ok);border-color:rgba(61,220,132,.3);background:rgba(61,220,132,.08)}
+.arch-head-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.arch-btn{height:32px;padding:0 10px;border-radius:8px;border:1px solid var(--line2);background:rgba(127,127,127,.07);color:var(--fg);font:600 12px system-ui,-apple-system,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:border-color .15s,background-color .15s,color .15s;text-decoration:none}
+.arch-btn:hover{border-color:var(--y);color:var(--y)}
+.arch-btn:disabled{opacity:.5;cursor:not-allowed}
+.arch-btn.primary{background:var(--y);color:#0E0A12;border-color:transparent}
+.arch-btn.primary:hover{filter:brightness(1.06);color:#0E0A12}
+:root[data-theme=light] .arch-btn.primary{color:#FFFFFF}
+:root[data-theme=light] .arch-btn.primary:hover{color:#FFFFFF}
+.arch-close-btn{width:32px;height:32px;padding:0;border-radius:8px;border:1px solid var(--line2);background:transparent;color:var(--muted);font-size:18px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.arch-close-btn:hover{color:var(--fg);border-color:var(--fg)}
+.arch-summary{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:10px 18px;border-bottom:1px solid var(--line);background:rgba(127,127,127,.04);flex-shrink:0}
+.arch-counts{display:flex;flex-wrap:wrap;gap:8px}
+.arch-stat{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:8px;border:1px solid var(--line);background:rgba(127,127,127,.06);font:500 11.5px var(--mono);color:var(--muted)}
+.arch-stat b{color:var(--fg);font-weight:700}
+.arch-stat.warn b{color:var(--y)}
+.arch-stat.bad b{color:var(--bad)}
+.arch-stat.ok b{color:var(--ok)}
+.arch-backup-info{font:11px var(--mono);color:var(--muted)}
+.arch-toolbar{display:flex;flex-direction:column;gap:10px;padding:12px 18px;border-bottom:1px solid var(--line);flex-shrink:0}
+.arch-profiles{display:flex;flex-wrap:wrap;gap:6px}
+.arch-pill-tab{height:28px;padding:0 10px;border-radius:9999px;border:1px solid var(--line2);background:transparent;color:var(--muted);font:600 11.5px var(--mono);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.arch-pill-tab:hover{border-color:var(--y);color:var(--fg)}
+.arch-pill-tab.active{background:rgba(249,171,0,.15);border-color:var(--y);color:var(--fg)}
+.arch-filters{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}
+@media (max-width:640px){.arch-filters{grid-template-columns:1fr 1fr}.arch-search{grid-column:1 / -1}}
+.arch-input,.arch-select{height:34px;border-radius:8px;border:1px solid var(--line2);background:rgba(127,127,127,.08);color:var(--fg);padding:0 10px;font:13px system-ui,-apple-system,sans-serif;outline:none;min-width:0}
+.arch-input:focus,.arch-select:focus{border-color:var(--y)}
+:root[data-theme=light] .arch-input,:root[data-theme=light] .arch-select{background:#F8FAFC;border-color:rgba(15,23,42,.14)}
+.arch-toggle{height:34px;padding:0 12px;border-radius:8px;border:1px solid var(--line2);background:transparent;color:var(--muted);font:600 12px system-ui,-apple-system,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.arch-toggle[aria-pressed="true"]{border-color:var(--y);background:rgba(249,171,0,.14);color:var(--fg)}
+.arch-body{flex:1;min-height:0;overflow-y:auto;padding:16px 18px}
+.arch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.arch-card{display:flex;flex-direction:column;border:1px solid var(--line2);border-radius:12px;background:rgba(127,127,127,.05);overflow:hidden;transition:border-color .15s}
+.arch-card:hover{border-color:var(--y)}
+:root[data-theme=light] .arch-card{background:#FFFFFF;border-color:rgba(15,23,42,.12)}
+.arch-media{position:relative;aspect-ratio:16 / 10;background:rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;border:0;padding:0;width:100%}
+:root[data-theme=light] .arch-media{background:#F1F5F9}
+.arch-media img,.arch-media video{width:100%;height:100%;object-fit:cover;display:block}
+.arch-media-tag{position:absolute;right:8px;bottom:8px;padding:2px 6px;border-radius:5px;background:rgba(14,10,18,.78);color:#F4F1F6;font:700 10px var(--mono);letter-spacing:.03em}
+.arch-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--muted);font:500 11px var(--mono);padding:12px;text-align:center}
+.arch-card-body{padding:10px 11px;display:flex;flex-direction:column;gap:7px;flex:1}
+.arch-card-top{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.arch-status{font:700 10.5px var(--mono);text-transform:uppercase;padding:2px 6px;border-radius:5px;border:1px solid var(--line2);color:var(--muted)}
+.arch-status.completed{color:var(--ok);border-color:rgba(61,220,132,.35);background:rgba(61,220,132,.08)}
+.arch-status.running,.arch-status.archiving,.arch-status.queued{color:var(--y);border-color:rgba(249,171,0,.35);background:rgba(249,171,0,.1)}
+.arch-status.failed,.arch-status.interrupted{color:var(--bad);border-color:rgba(255,107,74,.35);background:rgba(255,107,74,.1)}
+.arch-prof-pill{font:500 10.5px var(--mono);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px}
+.arch-prompt{font-size:12.5px;line-height:1.4;color:var(--fg);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;min-height:34px;word-break:break-word}
+.arch-meta-row{display:flex;align-items:center;justify-content:space-between;gap:6px;font:10.5px var(--mono);color:var(--muted)}
+.arch-actions{display:flex;flex-wrap:wrap;gap:5px;padding-top:4px;border-top:1px solid var(--line);margin-top:auto}
+.arch-act{height:26px;padding:0 8px;border-radius:6px;border:1px solid var(--line2);background:transparent;color:var(--muted);font:600 11px system-ui,-apple-system,sans-serif;cursor:pointer;transition:all .12s}
+.arch-act:hover{color:var(--fg);border-color:var(--y)}
+.arch-act.pinned{color:var(--y);border-color:rgba(249,171,0,.45);background:rgba(249,171,0,.12)}
+.arch-act.danger:hover{color:var(--bad);border-color:var(--bad)}
+.arch-empty{text-align:center;padding:40px 16px;color:var(--muted);font-size:13px}
+/* Lightbox Modal */
+.lb-body{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(240px,1fr);min-height:0;overflow-y:auto}
+@media (max-width:760px){.lb-body{grid-template-columns:1fr}}
+.lb-stage{background:#09060C;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;min-height:260px;position:relative;gap:10px}
+:root[data-theme=light] .lb-stage{background:#0F172A}
+.lb-stage img,.lb-stage video{max-width:100%;max-height:66dvh;border-radius:8px;object-fit:contain;display:block}
+.lb-stage audio{width:100%;max-width:420px}
+.lb-pager{display:flex;align-items:center;gap:8px;font:11.5px var(--mono);color:#F4F1F6}
+.lb-side{padding:16px;display:flex;flex-direction:column;gap:12px;border-left:1px solid var(--line);min-width:0}
+@media (max-width:760px){.lb-side{border-left:0;border-top:1px solid var(--line)}}
+.lb-prompt-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lb-sec-lbl{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.lb-prompt-box{margin:0;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(127,127,127,.06);font:12px/1.5 system-ui,-apple-system,sans-serif;color:var(--fg);max-height:180px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
+.lb-meta-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.lb-meta-item{padding:7px 9px;border-radius:8px;border:1px solid var(--line);background:rgba(127,127,127,.05);min-width:0}
+.lb-meta-item small{display:block;font:10px var(--mono);text-transform:uppercase;color:var(--muted)}
+.lb-meta-item b{display:block;font:600 12px var(--mono);color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.lb-err-box{padding:8px 10px;border-radius:8px;border:1px solid rgba(255,107,74,.35);background:rgba(255,107,74,.1);color:var(--bad);font:12px/1.4 var(--mono);word-break:break-word}
+.lb-foot{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:8px;border-top:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -400,6 +491,15 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
     </div>
 
     <div class="header-right">
+      <button type="button" class="icon-btn archive-trigger" id="archive-btn" title="Archive &amp; Queue">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        <span class="archive-btn-label" id="archive-btn-lbl">Archive &amp; Queue</span>
+        <span class="archive-badge" id="archive-queue-badge" hidden>0</span>
+      </button>
+
       <!-- User Account & Agent Card (Immediately left of Language Selector) -->
       <div class="user-dropdown" id="user-dropdown" style="display:none">
         <button type="button" class="icon-btn user-btn" id="user-btn" aria-haspopup="dialog" aria-expanded="false" title="账户与 Agent 授权">
@@ -651,6 +751,83 @@ footer{position:relative;z-index:1;text-align:center;font:11px var(--mono);color
   </div>
 </div>
 
+<!-- Archive & Queue Modal -->
+<dialog id="archive-modal" class="archive-dialog" closedby="any" aria-labelledby="archive-modal-title">
+  <div class="arch-head">
+    <div class="arch-title-wrap">
+      <h1 class="arch-title" id="archive-modal-title">Archive &amp; Queue</h1>
+      <span class="arch-backend-pill" id="arch-storage-backend">Local Disk</span>
+    </div>
+    <div class="arch-head-actions">
+      <button type="button" class="arch-btn" id="arch-backup-btn">Backup DB</button>
+      <button type="button" class="arch-btn" id="arch-refresh-btn">Refresh</button>
+      <button type="button" class="arch-close-btn" id="arch-close-btn" aria-label="Close">&times;</button>
+    </div>
+  </div>
+  <div class="arch-summary">
+    <div class="arch-counts" id="arch-summary-counts">
+      <span class="arch-stat warn"><span id="arch-lbl-queued">Queued</span> <b id="arch-cnt-queued">0</b></span>
+      <span class="arch-stat warn"><span id="arch-lbl-running">Running</span> <b id="arch-cnt-running">0</b></span>
+      <span class="arch-stat bad"><span id="arch-lbl-interrupted">Interrupted</span> <b id="arch-cnt-interrupted">0</b></span>
+      <span class="arch-stat ok"><span id="arch-lbl-completed">Completed</span> <b id="arch-cnt-completed">0</b></span>
+    </div>
+    <span class="arch-backup-info" id="arch-backup-info"></span>
+  </div>
+  <div class="arch-toolbar">
+    <div class="arch-profiles" id="arch-profile-pills" role="tablist" aria-label="Profiles"></div>
+    <div class="arch-filters">
+      <input type="search" class="arch-input arch-search" id="arch-search" placeholder="Search prompts or job IDs…" autocomplete="off">
+      <select class="arch-select" id="arch-status-select" aria-label="Filter by status">
+        <option value="all" id="arch-opt-all">All statuses</option>
+        <option value="completed" id="arch-opt-completed">Completed</option>
+        <option value="queued" id="arch-opt-queued">Queued</option>
+        <option value="running" id="arch-opt-running">Running</option>
+        <option value="archiving" id="arch-opt-archiving">Archiving</option>
+        <option value="interrupted" id="arch-opt-interrupted">Interrupted</option>
+        <option value="failed" id="arch-opt-failed">Failed</option>
+      </select>
+      <button type="button" class="arch-toggle" id="arch-pinned-toggle" aria-pressed="false">Pinned only</button>
+    </div>
+  </div>
+  <div class="arch-body">
+    <div class="arch-grid" id="arch-grid"></div>
+  </div>
+</dialog>
+
+<!-- Lightbox Viewer Modal -->
+<dialog id="lightbox-modal" class="lightbox-dialog" closedby="any" aria-labelledby="lightbox-title">
+  <div class="arch-head">
+    <div class="arch-title-wrap">
+      <h1 class="arch-title" id="lightbox-title">Output Viewer</h1>
+      <span class="arch-prof-pill" id="lb-job-id"></span>
+    </div>
+    <div class="arch-head-actions">
+      <a class="arch-btn primary" id="lb-download" href="#" download hidden>Download</a>
+      <button type="button" class="arch-close-btn" id="lb-close-btn" aria-label="Close">&times;</button>
+    </div>
+  </div>
+  <div class="lb-body">
+    <div class="lb-stage" id="lb-stage">
+      <div id="lb-media"></div>
+      <div class="lb-pager" id="lb-pager" hidden>
+        <button type="button" class="arch-btn" id="lb-prev">&larr;</button>
+        <span id="lb-page-txt">1 / 1</span>
+        <button type="button" class="arch-btn" id="lb-next">&rarr;</button>
+      </div>
+    </div>
+    <div class="lb-side">
+      <div class="lb-prompt-head">
+        <span class="lb-sec-lbl" id="lb-prompt-lbl">Prompt</span>
+        <button type="button" class="arch-act" id="lb-copy-prompt">Copy</button>
+      </div>
+      <pre class="lb-prompt-box" id="lb-prompt"></pre>
+      <div class="lb-err-box" id="lb-err" hidden></div>
+      <div class="lb-meta-grid" id="lb-meta"></div>
+      <div class="lb-foot" id="lb-foot"></div>
+    </div>
+  </div>
+</dialog>
+
 <iframe id="comfy-frame" title="ComfyUI" allow="clipboard-read; clipboard-write" style="display:none"></iframe>
 <script src="/_gate/static/bg.js" defer></script>
 <script>
@@ -687,7 +864,22 @@ const I18N={
   console_title:"Console",lines:"{count} lines",
   cu_today:"CU TODAY",cu_month:"MONTH",cu_balance:"BALANCE",
   footer:"shared session · GPU sleeps when idle",
-  workflows_count:"{count} workflows",reconnecting:"Reconnecting…"
+  workflows_count:"{count} workflows",reconnecting:"Reconnecting…",
+  archive_btn:"Archive & Queue",archive_title:"Archive & Queue",
+  archive_storage_gdrive:"Google Drive",archive_storage_local:"Local Disk",
+  archive_backup:"Backup DB",archive_backing_up:"Backing up…",archive_backup_ok:"Database snapshot backed up.",archive_backup_err:"Backup failed: {err}",
+  archive_refresh:"Refresh",archive_all_profiles:"All",
+  archive_queued:"Queued",archive_running:"Running",archive_interrupted:"Interrupted",archive_completed:"Completed",
+  archive_search_ph:"Search prompts or job IDs…",
+  archive_status_all:"All statuses",archive_status_completed:"Completed",archive_status_queued:"Queued",
+  archive_status_running:"Running",archive_status_archiving:"Archiving",archive_status_interrupted:"Interrupted",archive_status_failed:"Failed",
+  archive_status_canceled:"Canceled",
+  archive_pinned_only:"Pinned only",archive_empty:"No jobs match the current filters.",archive_loading:"Loading jobs…",
+  archive_no_prompt:"(No prompt text)",archive_pin:"Pin",archive_unpin:"Unpin",archive_retry:"Re-run",archive_cancel:"Cancel",archive_delete:"Delete",
+  archive_delete_confirm:"Delete this job and its archived output files?",
+  archive_last_backup:"Last backup: {time}",archive_backup_never:"No DB backup yet",
+  lb_title:"Output Viewer",lb_download:"Download",lb_prompt:"Prompt",lb_copy:"Copy",lb_copied:"Copied!",
+  lb_profile:"Profile",lb_gpu:"GPU",lb_seed:"Seed",lb_elapsed:"Elapsed",lb_cu:"Est. CU",lb_status:"Status",lb_no_media:"No output media recorded for this job."
  },
  zh:{
   title:"Comfy Colab Kit",
@@ -720,7 +912,22 @@ const I18N={
   console_title:"控制台日志",lines:"{count} 行",
   cu_today:"今日 CU",cu_month:"本月 CU",cu_balance:"CU 余额",
   footer:"全局共享会话 · 空闲自动休眠释放算力",
-  workflows_count:"{count} 个工作流",reconnecting:"正在重新连接…"
+  workflows_count:"{count} 个工作流",reconnecting:"正在重新连接…",
+  archive_btn:"归档与队列",archive_title:"归档与任务队列",
+  archive_storage_gdrive:"Google Drive",archive_storage_local:"本地磁盘",
+  archive_backup:"备份数据库",archive_backing_up:"正在备份…",archive_backup_ok:"数据库热快照备份成功。",archive_backup_err:"备份失败：{err}",
+  archive_refresh:"刷新",archive_all_profiles:"全部",
+  archive_queued:"排队中",archive_running:"运行中",archive_interrupted:"已中断",archive_completed:"已完成",
+  archive_search_ph:"搜索提示词或任务 ID…",
+  archive_status_all:"全部状态",archive_status_completed:"已完成",archive_status_queued:"排队中",
+  archive_status_running:"运行中",archive_status_archiving:"归档中",archive_status_interrupted:"已中断",archive_status_failed:"失败",
+  archive_status_canceled:"已取消",
+  archive_pinned_only:"仅看置顶",archive_empty:"没有符合筛选条件的任务。",archive_loading:"正在加载任务…",
+  archive_no_prompt:"(无提示词文本)",archive_pin:"置顶",archive_unpin:"取消置顶",archive_retry:"重试",archive_cancel:"取消",archive_delete:"删除",
+  archive_delete_confirm:"确定删除此任务及其归档输出文件吗？",
+  archive_last_backup:"最近备份：{time}",archive_backup_never:"暂无数据库备份",
+  lb_title:"作品详情",lb_download:"下载原文件",lb_prompt:"提示词 (Prompt)",lb_copy:"复制",lb_copied:"已复制!",
+  lb_profile:"预设",lb_gpu:"显卡",lb_seed:"种子",lb_elapsed:"耗时",lb_cu:"预估 CU",lb_status:"状态",lb_no_media:"该任务暂无输出媒体文件。"
  }
 };
 
@@ -811,6 +1018,7 @@ function updateLanguageUI(){
  if($("copy-modal-prompt-txt"))$("copy-modal-prompt-txt").textContent=lang==="zh"?"复制完整 AI Agent 提示词":"Copy Complete AI Prompt";
  if($("copy-cmd-btn"))$("copy-cmd-btn").textContent=lang==="zh"?"复制命令":"Copy";
  if($("cli-help-tip"))$("cli-help-tip").textContent=lang==="zh"?"复制指令给 Cursor / Claude Code，或终端运行命令一键配对":"Copy prompt to Cursor / Claude, or run CLI command to pair in 1 click";
+ if(typeof updateArchiveLanguageUI==="function")updateArchiveLanguageUI();
 }
 langBtn.onclick=(e)=>{e.stopPropagation();toggleLangMenu()};
 $("opt-lang-zh").onclick=(e)=>{e.stopPropagation();setLanguage("zh");toggleLangMenu(false)};
@@ -1724,6 +1932,7 @@ function render(){
    ownerSec.style.display="none";
   }
  }
+ if(typeof updateQueueBadge==="function")updateQueueBadge();
 }
 
 function log(l){const p=$("log");p.textContent+=l+"\n";lines++;$("lcount").textContent=t("lines",{count:lines});if(p.textContent.length>60000)p.textContent=p.textContent.slice(-40000);p.scrollTop=p.scrollHeight}
@@ -1798,17 +2007,580 @@ function connect(){
   }
   render.lastSyncTime=Date.now();
   render();
+  if(typeof scheduleArchiveRefresh==="function")scheduleArchiveRefresh();
  });
  es.addEventListener("progress",e=>{if(S){S.progress=JSON.parse(e.data);render()}});
+ es.addEventListener("job",()=>{
+  api("/_gate/status?cid="+encodeURIComponent(cid)).then(fresh=>{S=Object.assign({},S||{},fresh);render()}).catch(()=>{});
+  if(typeof scheduleArchiveRefresh==="function")scheduleArchiveRefresh();
+ });
  es.addEventListener("log",e=>log(JSON.parse(e.data)));
  es.onerror=()=>{$("sub").textContent=t("reconnecting")}}
+
+// Archive & Queue + Lightbox Modals
+const archiveModal=$("archive-modal");
+const lightboxModal=$("lightbox-modal");
+const archiveState={profile:"",status:"all",q:"",pinned:false,jobs:[],profiles:[],storage:null,loading:false,lbJob:null,lbIndex:0};
+const reducedMotionQuery=window.matchMedia?window.matchMedia("(prefers-reduced-motion: reduce)"):null;
+
+function enableDialogLightDismissFallback(dlg){
+ if(!dlg||("closedBy" in HTMLDialogElement.prototype))return;
+ const outside=(e)=>{const r=dlg.getBoundingClientRect();return e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom};
+ let pressedOut=false;
+ dlg.addEventListener("pointerdown",e=>{pressedOut=outside(e)});
+ dlg.addEventListener("pointerup",e=>{if(pressedOut&&outside(e))dlg.close()});
+}
+enableDialogLightDismissFallback(archiveModal);
+enableDialogLightDismissFallback(lightboxModal);
+
+function updateArchiveLanguageUI(){
+ if($("archive-btn-lbl"))$("archive-btn-lbl").textContent=t("archive_btn");
+ if($("archive-modal-title"))$("archive-modal-title").textContent=t("archive_title");
+ if($("arch-backup-btn")&&!$("arch-backup-btn").disabled)$("arch-backup-btn").textContent=t("archive_backup");
+ if($("arch-refresh-btn"))$("arch-refresh-btn").textContent=t("archive_refresh");
+ if($("arch-lbl-queued"))$("arch-lbl-queued").textContent=t("archive_queued");
+ if($("arch-lbl-running"))$("arch-lbl-running").textContent=t("archive_running");
+ if($("arch-lbl-interrupted"))$("arch-lbl-interrupted").textContent=t("archive_interrupted");
+ if($("arch-lbl-completed"))$("arch-lbl-completed").textContent=t("archive_completed");
+ if($("arch-search"))$("arch-search").placeholder=t("archive_search_ph");
+ if($("arch-opt-all"))$("arch-opt-all").textContent=t("archive_status_all");
+ if($("arch-opt-completed"))$("arch-opt-completed").textContent=t("archive_status_completed");
+ if($("arch-opt-queued"))$("arch-opt-queued").textContent=t("archive_status_queued");
+ if($("arch-opt-running"))$("arch-opt-running").textContent=t("archive_status_running");
+ if($("arch-opt-archiving"))$("arch-opt-archiving").textContent=t("archive_status_archiving");
+ if($("arch-opt-interrupted"))$("arch-opt-interrupted").textContent=t("archive_status_interrupted");
+ if($("arch-opt-failed"))$("arch-opt-failed").textContent=t("archive_status_failed");
+ if($("arch-pinned-toggle"))$("arch-pinned-toggle").textContent=t("archive_pinned_only");
+ if($("lightbox-title"))$("lightbox-title").textContent=t("lb_title");
+ if($("lb-download"))$("lb-download").textContent=t("lb_download");
+ if($("lb-prompt-lbl"))$("lb-prompt-lbl").textContent=t("lb_prompt");
+ if($("lb-copy-prompt"))$("lb-copy-prompt").textContent=t("lb_copy");
+ updateQueueBadge();
+ if(archiveModal&&archiveModal.open){
+  renderArchiveSummary();
+  renderArchiveProfiles();
+  renderArchiveGrid();
+ }
+ if(lightboxModal&&lightboxModal.open&&archiveState.lbJob){
+  renderLightbox();
+ }
+}
+
+function updateQueueBadge(){
+ const q=(S&&S.queue)||{};
+ const active=(Number(q.queued)||0)+(Number(q.running)||0)+(Number(q.interrupted)||0);
+ const badge=$("archive-queue-badge");
+ if(badge){badge.textContent=String(active);badge.hidden=active<=0;}
+ const btn=$("archive-btn");
+ if(btn){
+  btn.title=active>0?`${t("archive_btn")} (${active})`:t("archive_btn");
+ }
+ if(archiveModal&&archiveModal.open)renderArchiveSummary();
+}
+
+function formatArchiveTime(ts){
+ if(!ts)return"";
+ try{return new Date(ts*1000).toLocaleString([],{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}
+ catch(_){return""}
+}
+
+function getJobOutputs(job){
+ if(!job)return[];
+ if(Array.isArray(job.outputs)&&job.outputs.length)return job.outputs;
+ if(Array.isArray(job.assets))return job.assets.filter(a=>a&&a.role==="output");
+ return[];
+}
+
+function isVideoOutput(out){
+ if(!out)return false;
+ const m=(out.mime||"").toLowerCase();
+ if(m.startsWith("video/"))return true;
+ return /\.(mp4|webm|mov|mkv)(\?|$)/i.test(out.filename||out.url||"");
+}
+
+function isAudioOutput(out){
+ if(!out)return false;
+ const m=(out.mime||"").toLowerCase();
+ if(m.startsWith("audio/"))return true;
+ return /\.(wav|mp3|ogg|flac|aac|m4a)(\?|$)/i.test(out.filename||out.url||"");
+}
+
+function resolveAssetUrl(out){
+ if(!out)return"";
+ const aid=out.asset_id||out.id||"";
+ if(aid)return`/_gate/archive/assets/${encodeURIComponent(aid)}`;
+ return out.url||"";
+}
+
+function renderArchiveSummary(){
+ const st=archiveState.storage||{};
+ const bPill=$("arch-storage-backend");
+ if(bPill){
+  const isGd=st.backend==="gdrive";
+  bPill.textContent=isGd?t("archive_storage_gdrive"):t("archive_storage_local");
+  bPill.className="arch-backend-pill"+(isGd?" gdrive":"");
+  bPill.title=st.last_error||"";
+ }
+ const bInfo=$("arch-backup-info");
+ if(bInfo){
+  if(st.last_error){
+   bInfo.textContent=st.last_error;
+   bInfo.style.color="var(--bad)";
+  }else if(st.last_backup_at){
+   bInfo.textContent=t("archive_last_backup",{time:formatArchiveTime(st.last_backup_at)});
+   bInfo.style.color="";
+  }else{
+   bInfo.textContent=t("archive_backup_never");
+   bInfo.style.color="";
+  }
+ }
+ const q=st.counts||st.queue||(S&&S.queue)||{};
+ if($("arch-cnt-queued"))$("arch-cnt-queued").textContent=String(q.queued||0);
+ if($("arch-cnt-running"))$("arch-cnt-running").textContent=String((Number(q.running)||0)+(Number(q.archiving)||0));
+ if($("arch-cnt-interrupted"))$("arch-cnt-interrupted").textContent=String(q.interrupted||0);
+ if($("arch-cnt-completed"))$("arch-cnt-completed").textContent=String(q.completed||0);
+}
+
+function renderArchiveProfiles(){
+ const wrap=$("arch-profile-pills");
+ if(!wrap)return;
+ const list=archiveState.profiles||[];
+ const total=list.reduce((acc,p)=>acc+(Number(p.count!=null?p.count:p.total)||0),0);
+ wrap.innerHTML="";
+ const makePill=(id,label)=>{
+  const btn=document.createElement("button");
+  btn.type="button";
+  btn.role="tab";
+  btn.className="arch-pill-tab"+(archiveState.profile===id?" active":"");
+  btn.setAttribute("aria-selected",String(archiveState.profile===id));
+  btn.textContent=label;
+  btn.onclick=()=>{
+   archiveState.profile=id;
+   renderArchiveProfiles();
+   loadArchiveJobs();
+  };
+  return btn;
+ };
+ wrap.appendChild(makePill("",`${t("archive_all_profiles")}${total?` (${total})`:""}`));
+ for(const p of list){
+  const pid=p.profile_id||p.id||"";
+  if(!pid)continue;
+  const cnt=Number(p.count!=null?p.count:p.total)||0;
+  wrap.appendChild(makePill(pid,`${p.title||pid} (${cnt})`));
+ }
+}
+
+const SVG_PLACEHOLDER_DEFAULT=`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>`;
+const SVG_PLACEHOLDER_ERR=`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+const SVG_PLACEHOLDER_WAIT=`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+
+let lazyMediaObserver=null;
+function observeLazyVideos(container){
+ if(!container||Object.hasOwn(HTMLMediaElement.prototype,"loading"))return;
+ const vids=container.querySelectorAll('video[data-src]');
+ if(!vids.length)return;
+ if(!lazyMediaObserver){
+  lazyMediaObserver=new IntersectionObserver((entries,obs)=>{
+   for(const entry of entries){
+    if(!entry.isIntersecting)continue;
+    const v=entry.target;
+    if(v.dataset.src){v.src=v.dataset.src;delete v.dataset.src;v.load();}
+    obs.unobserve(v);
+   }
+  },{root:container,rootMargin:"200px 0px"});
+ }
+ for(const v of vids)lazyMediaObserver.observe(v);
+}
+
+function renderArchiveGrid(){
+ const grid=$("arch-grid");
+ if(!grid)return;
+ if(archiveState.loading&&!archiveState.jobs.length){
+  grid.innerHTML=`<div class="arch-empty">${escapeHtml(t("archive_loading"))}</div>`;
+  return;
+ }
+ if(!archiveState.jobs.length){
+  grid.innerHTML=`<div class="arch-empty">${escapeHtml(t("archive_empty"))}</div>`;
+  return;
+ }
+ grid.innerHTML="";
+ const supportsLazyMedia=Object.hasOwn(HTMLMediaElement.prototype,"loading");
+ for(const job of archiveState.jobs){
+  const cardEl=document.createElement("article");
+  cardEl.className="arch-card";
+  const outs=getJobOutputs(job);
+  const out0=outs[0]||null;
+  const mediaBtn=document.createElement("button");
+  mediaBtn.type="button";
+  mediaBtn.className="arch-media";
+  mediaBtn.title=job.prompt_text||job.id;
+  mediaBtn.onclick=()=>openLightbox(job.id,job);
+
+  if(out0){
+   const assetUrl=resolveAssetUrl(out0);
+   const isVid=isVideoOutput(out0);
+   const isAud=isAudioOutput(out0);
+   if(out0.thumb_url){
+    const img=document.createElement("img");
+    img.loading="lazy";
+    img.alt="";
+    img.src=out0.thumb_url;
+    img.onerror=()=>{mediaBtn.innerHTML=`<div class="arch-placeholder">${SVG_PLACEHOLDER_DEFAULT}<span>${escapeHtml(out0.filename||"")}</span></div>`;};
+    mediaBtn.appendChild(img);
+    if(isVid){
+     const tag=document.createElement("span");
+     tag.className="arch-media-tag";
+     tag.textContent="VIDEO";
+     mediaBtn.appendChild(tag);
+    }
+   }else if(isVid){
+    const vid=document.createElement("video");
+    vid.muted=true;
+    vid.playsInline=true;
+    vid.preload="metadata";
+    vid.width=320;
+    vid.height=200;
+    const vidSrc=`${assetUrl}#t=0.1`;
+    if(supportsLazyMedia){vid.setAttribute("loading","lazy");vid.src=vidSrc;}
+    else{vid.preload="none";vid.dataset.src=vidSrc;}
+    mediaBtn.appendChild(vid);
+    const tag=document.createElement("span");
+    tag.className="arch-media-tag";
+    tag.textContent="VIDEO";
+    mediaBtn.appendChild(tag);
+   }else if(!isAud){
+    const img=document.createElement("img");
+    img.loading="lazy";
+    img.alt="";
+    img.src=assetUrl;
+    img.onerror=()=>{mediaBtn.innerHTML=`<div class="arch-placeholder">${SVG_PLACEHOLDER_DEFAULT}</div>`;};
+    mediaBtn.appendChild(img);
+   }else{
+    mediaBtn.innerHTML=`<div class="arch-placeholder">${SVG_PLACEHOLDER_DEFAULT}<span>${escapeHtml(out0.filename||"AUDIO")}</span></div>`;
+   }
+  }else{
+   const st=job.status||"queued";
+   const icon=(st==="failed"||st==="interrupted"||st==="canceled")?SVG_PLACEHOLDER_ERR:SVG_PLACEHOLDER_WAIT;
+   mediaBtn.innerHTML=`<div class="arch-placeholder">${icon}<span>${escapeHtml(t("archive_status_"+st)||st)}</span></div>`;
+  }
+  cardEl.appendChild(mediaBtn);
+
+  const body=document.createElement("div");
+  body.className="arch-card-body";
+  const st=job.status||"queued";
+  const stLbl=t("archive_status_"+st)||st;
+  const prof=job.profile_id||job.profile||"";
+  const promptSnippet=(job.prompt_text||"").trim()||job.workflow_id||t("archive_no_prompt");
+  const timeStr=formatArchiveTime(job.created_at);
+  const elapsedStr=job.elapsed_s!=null?`${Number(job.elapsed_s).toFixed(1)}s`:"";
+  body.innerHTML=`
+   <div class="arch-card-top">
+    <span class="arch-status ${escapeHtml(st)}">${escapeHtml(stLbl)}</span>
+    <span class="arch-prof-pill">${escapeHtml(prof)}</span>
+   </div>
+   <div class="arch-prompt">${escapeHtml(promptSnippet)}</div>
+   <div class="arch-meta-row">
+    <span>${escapeHtml(timeStr)}</span>
+    <span>${escapeHtml(elapsedStr)}</span>
+   </div>
+  `;
+  const actions=document.createElement("div");
+  actions.className="arch-actions";
+
+  const pinBtn=document.createElement("button");
+  pinBtn.type="button";
+  pinBtn.className="arch-act"+(job.pinned?" pinned":"");
+  pinBtn.textContent=job.pinned?t("archive_unpin"):t("archive_pin");
+  pinBtn.onclick=()=>jobAction(job.id,"pin",{pinned:!job.pinned});
+  actions.appendChild(pinBtn);
+
+  const retryBtn=document.createElement("button");
+  retryBtn.type="button";
+  retryBtn.className="arch-act";
+  retryBtn.textContent=t("archive_retry");
+  retryBtn.onclick=()=>jobAction(job.id,"retry");
+  actions.appendChild(retryBtn);
+
+  if(st==="queued"||st==="running"||st==="archiving"||st==="interrupted"){
+   const cancelBtn=document.createElement("button");
+   cancelBtn.type="button";
+   cancelBtn.className="arch-act danger";
+   cancelBtn.textContent=t("archive_cancel");
+   cancelBtn.onclick=()=>jobAction(job.id,"cancel");
+   actions.appendChild(cancelBtn);
+  }
+
+  const delBtn=document.createElement("button");
+  delBtn.type="button";
+  delBtn.className="arch-act danger";
+  delBtn.textContent=t("archive_delete");
+  delBtn.onclick=()=>deleteJobItem(job.id);
+  actions.appendChild(delBtn);
+
+  body.appendChild(actions);
+  cardEl.appendChild(body);
+  grid.appendChild(cardEl);
+ }
+ observeLazyVideos(grid);
+}
+
+async function loadArchiveStorage(){
+ try{
+  archiveState.storage=await api("/_gate/storage/status");
+  renderArchiveSummary();
+ }catch(e){console.warn("storage status:",e)}
+}
+
+async function loadArchiveProfiles(){
+ try{
+  const res=await api("/_gate/archive/profiles");
+  archiveState.profiles=Array.isArray(res)?res:(res.profiles||[]);
+  renderArchiveProfiles();
+ }catch(e){console.warn("archive profiles:",e)}
+}
+
+async function loadArchiveJobs(){
+ archiveState.loading=true;
+ if(!archiveState.jobs.length)renderArchiveGrid();
+ try{
+  const params=new URLSearchParams();
+  if(archiveState.profile)params.set("profile",archiveState.profile);
+  if(archiveState.status&&archiveState.status!=="all")params.set("status",archiveState.status);
+  if(archiveState.q)params.set("q",archiveState.q);
+  if(archiveState.pinned)params.set("pinned","1");
+  params.set("limit","60");
+  const res=await api(`/_gate/jobs?${params.toString()}`);
+  archiveState.jobs=Array.isArray(res)?res:(res.jobs||[]);
+ }catch(e){
+  showToast(e.message);
+ }finally{
+  archiveState.loading=false;
+  renderArchiveGrid();
+ }
+}
+
+async function refreshArchiveAll(){
+ await Promise.all([loadArchiveStorage(),loadArchiveProfiles(),loadArchiveJobs()]);
+}
+
+let archiveRefreshTimer=null;
+function scheduleArchiveRefresh(){
+ if(!archiveModal||!archiveModal.open)return;
+ if(archiveRefreshTimer)clearTimeout(archiveRefreshTimer);
+ archiveRefreshTimer=setTimeout(()=>{
+  refreshArchiveAll();
+ },250);
+}
+
+async function jobAction(jobId,action,body){
+ try{
+  const opts={method:"POST"};
+  if(body!==undefined)opts.body=JSON.stringify(body);
+  await api(`/_gate/jobs/${encodeURIComponent(jobId)}/${action}`,opts);
+  await Promise.all([loadArchiveJobs(),loadArchiveStorage()]);
+ }catch(e){
+  showToast(e.message);
+ }
+}
+
+async function deleteJobItem(jobId){
+ if(!confirm(t("archive_delete_confirm")))return;
+ try{
+  await api(`/_gate/jobs/${encodeURIComponent(jobId)}?delete_files=1`,{method:"DELETE"});
+  if(lightboxModal&&lightboxModal.open&&archiveState.lbJob&&archiveState.lbJob.id===jobId){
+   lightboxModal.close();
+  }
+  await Promise.all([loadArchiveProfiles(),loadArchiveJobs(),loadArchiveStorage()]);
+ }catch(e){
+  showToast(e.message);
+ }
+}
+
+function openArchiveModal(){
+ if(!archiveModal)return;
+ closeAllMenus();
+ if(!archiveModal.open)archiveModal.showModal();
+ updateArchiveLanguageUI();
+ refreshArchiveAll();
+}
+
+async function openLightbox(jobId,seedJob){
+ if(!lightboxModal)return;
+ archiveState.lbJob=seedJob||null;
+ archiveState.lbIndex=0;
+ if(!lightboxModal.open)lightboxModal.showModal();
+ renderLightbox();
+ try{
+  const full=await api(`/_gate/jobs/${encodeURIComponent(jobId)}`);
+  if(full&&full.id){
+   archiveState.lbJob=full;
+   renderLightbox();
+  }
+ }catch(_){}
+}
+
+function renderLightbox(){
+ const job=archiveState.lbJob;
+ if(!job)return;
+ const outs=getJobOutputs(job);
+ if(archiveState.lbIndex>=outs.length)archiveState.lbIndex=0;
+ const out=outs[archiveState.lbIndex]||null;
+ $("lb-job-id").textContent=job.id||"";
+ $("lb-prompt").textContent=(job.prompt_text||"").trim()||t("archive_no_prompt");
+
+ const errEl=$("lb-err");
+ if(job.error_message){
+  errEl.hidden=false;
+  errEl.textContent=(job.error_node?`[${job.error_node}] `:"")+job.error_message;
+ }else{
+  errEl.hidden=true;
+  errEl.textContent="";
+ }
+
+ const dl=$("lb-download");
+ const stage=$("lb-media");
+ stage.innerHTML="";
+ if(out){
+  const url=resolveAssetUrl(out);
+  const sep=url.includes("?")?"&":"?";
+  dl.hidden=false;
+  dl.href=`${url}${sep}download=1`;
+  dl.setAttribute("download",out.filename||"output");
+  if(isVideoOutput(out)){
+   const vid=document.createElement("video");
+   vid.controls=true;
+   vid.playsInline=true;
+   if(!reducedMotionQuery||!reducedMotionQuery.matches)vid.autoplay=true;
+   vid.src=url;
+   stage.appendChild(vid);
+  }else if(isAudioOutput(out)){
+   const aud=document.createElement("audio");
+   aud.controls=true;
+   aud.src=url;
+   stage.appendChild(aud);
+  }else{
+   const img=document.createElement("img");
+   img.alt=out.filename||"";
+   img.src=url;
+   stage.appendChild(img);
+  }
+ }else{
+  dl.hidden=true;
+  stage.innerHTML=`<div class="arch-placeholder" style="color:#a49cab">${SVG_PLACEHOLDER_WAIT}<span>${escapeHtml(t("lb_no_media"))}</span></div>`;
+ }
+
+ const pager=$("lb-pager");
+ if(outs.length>1){
+  pager.hidden=false;
+  $("lb-page-txt").textContent=`${archiveState.lbIndex+1} / ${outs.length}`;
+ }else{
+  pager.hidden=true;
+ }
+
+ const metaItems=[
+  [t("lb_status"),t("archive_status_"+(job.status||""))||job.status||"—"],
+  [t("lb_profile"),job.profile_id||job.profile||"—"],
+  [t("lb_gpu"),job.accelerator||"—"],
+  [t("lb_seed"),job.seed!=null?String(job.seed):"—"],
+  [t("lb_elapsed"),job.elapsed_s!=null?`${Number(job.elapsed_s).toFixed(1)}s`:"—"],
+  [t("lb_cu"),job.est_cu!=null?Number(job.est_cu).toFixed(3):"—"]
+ ];
+ $("lb-meta").innerHTML=metaItems.map(([k,v])=>`<div class="lb-meta-item"><small>${escapeHtml(k)}</small><b title="${escapeHtml(v)}">${escapeHtml(v)}</b></div>`).join("");
+
+ const foot=$("lb-foot");
+ foot.innerHTML="";
+ const pinBtn=document.createElement("button");
+ pinBtn.type="button";
+ pinBtn.className="arch-act"+(job.pinned?" pinned":"");
+ pinBtn.textContent=job.pinned?t("archive_unpin"):t("archive_pin");
+ pinBtn.onclick=async()=>{await jobAction(job.id,"pin",{pinned:!job.pinned});openLightbox(job.id,Object.assign({},job,{pinned:!job.pinned}));};
+ foot.appendChild(pinBtn);
+ const retryBtn=document.createElement("button");
+ retryBtn.type="button";
+ retryBtn.className="arch-act";
+ retryBtn.textContent=t("archive_retry");
+ retryBtn.onclick=()=>jobAction(job.id,"retry");
+ foot.appendChild(retryBtn);
+}
+
+if(lightboxModal){
+ lightboxModal.addEventListener("close",()=>{
+  lightboxModal.returnValue="";
+  for(const m of lightboxModal.querySelectorAll("video,audio")){try{m.pause();m.removeAttribute("src");m.load();}catch(_){}}
+ });
+}
+if(archiveModal){
+ archiveModal.addEventListener("close",()=>{archiveModal.returnValue="";});
+}
+if($("archive-btn"))$("archive-btn").onclick=(e)=>{e.stopPropagation();openArchiveModal();};
+if($("arch-close-btn"))$("arch-close-btn").onclick=()=>archiveModal.close();
+if($("lb-close-btn"))$("lb-close-btn").onclick=()=>lightboxModal.close();
+if($("arch-refresh-btn"))$("arch-refresh-btn").onclick=()=>refreshArchiveAll();
+if($("arch-backup-btn"))$("arch-backup-btn").onclick=async()=>{
+ const btn=$("arch-backup-btn");
+ btn.disabled=true;
+ btn.textContent=t("archive_backing_up");
+ try{
+  await api("/_gate/storage/backup",{method:"POST"});
+  showToast(t("archive_backup_ok"));
+  await loadArchiveStorage();
+ }catch(e){
+  showToast(t("archive_backup_err",{err:e.message}));
+ }finally{
+  btn.disabled=false;
+  btn.textContent=t("archive_backup");
+ }
+};
+let archSearchTimer=null;
+if($("arch-search"))$("arch-search").addEventListener("input",e=>{
+ archiveState.q=e.target.value.trim();
+ if(archSearchTimer)clearTimeout(archSearchTimer);
+ archSearchTimer=setTimeout(()=>loadArchiveJobs(),250);
+});
+if($("arch-status-select"))$("arch-status-select").addEventListener("change",e=>{
+ archiveState.status=e.target.value||"all";
+ loadArchiveJobs();
+});
+if($("arch-pinned-toggle"))$("arch-pinned-toggle").onclick=(e)=>{
+ archiveState.pinned=!archiveState.pinned;
+ e.currentTarget.setAttribute("aria-pressed",String(archiveState.pinned));
+ loadArchiveJobs();
+};
+if($("lb-prev"))$("lb-prev").onclick=()=>{
+ const outs=getJobOutputs(archiveState.lbJob);
+ if(!outs.length)return;
+ archiveState.lbIndex=(archiveState.lbIndex-1+outs.length)%outs.length;
+ renderLightbox();
+};
+if($("lb-next"))$("lb-next").onclick=()=>{
+ const outs=getJobOutputs(archiveState.lbJob);
+ if(!outs.length)return;
+ archiveState.lbIndex=(archiveState.lbIndex+1)%outs.length;
+ renderLightbox();
+};
+if($("lb-copy-prompt"))$("lb-copy-prompt").onclick=async()=>{
+ const txt=$("lb-prompt")?$("lb-prompt").textContent:"";
+ try{
+  await navigator.clipboard.writeText(txt);
+  const btn=$("lb-copy-prompt");
+  btn.textContent=t("lb_copied");
+  setTimeout(()=>{btn.textContent=t("lb_copy")},1800);
+ }catch(_){prompt(t("lb_prompt"),txt);}
+};
+
+function checkArchiveHash(){
+ if(location.hash==="#archive"||location.hash==="#queue")openArchiveModal();
+}
+window.addEventListener("hashchange",checkArchiveHash);
 
 // Initial paint (SSR zero-flicker or fallback)
 render.lastSyncTime=Date.now();
 renderCustomSelect();
 render();
+updateArchiveLanguageUI();
 loadProfiles();
 connect();
+checkArchiveHash();
 setInterval(render,1000);
 setInterval(()=>api("/_gate/status?cid="+encodeURIComponent(cid)).then(j=>{S=Object.assign({},S||{},j);render.lastSyncTime=Date.now();render()}).catch(()=>{}),10000);
 </script>

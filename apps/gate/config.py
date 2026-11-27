@@ -157,6 +157,15 @@ class Settings:
     listen_port: int = 8080
     state_dir: str = "/data/state"
     log_level: str = "info"
+    gdrive_oauth_file: str = ""
+    gdrive_root_folder_id: str = ""
+    archive_dir: str = ""
+    thumbs_dir: str = ""
+    archive_max_gb: float = 20.0
+    queue_intercept_enabled: bool = True
+    queue_auto_retry: bool = True
+    queue_max_retries: int = 2
+    db_backup_debounce_s: float = 15.0
     auto_stop: AutoStop = field(default_factory=AutoStop)
 
     @property
@@ -214,6 +223,9 @@ class Settings:
             watchdog_gate_lost_min=_int(env, "WATCHDOG_GATE_LOST_MIN", 20),
             wake_on_visit=_bool(env, "WAKE_ON_VISIT", False),
         )
+        state_dir = (env.get("STATE_DIR") or ("/data/state" if os.path.isdir("/data") and os.access("/data", os.W_OK) else "./data/state")).strip()
+        archive_dir = (env.get("ARCHIVE_DIR") or str(Path(state_dir).parent / "archive")).strip()
+        thumbs_dir = (env.get("THUMBS_DIR") or str(Path(state_dir).parent / "thumbs")).strip()
         s = Settings(
             public_host=(env.get("PUBLIC_HOST") or "comfy.example.com").strip(),
             colab_tunnel_host=tunnel_host,
@@ -249,8 +261,17 @@ class Settings:
             enable_smoke_test=_bool(env, "ENABLE_SMOKE_TEST", False),
             listen_host=host,
             listen_port=int(port),
-            state_dir=(env.get("STATE_DIR") or ("/data/state" if os.path.isdir("/data") and os.access("/data", os.W_OK) else "./data/state")).strip(),
+            state_dir=state_dir,
             log_level=(env.get("LOG_LEVEL") or "info").strip(),
+            gdrive_oauth_file=(env.get("GDRIVE_OAUTH_FILE") or "").strip(),
+            gdrive_root_folder_id=(env.get("GDRIVE_ROOT_FOLDER_ID") or "").strip(),
+            archive_dir=archive_dir,
+            thumbs_dir=thumbs_dir,
+            archive_max_gb=_float(env, "ARCHIVE_MAX_GB", 20.0, 0.0),
+            queue_intercept_enabled=_bool(env, "QUEUE_INTERCEPT_ENABLED", True),
+            queue_auto_retry=_bool(env, "QUEUE_AUTO_RETRY", True),
+            queue_max_retries=_int(env, "QUEUE_MAX_RETRIES", 2, 0),
+            db_backup_debounce_s=_float(env, "DB_BACKUP_DEBOUNCE_S", 15.0, 0.0),
             auto_stop=auto,
         )
         if not s.auth_disabled and not (s.cf_access_team_domain and s.cf_access_aud):

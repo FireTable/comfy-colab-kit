@@ -5,12 +5,17 @@ Exposes comfy-gate lifecycle and ComfyUI generation tools to AI agents
 (Claude Desktop, Cursor, OpenClaw, Cline, etc.) over JSON-RPC 2.0 stdio.
 
 Tools:
-  - gate_status: Query session state, profile, remaining seconds, CU ledger.
+  - gate_status: Query session state, profile, remaining seconds, CU ledger, and queue counts.
   - gate_wake: Wake or join the shared Colab GPU instance and wait until ready.
-  - gate_txt2img: High-level text-to-image (MOSS-Image DeBand & SD 3.5 Large profile-aware).
-  - gate_img2img: High-level image-to-image (auto-uploads local file or URL to /upload/image).
-  - gate_generate: Submit a raw ComfyUI prompt graph, poll for completion, and return image URLs.
+  - gate_txt2img: High-level text-to-image / text-to-video (profile-aware).
+  - gate_img2img: High-level image-to-image / image-to-video (auto-uploads local file or URL).
+  - gate_generate: Submit a raw ComfyUI prompt graph, poll for completion, and return output URLs.
   - gate_stop: Release the Colab GPU immediately to prevent Compute Unit waste.
+  - gate_queue_job: Enqueue a durable prompt job (works even when GPU is sleeping).
+  - gate_list_jobs: List queued, running, interrupted, failed, and completed jobs.
+  - gate_get_job: Fetch job metadata, prompt, outputs, and archive URLs (works offline).
+  - gate_manage_job: Retry, cancel, pin/unpin, or delete a durable job (works offline).
+  - gate_storage_status: Inspect archive storage backend and optionally trigger a hot DB backup.
 
 Environment Variables:
   CKIT_URL: Gate endpoint, e.g. https://comfy.example.com (default: http://127.0.0.1:8080)
@@ -124,17 +129,14 @@ def call_gate(method: str, path: str, body: dict | None = None) -> tuple[int, di
         return 500, {"error": "network_error", "message": str(e)}
 
 
-def upload_image_to_gate(image_ref: str) -> tuple[bool, str]:
-    """Ensure a reference image is uploaded to ComfyUI's input directory via POST /upload/image.
+def _upload_image_impl(image_ref: str, allow_offline: bool = False) -> tuple[bool, str, str | None]:
+    """Ensure a reference image is uploaded to ComfyUI or offline job archive storage.
 
-    Accepts:
-      - A local file path (expanded with ~),
-      - An http:// or https:// image URL, or
-      - An existing ComfyUI input filename (returned as-is if not a local file or URL).
+    Returns (ok, uploaded_name_or_error, asset_id_or_none).
     """
     ref = (image_ref or "").strip()
     if not ref:
-        return False, "Missing image reference"
+        return False, "Missing image reference", None
 
     expanded = os.path.expanduser(ref)
     raw_bytes = None
@@ -146,7 +148,7 @@ def upload_image_to_gate(image_ref: str) -> tuple[bool, str]:
             with open(expanded, "rb") as f:
                 raw_bytes = f.read()
         except Exception as e:
-            return False, f"Failed to read local image {expanded}: {e}"
+            return False, f"Failed to read local image {expanded}: {e}", None
     elif ref.startswith("http://") or ref.startswith("https://"):
         parsed = urllib.parse.urlparse(ref)
         bn = os.path.basename(parsed.path)
@@ -157,10 +159,9 @@ def upload_image_to_gate(image_ref: str) -> tuple[bool, str]:
             with urllib.request.urlopen(dl_req, timeout=30) as r:
                 raw_bytes = r.read()
         except Exception as e:
-            return False, f"Failed to download image from URL {ref}: {e}"
+            return False, f"Failed to download image from URL {ref}: {e}", None
     else:
-        # Already a ComfyUI input filename
-        return True, ref
+        return True, ref, None
 
     base, headers = _resolve_endpoint_and_headers()
     boundary = f"----ckitBoundary{uuid.uuid4().hex}"
@@ -179,18 +180,54 @@ def upload_image_to_gate(image_ref: str) -> tuple[bool, str]:
     ]
     payload = b"".join(body_parts)
     req_headers = {**headers, "Content-Type": f"multipart/form-data; boundary={boundary}"}
-    req = urllib.request.Request(base + "/upload/image", method="POST", data=payload, headers=req_headers)
+
+    def _post_multipart(endpoint_path: str) -> tuple[int, dict, str]:
+        req = urllib.request.Request(base + endpoint_path, method="POST", data=payload, headers=req_headers)
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                out = json.loads(r.read() or b"{}")
+                return r.status, out, ""
+        except urllib.error.HTTPError as e:
+            raw = e.read().decode("utf-8", errors="replace")
+            return e.code, {}, raw
+
+    def _format_upload_res(out: dict) -> tuple[bool, str, str | None]:
+        uploaded_name = out.get("name") or out.get("filename") or filename
+        subfolder = out.get("subfolder") or ""
+        resolved = f"{subfolder}/{uploaded_name}".lstrip("/") if subfolder else uploaded_name
+        asset_id = out.get("id") or out.get("asset_id") or None
+        return True, resolved, asset_id
+
     try:
-        with urllib.request.urlopen(req, timeout=60) as r:
-            out = json.loads(r.read() or b"{}")
-            uploaded_name = out.get("name") or filename
-            subfolder = out.get("subfolder") or ""
-            return True, f"{subfolder}/{uploaded_name}".lstrip("/") if subfolder else uploaded_name
-    except urllib.error.HTTPError as e:
-        raw = e.read().decode("utf-8", errors="replace")
-        return False, f"Image upload failed ({e.code}): {raw}"
+        if allow_offline:
+            st, out, raw = _post_multipart("/_gate/jobs/upload")
+            if st < 400:
+                return _format_upload_res(out)
+            if st != 404:
+                return False, f"Offline image upload failed ({st}): {raw}", None
+
+        st, out, raw = _post_multipart("/upload/image")
+        if st < 400:
+            return _format_upload_res(out)
+        if st == 503:
+            off_st, off_out, _ = _post_multipart("/_gate/jobs/upload")
+            if off_st < 400:
+                return _format_upload_res(off_out)
+        return False, f"Image upload failed ({st}): {raw}", None
     except Exception as e:
-        return False, f"Image upload failed: {e}"
+        return False, f"Image upload failed: {e}", None
+
+
+def upload_image_to_gate(image_ref: str, allow_offline: bool = False) -> tuple[bool, str]:
+    """Ensure a reference image is uploaded to ComfyUI's input directory or offline job archive.
+
+    Accepts:
+      - A local file path (expanded with ~),
+      - An http:// or https:// image URL, or
+      - An existing ComfyUI input filename (returned as-is if not a local file or URL).
+    """
+    ok, name_or_err, _asset_id = _upload_image_impl(image_ref, allow_offline=allow_offline)
+    return ok, name_or_err
 
 
 TOOLS = [
@@ -371,8 +408,148 @@ TOOLS = [
                 }
             }
         }
+    },
+    {
+        "name": "gate_queue_job",
+        "description": "Enqueue a ComfyUI prompt graph into the durable SQLite/Google Drive queue (works even while GPU is sleeping). Auto-dispatches on next wake and archives outputs.",
+        "annotations": {
+            "title": "Queue Durable Job (Works Offline)",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": False,
+            "openWorldHint": True
+        },
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "prompt": {
+                    "type": "object",
+                    "description": "ComfyUI API prompt graph dictionary mapping node IDs to node configs."
+                },
+                "profile": {
+                    "type": "string",
+                    "description": "Target profile ID (e.g. 'moss-image', 'flux-klein', 'wan-ltx-video')."
+                },
+                "workflow_id": {
+                    "type": "string",
+                    "description": "Optional workflow identifier."
+                },
+                "image": {
+                    "type": "string",
+                    "description": "Optional reference image (local path, HTTP/HTTPS URL, or uploaded filename; local/URL inputs are pre-uploaded offline via /_gate/jobs/upload)."
+                }
+            },
+            "required": ["prompt"]
+        }
+    },
+    {
+        "name": "gate_list_jobs",
+        "description": "List durable queued, running, interrupted, failed, and completed jobs with archive output URLs (works even while GPU is sleeping).",
+        "annotations": {
+            "title": "List Queued & Archived Jobs",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": True
+        },
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "profile": {"type": "string", "description": "Filter by profile ID."},
+                "status": {"type": "string", "description": "Filter by job status (queued, running, archiving, interrupted, completed, failed, canceled)."},
+                "query": {"type": "string", "description": "Search substring across prompt text, job ID, profile, or error message."},
+                "pinned": {"type": "boolean", "description": "Filter by pinned status (true/false)."},
+                "limit": {"type": "integer", "description": "Maximum number of jobs to return (default: 20).", "default": 20}
+            }
+        }
+    },
+    {
+        "name": "gate_get_job",
+        "description": "Fetch detailed status, metadata, inputs, outputs, and archive URLs for a job by ID (works even while GPU is sleeping).",
+        "annotations": {
+            "title": "Get Job Details & Outputs",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": True
+        },
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "job_id": {"type": "string", "description": "Job ID (or client_prompt_id)."},
+                "include_prompt": {"type": "boolean", "description": "Include full prompt graph JSON in the response (default: false).", "default": False}
+            },
+            "required": ["job_id"]
+        }
+    },
+    {
+        "name": "gate_manage_job",
+        "description": "Manage a durable job: retry, cancel, pin, unpin, or delete (optionally deleting unshared archived files). Works while GPU is sleeping.",
+        "annotations": {
+            "title": "Manage Job (Retry / Cancel / Pin / Delete)",
+            "readOnlyHint": False,
+            "destructiveHint": True,
+            "idempotentHint": False,
+            "openWorldHint": True
+        },
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "job_id": {"type": "string", "description": "Target job ID."},
+                "action": {
+                    "type": "string",
+                    "enum": ["retry", "cancel", "pin", "unpin", "delete"],
+                    "description": "Management action to perform on the job."
+                },
+                "delete_files": {
+                    "type": "boolean",
+                    "description": "When action='delete', also delete unshared output blobs from archive storage (default: false).",
+                    "default": False
+                }
+            },
+            "required": ["job_id", "action"]
+        }
+    },
+    {
+        "name": "gate_storage_status",
+        "description": "Inspect archive storage backend (Google Drive or local disk), job status counts, per-profile archive stats, and optionally trigger an immediate DB hot backup.",
+        "annotations": {
+            "title": "Inspect Storage & Backup DB",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": True
+        },
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "backup_now": {
+                    "type": "boolean",
+                    "description": "Trigger an immediate SQLite conn.backup() snapshot before returning status (default: false).",
+                    "default": False
+                }
+            }
+        }
     }
 ]
+
+
+def _absolutize_asset_urls(job: dict, base: str) -> dict:
+    if not isinstance(job, dict):
+        return job
+    clean_base = base.rstrip("/")
+    for key in ("outputs", "inputs"):
+        items = job.get(key)
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            for url_key in ("url", "thumb_url"):
+                u = item.get(url_key)
+                if isinstance(u, str) and u.startswith("/"):
+                    item[url_key] = f"{clean_base}{u}"
+    return job
 
 
 def _execute_prompt(prompt: dict, timeout_s: int = 180) -> dict:
@@ -385,6 +562,7 @@ def _execute_prompt(prompt: dict, timeout_s: int = 180) -> dict:
         return {"isError": True, "content": [{"type": "text", "text": f"Failed to submit prompt ({p_code}): {json.dumps(p_out, ensure_ascii=False)}"}]}
 
     prompt_id = p_out["prompt_id"]
+    job_id = p_out.get("job_id")
     start_t = time.time()
     base, _ = _resolve_endpoint_and_headers()
 
@@ -397,18 +575,40 @@ def _execute_prompt(prompt: dict, timeout_s: int = 180) -> dict:
             images = []
             seen = set()
             for node_id, node_out in outputs.items():
-                for key in ("images", "videos", "gifs"):
+                for key in ("images", "videos", "gifs", "audio"):
                     for img in node_out.get(key, []):
                         fn = img.get("filename", "")
                         sub = img.get("subfolder", "")
                         t = img.get("type", "output")
-                        if not fn or (fn, sub, t) in seen:
+                        raw_url = img.get("url")
+                        if not fn and not raw_url:
                             continue
-                        seen.add((fn, sub, t))
-                        url = f"{base}/view?filename={urllib.parse.quote(fn)}&subfolder={urllib.parse.quote(sub)}&type={urllib.parse.quote(t)}"
-                        images.append({"filename": fn, "url": url, "node_id": node_id})
+                        if (fn, sub, t, raw_url) in seen:
+                            continue
+                        seen.add((fn, sub, t, raw_url))
+                        if isinstance(raw_url, str) and raw_url.startswith("/"):
+                            url = f"{base}{raw_url}"
+                        elif isinstance(raw_url, str) and raw_url:
+                            url = raw_url
+                        else:
+                            url = f"{base}/view?filename={urllib.parse.quote(fn)}&subfolder={urllib.parse.quote(sub)}&type={urllib.parse.quote(t)}"
+                        entry = {"filename": fn, "url": url, "node_id": node_id}
+                        if img.get("asset_id"):
+                            entry["asset_id"] = img["asset_id"]
+                        images.append(entry)
 
             res_data = {"prompt_id": prompt_id, "status": item.get("status", {}), "images": images}
+            if job_id:
+                res_data["job_id"] = job_id
+                j_code, j_out = call_gate("GET", f"/_gate/jobs/{urllib.parse.quote(str(job_id), safe='')}")
+                if j_code < 400 and isinstance(j_out, dict):
+                    _absolutize_asset_urls(j_out, base)
+                    if j_out.get("outputs"):
+                        res_data["archive_outputs"] = [
+                            {k: o.get(k) for k in ("id", "filename", "mime", "url", "thumb_url") if o.get(k)}
+                            for o in j_out["outputs"]
+                        ]
+
             res_text = json.dumps(res_data, indent=2, ensure_ascii=False)
             if images:
                 img_md = "\n".join([f"![{img['filename']}]({img['url']})\nLink: {img['url']}" for img in images])
@@ -528,6 +728,107 @@ def handle_tool_call(name: str, args: dict) -> dict:
         code, out = call_gate("POST", "/_gate/stop", {"reason": reason})
         return {"content": [{"type": "text", "text": f"Stop request returned ({code}):\n{json.dumps(out, indent=2, ensure_ascii=False)}"}]}
 
+    if name == "gate_queue_job":
+        prompt = args.get("prompt")
+        if not isinstance(prompt, dict) or not prompt:
+            return {"isError": True, "content": [{"type": "text", "text": "Missing or invalid required argument 'prompt' (must be non-empty object)."}]}
+        payload: dict = {"prompt": prompt}
+        if args.get("profile"):
+            payload["profile"] = args["profile"]
+        if args.get("workflow_id"):
+            payload["workflow_id"] = args["workflow_id"]
+        image_ref = (args.get("image") or "").strip()
+        if image_ref:
+            ok, uploaded_or_err, asset_id = _upload_image_impl(image_ref, allow_offline=True)
+            if not ok:
+                return {"isError": True, "content": [{"type": "text", "text": uploaded_or_err}]}
+            payload["inputs"] = [uploaded_or_err]
+            if asset_id:
+                payload["input_asset_ids"] = [asset_id]
+        code, out = call_gate("POST", "/_gate/jobs", payload)
+        if code >= 400:
+            return {"isError": True, "content": [{"type": "text", "text": f"Failed to queue job ({code}): {json.dumps(out, ensure_ascii=False)}"}]}
+        res = {
+            "job_id": out.get("id") or out.get("job_id"),
+            "prompt_id": out.get("client_prompt_id") or out.get("prompt_id"),
+            "status": out.get("status"),
+            "profile_id": out.get("profile_id"),
+        }
+        return {"content": [{"type": "text", "text": json.dumps(res, indent=2, ensure_ascii=False)}]}
+
+    if name == "gate_list_jobs":
+        params = {}
+        if args.get("profile"):
+            params["profile"] = str(args["profile"])
+        if args.get("status"):
+            params["status"] = str(args["status"])
+        if args.get("query"):
+            params["q"] = str(args["query"])
+        if "pinned" in args and args["pinned"] is not None:
+            params["pinned"] = "1" if args["pinned"] else "0"
+        limit = args.get("limit")
+        params["limit"] = str(limit if limit is not None else 20)
+        qs = urllib.parse.urlencode(params)
+        code, out = call_gate("GET", f"/_gate/jobs?{qs}" if qs else "/_gate/jobs")
+        if code >= 400:
+            return {"isError": True, "content": [{"type": "text", "text": f"Failed to list jobs ({code}): {json.dumps(out, ensure_ascii=False)}"}]}
+        base, _ = _resolve_endpoint_and_headers()
+        if isinstance(out, dict) and isinstance(out.get("jobs"), list):
+            for job in out["jobs"]:
+                _absolutize_asset_urls(job, base)
+        return {"content": [{"type": "text", "text": json.dumps(out, indent=2, ensure_ascii=False)}]}
+
+    if name == "gate_get_job":
+        job_id = (args.get("job_id") or "").strip()
+        if not job_id:
+            return {"isError": True, "content": [{"type": "text", "text": "Missing required argument 'job_id'"}]}
+        code, out = call_gate("GET", f"/_gate/jobs/{urllib.parse.quote(job_id, safe='')}")
+        if code >= 400:
+            return {"isError": True, "content": [{"type": "text", "text": f"Failed to get job ({code}): {json.dumps(out, ensure_ascii=False)}"}]}
+        base, _ = _resolve_endpoint_and_headers()
+        if isinstance(out, dict):
+            if not args.get("include_prompt", False):
+                out.pop("prompt", None)
+            _absolutize_asset_urls(out, base)
+        return {"content": [{"type": "text", "text": json.dumps(out, indent=2, ensure_ascii=False)}]}
+
+    if name == "gate_manage_job":
+        job_id = (args.get("job_id") or "").strip()
+        action = (args.get("action") or "").strip().lower()
+        if not job_id or action not in ("retry", "cancel", "pin", "unpin", "delete"):
+            return {"isError": True, "content": [{"type": "text", "text": "Required: 'job_id' and 'action' in ('retry', 'cancel', 'pin', 'unpin', 'delete')."}]}
+        qid = urllib.parse.quote(job_id, safe="")
+        if action == "retry":
+            code, out = call_gate("POST", f"/_gate/jobs/{qid}/retry", {})
+        elif action == "cancel":
+            code, out = call_gate("POST", f"/_gate/jobs/{qid}/cancel", {})
+        elif action in ("pin", "unpin"):
+            code, out = call_gate("POST", f"/_gate/jobs/{qid}/pin", {"pinned": action == "pin"})
+        else:
+            del_files = "1" if args.get("delete_files", False) else "0"
+            code, out = call_gate("DELETE", f"/_gate/jobs/{qid}?delete_files={del_files}")
+        if code >= 400:
+            return {"isError": True, "content": [{"type": "text", "text": f"Failed to {action} job ({code}): {json.dumps(out, ensure_ascii=False)}"}]}
+        return {"content": [{"type": "text", "text": json.dumps(out, indent=2, ensure_ascii=False)}]}
+
+    if name == "gate_storage_status":
+        backup_res = None
+        if args.get("backup_now"):
+            b_code, b_out = call_gate("POST", "/_gate/storage/backup", {})
+            backup_res = b_out if b_code < 400 else {"ok": False, "status": b_code, "error": b_out}
+        s_code, s_out = call_gate("GET", "/_gate/storage/status")
+        if s_code >= 400:
+            return {"isError": True, "content": [{"type": "text", "text": f"Failed to fetch storage status ({s_code}): {json.dumps(s_out, ensure_ascii=False)}"}]}
+        p_code, p_out = call_gate("GET", "/_gate/archive/profiles")
+        res = {
+            "storage": s_out,
+            "counts": s_out.get("counts", {}) if isinstance(s_out, dict) else {},
+            "profiles": p_out.get("profiles", []) if p_code < 400 and isinstance(p_out, dict) else [],
+        }
+        if backup_res is not None:
+            res["backup"] = backup_res
+        return {"content": [{"type": "text", "text": json.dumps(res, indent=2, ensure_ascii=False)}]}
+
     return {"isError": True, "content": [{"type": "text", "text": f"Unknown tool: {name}"}]}
 
 
@@ -566,7 +867,7 @@ def run_stdio_server(base_url: str = ""):
                         "name": "comfy-colab-kit",
                         "version": SERVER_VERSION
                     },
-                    "instructions": "Use gate_status to check the Colab GPU session state, gate_wake to boot or join a profile ('moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image', 'minimax-h3-image', 'minimax-h3-video'), gate_txt2img / gate_img2img / gate_generate to create images or videos, and gate_stop when finished to release GPU compute units."
+                    "instructions": "Use gate_status to check session state, gate_wake to boot/join a profile ('moss-image', 'flux-klein', 'wan-ltx-video', 'sd-latest', 'qwen-image', 'minimax-h3-image', 'minimax-h3-video'), gate_txt2img / gate_img2img / gate_generate to create images or videos when ready, gate_queue_job / gate_list_jobs / gate_get_job / gate_manage_job / gate_storage_status for durable offline queuing and archive browsing even while sleeping, and gate_stop when finished to release GPU compute units."
                 }
             }
             sys.stdout.write(json.dumps(res) + "\n")

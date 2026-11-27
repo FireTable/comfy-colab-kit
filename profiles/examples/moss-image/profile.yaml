@@ -31,6 +31,7 @@ model_aliases:
   qwen3.5_9b_bf16.safetensors: te-int8
   flux2-vae_small.safetensors: vae
   moss_image_base_int8_convrot.safetensors: base-bf16
+  darask0_moss_sft_4step_dmad_lora.safetensors: akhaliq-4step-v2
 models:
 - id: deband-int8
   dest: diffusion_models/moss_image_sft_deband_int8_convrot.safetensors
@@ -89,52 +90,11 @@ models:
   license: unspecified (link-only, never mirrored)
   sha256: 632ff58fba4b09893ba591c043f447240768cf9ac989e12bffa25f5d684b6616
   size_gb: 0.33
-- id: rapid-4step-lora
-  dest: rapid_moss/rapid-moss-4step/lora.safetensors
-  url: hf://darask0/MOSS-Image_4-step_adapter_lora/lora.safetensors
-  license: apache-2.0
-  sha256: 4a4c8e2d6244a0fcdc2822b87b3435226ae57c289aef99fc2ac54edeab9e09bb
-  size_gb: 1.19
-- id: rapid-4step-time
-  dest: rapid_moss/rapid-moss-4step/time_embedding.safetensors
-  url: hf://darask0/MOSS-Image_4-step_adapter_lora/time_embedding.safetensors
-  license: apache-2.0
-  sha256: 2ebabc91e2a9e68c00e948dd80b05235a826e808817b5b2600b441457570d244
-  size_gb: 0.04
-- id: rapid-4step-dataspace
-  dest: rapid_moss/rapid-moss-4step/dataspace.safetensors
-  url: hf://darask0/MOSS-Image_4-step_adapter_lora/dataspace.safetensors
-  license: apache-2.0
-  sha256: d19f0e695bb26886cfce57441fd412f358e159d6eec8555ec1a71daaf30a7968
-  size_gb: 0.01
-- id: lodestones-8step-lora
-  dest: rapid_moss/lodestones-8step-latest/lora.safetensors
-  url: hf://lodestones/MOSS-Image-SFT-8-steps-dmd/lora_latest.safetensors
-  license: apache-2.0
-  sha256: be82ab2bef78194651815bb6de443cec67553e01c14559f2ad365449445f0452
-  size_gb: 1.19
-- id: lodestones-8step-time
-  dest: rapid_moss/lodestones-8step-latest/time_embedding.safetensors
-  url: hf://lodestones/MOSS-Image-SFT-8-steps-dmd/time_embedding.safetensors
-  license: apache-2.0
-  sha256: 54f081f33f48f4abda3362cdc41abec947ddabd11894ce6158b15a9ff6340a3d
-  size_gb: 0.04
-- id: lodestones-8step-dataspace
-  dest: rapid_moss/lodestones-8step-latest/dataspace.safetensors
-  url: hf://lodestones/MOSS-Image-SFT-8-steps-dmd/dataspace.safetensors
-  license: apache-2.0
-  sha256: 816cf216448000c9f525539adcc005a6b929d1bdb2e4e30e2fe82e094152dcb5
 - id: lodestones-8step-as-lora
   dest: loras/lodestones_moss_sft_8step_dmd_lora_latest.safetensors
   url: hf://lodestones/MOSS-Image-SFT-8-steps-dmd/lora_latest.safetensors
   license: apache-2.0
   sha256: be82ab2bef78194651815bb6de443cec67553e01c14559f2ad365449445f0452
-  size_gb: 1.19
-- id: darask0-4step-as-lora
-  dest: loras/darask0_moss_sft_4step_dmad_lora.safetensors
-  url: hf://darask0/MOSS-Image_4-step_adapter_lora/lora.safetensors
-  license: apache-2.0
-  sha256: 4a4c8e2d6244a0fcdc2822b87b3435226ae57c289aef99fc2ac54edeab9e09bb
   size_gb: 1.19
 - id: deband-l37-41
   dest: loras/moss_image_sft_banding_fix_L37-41_bf16.safetensors
@@ -148,18 +108,6 @@ models:
   license: apache-2.0
   sha256: 7f6e43c7566b0c04ad9772cf3efdf9da973b65e242d1a384b17e8db91a6337cd
   size_gb: 1.13
-- id: deband-l37-41-splitqkv
-  dest: loras/moss_image_sft_banding_fix_L37-41_bf16_splitqkv.safetensors
-  url: hf://MATLOWAI/MOSS-Image-SFT-DeBand/moss_image_sft_banding_fix_L37-41_bf16_splitqkv.safetensors
-  license: apache-2.0
-  sha256: 34b29f56c168f33a50624a5b9728cae4026db43b88b46b381a739926921bc882
-  size_gb: 1.13
-- id: sft-bf16-splitqkv
-  dest: diffusion_models/moss_image_sft_bf16_split_qkv.safetensors
-  url: hf://MATLOWAI/MOSS-Image-SFT-DeBand/split_qkv/moss_image_sft_bf16_split_qkv.safetensors
-  license: apache-2.0
-  sha256: 0e5803a087c07cb4c7d8010a2d44153494a053706337edc7f76b455e9900b3a6
-  size_gb: 10.16
 - id: chinoll-edit-patch
   dest: model_patches/moss_image_edit.safetensors
   url: hf://chinoll/Moss-Image-Edit/adapter_model.safetensors
@@ -167,10 +115,6 @@ models:
   sha256: 17a48b8c605dcffdedb92a2b887d18cf316505be90802717669fb6556098dcdf
   size_gb: 0.3
 custom_nodes:
-- id: rapid-moss
-  url: https://huggingface.co/darask0/MOSS-Image_4-step_adapter_lora
-  subdir: comfyui/rapid-moss
-  license: apache-2.0
 - id: moss-image-edit
   url: https://github.com/Chenkin-x/ComfyUI-Moss-Image-Edit
   license: GPL-3.0
@@ -229,34 +173,6 @@ workflows:
       - seed
     outputs:
     - 9
-- id: rapid-moss-4step
-  title: Fast · rapid-moss 4-step adapter (darask0)
-  source: https://huggingface.co/darask0/MOSS-Image_4-step_adapter_lora
-  license: Apache-2.0
-  file: workflows/rapid-moss-4step-native.json
-  upstream_url: https://huggingface.co/darask0/MOSS-Image_4-step_adapter_lora/resolve/main/comfyui/rapid-moss/example_workflows/rapid-moss-4step-native.json
-  upstream_sha256: 3382f3dfe8b881d27a0c4841b33eaa031a4495098f66da83fa524315096f9975
-  models:
-  - sft-bf16
-  - te-int8
-  - vae
-  - rapid-4step-lora
-  - rapid-4step-time
-  - rapid-4step-dataspace
-  custom_nodes:
-  - rapid-moss
-  app:
-    inputs:
-    - - 3
-      - text
-    - - 6
-      - width
-    - - 6
-      - height
-    - - 5
-      - noise_seed
-    outputs:
-    - 9
 - id: official-t2i
   title: Quality · official Text to Image (Comfy-Org)
   source: https://docs.comfy.org/tutorials/image/moss-image/moss-image
@@ -304,7 +220,7 @@ workflows:
     outputs:
     - 9
 - id: matlowai-presets
-  title: Default · DeBand banding-fix LoRAs on SFT bf16 (+ DMD/DMAD fast modes)
+  title: Default · DeBand banding-fix LoRAs on SFT bf16 (+ DMD/4-step fast modes)
   source: https://huggingface.co/MATLOWAI/MOSS-Image-SFT-DeBand
   license: Apache-2.0
   file: workflows/matlowai_banding_fix_presets.json
@@ -317,14 +233,14 @@ workflows:
   - deband-l37-41
   - deband-l32-36
   - lodestones-8step-as-lora
-  - darask0-4step-as-lora
+  - akhaliq-4step-v2
   overrides:
   - node: 1
     widget_index: 0
-    value: Fast alt · fix + darask0 0.35 · 10 steps
+    value: Fast · fix + lodestones DMD 0.35 · 10 steps
   - node: 1
     widget_index: 1
-    value: 4
+    value: 3
   app:
     inputs:
     - - 6
@@ -357,14 +273,14 @@ workflows:
   - deband-l37-41
   - deband-l32-36
   - lodestones-8step-as-lora
-  - darask0-4step-as-lora
+  - akhaliq-4step-v2
   overrides:
   - node: 1
     widget_index: 0
-    value: Fast alt · fix + darask0 0.35 · 10 steps
+    value: Fast · fix + lodestones DMD 0.35 · 10 steps
   - node: 1
     widget_index: 1
-    value: 4
+    value: 3
   app:
     inputs:
     - - 30
@@ -409,46 +325,6 @@ workflows:
       - seed
     outputs:
     - 9
-- id: matlowai-presets-rapid
-  title: Presets + rapid-moss branch (heavy)
-  source: https://huggingface.co/MATLOWAI/MOSS-Image-SFT-DeBand
-  license: Apache-2.0
-  file: workflows/matlowai_banding_fix_presets_rapid_moss.json
-  upstream_url: https://huggingface.co/MATLOWAI/MOSS-Image-SFT-DeBand/resolve/main/workflows/moss_banding_fix_presets_rapid_moss.json
-  upstream_sha256: 3e0fcab3e11c923a859bcd0336b80626e5e0ffecf74a414f6469b2081eecc210
-  optional: true
-  models:
-  - sft-bf16
-  - te-int8
-  - vae
-  - deband-l37-41
-  - deband-l32-36
-  - lodestones-8step-as-lora
-  - darask0-4step-as-lora
-  - sft-bf16-splitqkv
-  - deband-l37-41-splitqkv
-  - rapid-4step-lora
-  - rapid-4step-time
-  - rapid-4step-dataspace
-  - lodestones-8step-lora
-  - lodestones-8step-time
-  - lodestones-8step-dataspace
-  custom_nodes:
-  - rapid-moss
-  app:
-    inputs:
-    - - 6
-      - value
-    - - 1
-      - choice
-    - - 26
-      - value
-    - - 27
-      - value
-    - - 28
-      - value
-    outputs:
-    - 53
 - id: official-base-t2i
   title: Base · official Base Text to Image
   source: https://docs.comfy.org/tutorials/image/moss-image/moss-image
@@ -535,5 +411,5 @@ smoke:
   - deband-l37-41
   - deband-l32-36
   - lodestones-8step-as-lora
-  - darask0-4step-as-lora
+  - akhaliq-4step-v2
   timeout_s: 600

@@ -36,6 +36,8 @@ log = logging.getLogger("gate.session")
 _SECRET_PATTERNS = [
     re.compile(r"Bearer\s+[A-Za-z0-9_\-\.]{20,}", re.IGNORECASE),
     re.compile(r"hf_[A-Za-z0-9]{20,}"),
+    re.compile(r"ya29\.[A-Za-z0-9_\-\.]+"),
+    re.compile(r"1//[A-Za-z0-9_\-\.]+"),
     re.compile(r"ey[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{6,}"),
     re.compile(r"(?:CF_TUNNEL_TOKEN|HF_TOKEN)['\":= ]+([A-Za-z0-9_\-\.]{20,})"),
 ]
@@ -276,6 +278,7 @@ class Session:
 
     def _force(self, st: State, reason: str) -> None:
         m = self.machine
+        prev = m.state
         m.state, m.reason, m.since = st, reason, self.clock()
         if st == State.SLEEPING:
             m.session_started = None
@@ -285,6 +288,11 @@ class Session:
             self.woken_by_ip = ""
         self.persist()
         self.bus.publish("state", self.status())
+        if prev != st:
+            ev = Event(m.since, st, reason)
+            for fn in list(m.listeners):
+                if fn != self._on_state_event:
+                    fn(ev)
 
     def _cu_per_hour(self) -> float:
         return self.settings.cu_rate_for(self.active_accelerator, high_mem=self.active_high_mem)

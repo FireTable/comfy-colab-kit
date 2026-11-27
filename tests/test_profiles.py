@@ -48,8 +48,8 @@ def test_moss_profile_contents():
     p = load_profile(EXAMPLES_DIR / "moss-image")
     assert p.app_default == "matlowai-presets"  # SFT bf16 + DeBand LoRAs: best quality on the shared base
     assert p.workflows["matlowai-deband-int8"].optional  # needs its own merged checkpoints -> opt-in
-    assert {"akhaliq-4step", "rapid-moss-4step", "official-t2i", "official-layout", "matlowai-presets"} <= set(p.workflows)
-    for wid in ("kijai-4step", "chinoll-edit-single", "chinoll-edit-multi", "matlowai-presets-rapid"):
+    assert {"akhaliq-4step", "official-t2i", "official-layout", "matlowai-presets"} <= set(p.workflows)
+    for wid in ("kijai-4step", "chinoll-edit-single", "chinoll-edit-multi"):
         assert p.workflows[wid].optional, wid
     # link-only items (unclear / GPL licences) are never vendored
     for wid in ("kijai-4step", "chinoll-edit-single", "chinoll-edit-multi"):
@@ -118,14 +118,16 @@ def test_plan_contains_comfy_passthrough_and_dedups_models():
     assert all(m["url"].startswith("https://huggingface.co/") for m in plan["models"])
     assert not any(w["id"] == "kijai-4step" for w in plan["workflows"])  # optional by default
     core = {m["id"] for m in plan["models"] if m["core"]}
-    assert {"sft-bf16", "te-int8", "vae", "deband-l37-41"} <= core
+    assert {"sft-bf16", "te-int8", "vae", "deband-l37-41", "akhaliq-4step-v2"} <= core
     assert all(m["core"] for m in plan["models"])  # nothing non-core is downloaded unless asked for
-    assert "akhaliq-4step" in plan["on_demand"] and "akhaliq-4step-v2" in plan["on_demand"]["akhaliq-4step"]
     assert "chinoll-edit-patch" not in {m["id"] for m in plan["models"]}  # optional workflow not selected
-    assert [n["id"] for n in plan["custom_nodes"]] == ["rapid-moss"]
+    assert plan["on_demand"] == {}
+    assert plan["custom_nodes"] == []
     assert plan["model_aliases"]["qwen3.5_9b_w4a8_gptq.safetensors"] == "qwen3.5_9b_int8_convrot.safetensors"
+    assert plan["model_aliases"]["darask0_moss_sft_4step_dmad_lora.safetensors"] == "moss_image_sft_4step_v2.0.safetensors"
     plan2 = build_plan(p, s, ["kijai-4step"])
     assert {w["id"] for w in plan2["workflows"]} == {"kijai-4step", "matlowai-presets"}
+    assert "kijai-4step-v2" in {m["id"] for m in plan2["models"]}
 
 
 def test_workflow_file_and_loras(tmp_path):
@@ -182,11 +184,11 @@ def test_prefetch_and_requested_workflows_download_in_background():
     p = load_profile(EXAMPLES_DIR / "moss-image")
     s = Settings.from_env({"AUTH_DISABLED": "true"})
     wf = dict(p.workflows)
-    wf["akhaliq-4step"] = dataclasses.replace(wf["akhaliq-4step"], prefetch=True)
+    wf["kijai-4step"] = dataclasses.replace(wf["kijai-4step"], optional=False, prefetch=True)
     plan = build_plan(dataclasses.replace(p, workflows=wf), s)
     m = {x["id"]: x for x in plan["models"]}
-    assert m["akhaliq-4step-v2"]["core"] is False and m["sft-bf16"]["core"] is True
-    assert "akhaliq-4step" not in plan["on_demand"]
+    assert m["kijai-4step-v2"]["core"] is False and m["sft-bf16"]["core"] is True
+    assert "kijai-4step" not in plan["on_demand"]
 
 
 def test_fetch_plan_only_lists_requested_models():

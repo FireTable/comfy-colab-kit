@@ -12,7 +12,10 @@ services:
       HOME: /data/home
       PYTHONPATH: /app/apps
     volumes:
-      - ../data:/data                  # state (session.json, cu_ledger.json) + colab CLI login; owner 10001, mode 700
+      - ../data:/data                  # state (session.json, gate.db, cu_ledger.json), archive/thumbs cache, colab CLI login; owner 10001, mode 700
+      # Optional Google Drive OAuth credentials (uncomment if GDRIVE_OAUTH_FILE=/run/secrets/gdrive_oauth.json in .env;
+      # run `ckit gdrive-auth` first to create ../secrets/gdrive_oauth.json with 0600 permissions):
+      # - ../secrets/gdrive_oauth.json:/run/secrets/gdrive_oauth.json:ro
       # content is bind-mounted read-only, NOT baked: `git pull` applies it, no rebuild/restart
       # (profiles are re-read on every wake). Only gate/ code changes need `up -d --build`.
       - ../apps/gate:/app/apps/gate:ro

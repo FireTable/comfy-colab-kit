@@ -120,31 +120,99 @@ def test_mcp_server_tools_list():
 
 @pytest.mark.asyncio
 async def test_gate_mcp_endpoint_tools_list(tmp_path):
-    s = Settings.from_env({"AUTH_DISABLED": "true", "STATE_DIR": str(tmp_path), "DEFAULT_PROFILE": "tiny"})
+    s = Settings.from_env({"AUTH_DISABLED": "true", "STATE_DIR": str(tmp_path / "state"), "DEFAULT_PROFILE": "tiny"})
     prof = {"tiny": load_profile(ROOT / "tests/fixtures/profiles/tiny")}
     app = build_app(s, FakeColab(), prof, run_background=False)
     c = TestClient(TestServer(app))
     await c.start_server()
+
+    expected_tools = {
+        "gate_status",
+        "gate_wake",
+        "gate_txt2img",
+        "gate_img2img",
+        "gate_generate",
+        "gate_stop",
+        "gate_queue_job",
+        "gate_list_jobs",
+        "gate_get_job",
+        "gate_manage_job",
+        "gate_storage_status",
+    }
+
+    async def call_mcp(tool_name: str, arguments: dict) -> dict:
+        resp = await c.post("/mcp", json={
+            "jsonrpc": "2.0",
+            "id": 99,
+            "method": "tools/call",
+            "params": {"name": tool_name, "arguments": arguments},
+        })
+        assert resp.status == 200
+        body = await resp.json()
+        assert body["result"].get("isError") is not True, body
+        return json.loads(body["result"]["content"][0]["text"])
 
     try:
         # 1. GET /mcp
         r = await c.get("/mcp")
         assert r.status == 200
         data = await r.json()
-        assert "gate_txt2img" in data["tools"]
-        assert "gate_img2img" in data["tools"]
+        assert len(data["tools"]) == 11
+        assert set(data["tools"]) == expected_tools
 
-        # 2. POST /mcp tools/list
+        # 2. initialize includes instructions
+        r_init = await c.post("/mcp", json={"jsonrpc": "2.0", "id": 0, "method": "initialize"})
+        assert r_init.status == 200
+        init_res = await r_init.json()
+        assert "gate_queue_job" in init_res["result"]["instructions"]
+
+        # 3. POST /mcp tools/list
         r2 = await c.post("/mcp", json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
         assert r2.status == 200
         data_list = await r2.json()
         tools = [t["name"] for t in data_list["result"]["tools"]]
-        assert "gate_txt2img" in tools
-        assert "gate_img2img" in tools
-        assert "gate_generate" in tools
-        assert "gate_status" in tools
-        assert "gate_wake" in tools
-        assert "gate_stop" in tools
+        assert len(tools) == 11
+        assert set(tools) == expected_tools
+
+        # 4. Call all 5 offline queue/archive tools while GPU is sleeping
+        prompt = {
+            "6": {"class_type": "CLIPTextEncode", "inputs": {"text": "sleeping mcp queue"}},
+            "3": {"class_type": "KSampler", "inputs": {"seed": 11}},
+        }
+        q_res = await call_mcp("gate_queue_job", {"prompt": prompt, "profile": "tiny"})
+        jid = q_res["job_id"]
+        assert q_res["status"] == "queued"
+        assert q_res["profile_id"] == "tiny"
+
+        list_res = await call_mcp("gate_list_jobs", {"status": "queued", "query": "sleeping mcp", "limit": 10})
+        assert list_res["total"] == 1
+        assert list_res["jobs"][0]["id"] == jid
+
+        get_res = await call_mcp("gate_get_job", {"job_id": jid, "include_prompt": False})
+        assert get_res["id"] == jid
+        assert "prompt" not in get_res
+
+        pin_res = await call_mcp("gate_manage_job", {"job_id": jid, "action": "pin"})
+        assert pin_res["pinned"] is True
+        unpin_res = await call_mcp("gate_manage_job", {"job_id": jid, "action": "unpin"})
+        assert unpin_res["pinned"] is False
+
+        cancel_res = await call_mcp("gate_manage_job", {"job_id": jid, "action": "cancel"})
+        assert cancel_res["status"] == "canceled"
+
+        retry_res = await call_mcp("gate_manage_job", {"job_id": jid, "action": "retry"})
+        assert retry_res["status"] == "queued"
+
+        st_res = await call_mcp("gate_storage_status", {"backup_now": True})
+        assert st_res["backend"] == "local"
+        assert st_res["backup"]["ok"] is True
+        assert st_res["counts"]["queued"] == 1
+        assert st_res["profiles"][0]["profile_id"] == "tiny"
+
+        del_res = await call_mcp("gate_manage_job", {"job_id": jid, "action": "delete", "delete_files": True})
+        assert del_res["deleted"] is True
+        list_after = await call_mcp("gate_list_jobs", {})
+        assert list_after["total"] == 0
     finally:
         await c.close()
 
