@@ -35,6 +35,7 @@ class FakeComfyBackend:
 
     def __init__(self, output_bytes: bytes | None = None):
         self.uploaded_files: dict[str, bytes] = {}
+        self.root_queries: list[str] = []
         self.submitted_prompts: list[dict[str, Any]] = []
         self.active_prompts: set[str] = set()
         self.max_concurrent_prompts: int = 0
@@ -67,6 +68,7 @@ class FakeComfyBackend:
 
     async def start(self) -> "FakeComfyBackend":
         app = web.Application(client_max_size=64 * 1024 * 1024)
+        app.router.add_get("/", self._root_html)
         app.router.add_get("/system_stats", self._system_stats)
         app.router.add_post("/kit/heartbeat", self._heartbeat)
         app.router.add_post("/upload/image", self._upload)
@@ -97,6 +99,14 @@ class FakeComfyBackend:
 
     async def __aexit__(self, *args: Any) -> None:
         await self.close()
+
+    async def _root_html(self, req: web.Request) -> web.Response:
+        self.root_queries.append(req.query_string)
+        return web.Response(
+            text="<html><head><title>ComfyUI Mock</title></head><body><div>ComfyUI</div></body></html>",
+            content_type="text/html",
+            headers={"X-Frame-Options": "DENY"},
+        )
 
     async def _system_stats(self, req: web.Request) -> web.Response:
         return web.json_response({"system": {"os": "linux"}, "devices": [{"name": "NVIDIA L4"}]})
@@ -774,5 +784,101 @@ async def test_cancel_retry_history_fallback_and_mcp_queue(tmp_path: Path) -> No
             hist_api_json = await hist_api.json()
             assert api_cpid in hist_api_json
             assert hist_api_json[api_cpid]["status"]["completed"] is True
+        finally:
+            await client.close()
+
+
+@pytest.mark.asyncio
+async def test_embed_iframe_proxies_comfyui_when_ready(tmp_path: Path) -> None:
+    async with FakeComfyBackend() as comfy:
+        app, client = _make_gate_client(tmp_path, comfy.base_url)
+        await client.start_server()
+        try:
+            # While sleeping, GET / returns wake page and GET /?embed=1 returns 503
+            wake_resp = await client.get("/")
+            assert wake_resp.status == 200
+            assert "window.__INIT__" in await wake_resp.text()
+
+            embed_sleep = await client.get("/?embed=1")
+            assert embed_sleep.status == 503
+
+            # Wake session to READY
+            wr = await client.post("/_gate/wake", json={"profile": "tiny"})
+            assert wr.status == 202
+            await _wait_for(lambda: app[SESSION].machine.state == State.READY)
+
+            # Top-level GET / still serves wake shell (which mounts iframe src="/?embed=1")
+            shell_resp = await client.get("/")
+            assert shell_resp.status == 200
+            shell_html = await shell_resp.text()
+            assert 'const targetUrl="/?embed=1"' in shell_html
+
+            # Same-origin GET /?embed=1 proxies ComfyUI HTML + overlay, stripping ?embed=1 and X-Frame-Options
+            embed_resp = await client.get("/?embed=1")
+            assert embed_resp.status == 200
+            assert "X-Frame-Options" not in embed_resp.headers
+            embed_html = await embed_resp.text()
+            assert "ComfyUI Mock" in embed_html
+            assert "/_gate/static/overlay.js" in embed_html
+            assert comfy.root_queries == [""]
+        finally:
+            await client.close()
+
+
+@pytest.mark.asyncio
+async def test_sync_backend_history_archives_untracked_job(tmp_path: Path) -> None:
+    async with FakeGDriveServer(tmp_path / "gdrive_srv") as gd, FakeComfyBackend() as comfy:
+        oauth_file = tmp_path / "gdrive_oauth.json"
+        gd.write_oauth_file(oauth_file)
+        app, client = _make_gate_client(tmp_path, comfy.base_url, oauth_file=oauth_file)
+        await client.start_server()
+        try:
+            wr = await client.post("/_gate/wake", json={"profile": "moss-image"})
+            assert wr.status == 202
+            await _wait_for(lambda: app[SESSION].machine.state == State.READY)
+
+            direct_pid = str(uuid.uuid4())
+            out_name = "moss_banding_fix_00001_.png"
+            comfy.outputs[out_name] = comfy.default_output_bytes
+            prompt_graph = _sample_prompt("penguin holding coffee mug in Antarctica", seed=123456)
+            comfy.history[direct_pid] = {
+                "prompt": [0, direct_pid, prompt_graph, {"client_id": "direct-tab"}, []],
+                "outputs": {
+                    "26": {
+                        "images": [{"filename": out_name, "subfolder": "", "type": "output"}],
+                    }
+                },
+                "status": {"status_str": "success", "completed": True, "messages": []},
+            }
+
+            sync1 = await client.post("/_gate/jobs/sync")
+            assert sync1.status == 200
+            s1_json = await sync1.json()
+            assert s1_json == {"ok": True, "ingested": 1}
+
+            jobs_resp = await (await client.get("/_gate/jobs")).json()
+            assert jobs_resp["total"] == 1
+            job = jobs_resp["jobs"][0]
+            assert job["status"] == "completed"
+            assert job["comfy_prompt_id"] == direct_pid
+            assert job["profile_id"] == "moss-image"
+            assert "penguin holding coffee mug" in job["prompt_text"]
+            assert job["seed"] == 123456
+            assert len(job["outputs"]) == 1
+            assert job["outputs"][0]["filename"] == out_name
+            assert job["outputs"][0]["storage_backend"] == "gdrive"
+
+            # Output file is archived & downloadable via /_gate/archive/assets/<id> even after backend clears
+            aid = job["outputs"][0]["id"]
+            comfy.history.clear()
+            comfy.outputs.clear()
+            asset_resp = await client.get(f"/_gate/archive/assets/{aid}")
+            assert asset_resp.status == 200
+            assert await asset_resp.read() == comfy.default_output_bytes
+
+            # Idempotent second sync ingests 0
+            sync2 = await client.post("/_gate/jobs/sync")
+            assert sync2.status == 200
+            assert await sync2.json() == {"ok": True, "ingested": 0}
         finally:
             await client.close()

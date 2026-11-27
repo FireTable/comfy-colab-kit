@@ -87,7 +87,7 @@ class Proxy:
         headers = {}
         for k, v in raw_headers.items():
             kl = k.lower()
-            if kl in HOP_BY_HOP:
+            if kl in HOP_BY_HOP or kl == "x-frame-options":
                 continue
             # Strip Cloudflare Access service token cookies from backend so client's CF_Authorization cookie isn't clobbered
             if kl == "set-cookie" and any(x in v.lower() for x in ("cf_authorization", "cf_appsession", "cf_clearance")):
@@ -137,8 +137,12 @@ class Proxy:
             return await self._ws(req)
         c = await self.client()
         # raw_path keeps percent-encoding: the frontend loads /api/userdata/workflows%2Fx.json and ComfyUI's
-        # route only matches when %2F stays encoded (rel_url.path_qs would decode it to a 404)
-        url = yarl.URL(self.backend + req.raw_path, encoded=True)
+        # route only matches when %2F stays encoded (rel_url.path_qs would decode it to a 404).
+        # Strip the gate-only ?embed=1 flag when forwarding the embedded ComfyUI root page.
+        raw_path = req.raw_path
+        if req.rel_url.path in ("/", "/index.html") and req.query.get("embed") == "1":
+            raw_path = req.rel_url.raw_path
+        url = yarl.URL(self.backend + raw_path, encoded=True)
         body = await req.read() if req.can_read_body else None
         async with c.request(req.method, url, headers=self._headers(req), data=body, allow_redirects=False) as r:
             ctype = r.headers.get("Content-Type", "")

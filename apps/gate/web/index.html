@@ -1887,8 +1887,8 @@ function render(){
    const b=$("bg"),g=document.querySelector(".grid");
    if(b)b.style.display="none";if(g)g.style.display="none";
   }
-  const targetUrl=S.backend_url||"";
-  if(targetUrl&&(!frame.src||frame.src==="about:blank"||!frame.src.startsWith(targetUrl))){
+  const targetUrl="/?embed=1";
+  if(!frame.src||frame.src==="about:blank"||!frame.src.includes("embed=1")){
    frame.src=targetUrl;
   }
   frame.style.display="block";

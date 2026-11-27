@@ -977,6 +977,11 @@ async def offline_upload_route(request: web.Request) -> web.Response:
     return await request.app[JOBS].handle_offline_upload(request)
 
 
+async def sync_jobs_route(request: web.Request) -> web.Response:
+    ingested = await request.app[JOBS].sync_backend_history()
+    return web.json_response({"ok": True, "ingested": ingested})
+
+
 async def retry_job_route(request: web.Request) -> web.Response:
     job_id = request.match_info["job_id"]
     job, code = await request.app[JOBS].retry_job(job_id)
@@ -1091,7 +1096,7 @@ async def archive_thumb_route(request: web.Request) -> web.StreamResponse:
 async def catch_all(request: web.Request) -> web.StreamResponse:
     s = request.app[SESSION]
     s.touch()
-    if request.path in ("/", "/index.html"):
+    if request.path in ("/", "/index.html") and request.query.get("embed") != "1":
         if request.app[SETTINGS].auto_stop.wake_on_visit and s.machine.state == State.SLEEPING:
             await s.wake(None, by=_ident(request).email, ip=get_client_ip(request))
         return await wake_page(request)
@@ -1117,6 +1122,8 @@ async def catch_all(request: web.Request) -> web.StreamResponse:
         except Exception as e:  # noqa: BLE001
             log.warning("proxy error: %s", e)
             return err(502, "backend_unreachable", "ComfyUI backend unreachable")
+    if request.path in ("/", "/index.html") and request.query.get("embed") == "1":
+        return err(503, "asleep", f"ComfyUI is {s.machine.state.value}; POST /_gate/wake first")
     api_prefixes = (
         "/api", "/ws", "/prompt", "/view", "/view_metadata",
         "/upload", "/object_info", "/embeddings", "/extensions",
@@ -1154,6 +1161,10 @@ async def background(app: web.Application) -> None:
                         await s.reconcile()
                 else:
                     consecutive_probe_failures = 0
+                    try:
+                        await jm.sync_backend_history()
+                    except Exception as exc:  # noqa: BLE001
+                        log.warning("history sync error: %s", exc)
                     s.queue_busy = (await proxy.queue_busy()) or jm.has_active_work_for(s.machine.profile)
                 await proxy.heartbeat()
             elif s.is_boot_state() and not s.boot_task_running() and await proxy.probe():
@@ -1228,6 +1239,7 @@ def build_app(settings: Settings, colab: ColabRunner | None = None,
     r.add_get("/_gate/jobs", list_jobs_route)
     r.add_post("/_gate/jobs", create_job_route)
     r.add_post("/_gate/jobs/upload", offline_upload_route)
+    r.add_post("/_gate/jobs/sync", sync_jobs_route)
     r.add_get("/_gate/jobs/{job_id}", get_job_route)
     r.add_post("/_gate/jobs/{job_id}/retry", retry_job_route)
     r.add_post("/_gate/jobs/{job_id}/cancel", cancel_job_route)

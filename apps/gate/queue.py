@@ -237,6 +237,7 @@ class JobManager:
         self._wake_event = asyncio.Event()
         self._terminal_waiters: dict[str, list[asyncio.Event]] = {}
         self._backup_lock = asyncio.Lock()
+        self._sync_lock = asyncio.Lock()
         self._backup_task: asyncio.Task | None = None
         self._db_dirty: bool = False
         self._stopped: bool = False
@@ -1196,3 +1197,96 @@ class JobManager:
                         pass
         finally:
             self._active_job_id = None
+
+    async def sync_backend_history(self) -> int:
+        """Ingest untracked completed jobs directly from ComfyUI /history into the archive."""
+        if self.session.machine.state != State.READY or not self.proxy.backend:
+            return 0
+        async with self._sync_lock:
+            if self.session.machine.state != State.READY:
+                return 0
+            client = await self.proxy.client()
+            try:
+                async with client.get(
+                    f"{self.proxy.backend}/history",
+                    headers=self._backend_headers(),
+                    timeout=aiohttp.ClientTimeout(total=15),
+                ) as resp:
+                    if resp.status != 200:
+                        return 0
+                    data = await resp.json()
+            except Exception as exc:  # noqa: BLE001
+                log.warning("backend /history fetch failed during sync: %s", exc)
+                return 0
+            if not isinstance(data, dict):
+                return 0
+
+            ingested = 0
+            for raw_pid, item in data.items():
+                pid = str(raw_pid or "").strip()
+                if not pid or not isinstance(item, dict):
+                    continue
+                if self.db.get_job(pid, include_prompt=False) is not None:
+                    continue
+                status = item.get("status")
+                if not isinstance(status, dict) or status.get("completed") is not True:
+                    continue
+                if status.get("status_str") not in ("success", None):
+                    continue
+                outputs = item.get("outputs")
+                if not isinstance(outputs, dict) or not any(
+                    isinstance(no, dict) and any(no.get(k) for k in ("images", "videos", "gifs", "audio"))
+                    for no in outputs.values()
+                ):
+                    continue
+
+                prompt_tuple = item.get("prompt")
+                prompt_dict: dict[str, Any] = {}
+                extra_data: dict[str, Any] = {}
+                if isinstance(prompt_tuple, list):
+                    if len(prompt_tuple) > 2 and isinstance(prompt_tuple[2], dict):
+                        prompt_dict = prompt_tuple[2]
+                    if len(prompt_tuple) > 3 and isinstance(prompt_tuple[3], dict):
+                        extra_data = prompt_tuple[3]
+
+                now = self.session.clock()
+                profile_id = self.session.machine.profile or self.settings.default_profile
+                accel = self.session.active_accelerator
+                job = self.db.create_job(
+                    client_prompt_id=pid,
+                    profile_id=profile_id,
+                    prompt_json=prompt_dict,
+                    status="archiving",
+                    submitted_by="comfyui",
+                    accelerator=accel,
+                    extra_data_json=extra_data,
+                    prompt_text=extract_prompt_text(prompt_dict),
+                    seed=extract_seed(prompt_dict),
+                    max_retries=0,
+                    created_at=now,
+                )
+                job = self.db.update_job_status(
+                    job["id"],
+                    "archiving",
+                    comfy_prompt_id=pid,
+                    accelerator=accel,
+                    started_at=now,
+                ) or job
+                try:
+                    await self._archive_outputs(job, item, now)
+                except Exception as exc:  # noqa: BLE001
+                    log.warning("failed archiving untracked history item %s: %s", pid, exc)
+                    self.db.delete_job(job["id"], delete_unshared_outputs=True)
+                    continue
+
+                updated = self.db.update_job_status(
+                    job["id"],
+                    "completed",
+                    comfy_prompt_id=pid,
+                    accelerator=accel,
+                    finished_at=self.session.clock(),
+                )
+                self.mark_db_dirty()
+                self._publish_job_event(updated, "completed")
+                ingested += 1
+            return ingested

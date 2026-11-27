@@ -52,18 +52,34 @@
     paint();
   }
   function paint() { q("kit-app").classList.toggle("on", linear()); q("kit-graph").classList.toggle("on", !linear()); }
-  q("kit-queue").onclick = () => { window.open("/#archive", "_blank", "noopener"); };
+  q("kit-queue").onclick = () => {
+    try {
+      if (window.self !== window.top && typeof window.parent?.openArchiveModal === "function") {
+        window.parent.openArchiveModal();
+        return;
+      }
+    } catch (_) { /* cross-origin fallback */ }
+    window.open("/#archive", "_blank", "noopener");
+  };
   q("kit-app").onclick = () => toggle(true); q("kit-graph").onclick = () => toggle(false);
   q("kit-stop").onclick = async () => {
     if (q("kit-stop").disabled) return;
     if (!confirm("Sleep now and release the GPU?")) return;
-    const r = await fetch("/_gate/stop", { method: "POST" }); if (r.ok) location.href = "/"; else alert((await r.json()).message);
+    const r = await fetch("/_gate/stop", { method: "POST" });
+    if (r.ok) {
+      if (window.self === window.top) location.href = "/";
+    } else {
+      alert((await r.json()).message);
+    }
   };
   q("kit-ext").onclick = async () => { const r = await fetch("/_gate/extend", { method: "POST" }); if (!r.ok) alert((await r.json()).message); poll(); };
   async function poll() {
     try {
       const s = await (await fetch("/_gate/status")).json();
-      if (s.state !== "ready") { location.href = "/"; return; }
+      if (s.state !== "ready") {
+        if (window.self === window.top) location.href = "/";
+        return;
+      }
       const qInfo = s.queue || {};
       const qCount = (Number(qInfo.queued) || 0) + (Number(qInfo.running) || 0) + (Number(qInfo.interrupted) || 0);
       const qBtn = q("kit-queue");
