@@ -967,6 +967,12 @@ window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener("change",(e
 });
 $("theme").onclick=()=>{const n=root.dataset.theme==="dark"?"light":"dark";root.dataset.theme=n;localStorage.setItem("kit.theme",n);window.kitBg&&kitBg.set({})};
 
+// Archive & Queue + Lightbox state (must be initialized before updateLanguageUI() runs)
+const archiveModal=$("archive-modal");
+const lightboxModal=$("lightbox-modal");
+const archiveState={profile:"",status:"all",q:"",pinned:false,jobs:[],profiles:[],storage:null,loading:false,lbJob:null,lbIndex:0};
+const reducedMotionQuery=window.matchMedia?window.matchMedia("(prefers-reduced-motion: reduce)"):null;
+
 // Unified Menu State & Backdrop Management
 let langOpen=false,userOpen=false,selectOpen=false;
 const dropdownBackdrop=$("dropdown-backdrop");
@@ -2018,11 +2024,6 @@ function connect(){
  es.onerror=()=>{$("sub").textContent=t("reconnecting")}}
 
 // Archive & Queue + Lightbox Modals
-const archiveModal=$("archive-modal");
-const lightboxModal=$("lightbox-modal");
-const archiveState={profile:"",status:"all",q:"",pinned:false,jobs:[],profiles:[],storage:null,loading:false,lbJob:null,lbIndex:0};
-const reducedMotionQuery=window.matchMedia?window.matchMedia("(prefers-reduced-motion: reduce)"):null;
-
 function enableDialogLightDismissFallback(dlg){
  if(!dlg||("closedBy" in HTMLDialogElement.prototype))return;
  const outside=(e)=>{const r=dlg.getBoundingClientRect();return e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom};
